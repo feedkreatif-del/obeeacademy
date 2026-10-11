@@ -1,0 +1,256 @@
+{
+  "entities": {
+    "SessionState": {
+      "title": "SessionState",
+      "description": "Live state of the PartnerUp UMKM interactive seminar session",
+      "type": "object",
+      "properties": {
+        "activeQuestion": {
+          "type": "integer",
+          "description": "Current active worksheet question index (0 to 6)"
+        },
+        "activeSlide": {
+          "type": "integer",
+          "description": "Current active presentation slide index (0 to 16)"
+        },
+        "activeMode": {
+          "type": "string",
+          "enum": ["worksheet", "poll", "qna", "external"],
+          "description": "Current active interactive mode on participant phones and projector"
+        },
+        "activePollId": {
+          "type": "string",
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "ID of the active live poll (rational_4types or emotional_feelings)"
+        },
+        "moderationEnabled": {
+          "type": "boolean",
+          "description": "If true, incoming answers and questions start as pending until approved by moderator"
+        },
+        "externalEmbedUrl": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Optional external Slido or Mentimeter embed URL"
+        },
+        "externalPlatform": {
+          "type": "string",
+          "enum": ["slido", "mentimeter", "custom"],
+          "description": "Platform type for external embed"
+        },
+        "sessionName": {
+          "type": "string",
+          "maxLength": 120,
+          "description": "Title of the active seminar session"
+        },
+        "updatedAt": {
+          "type": "integer",
+          "description": "Timestamp of last state update in ms"
+        }
+      },
+      "required": [
+        "activeQuestion",
+        "activeSlide",
+        "activeMode",
+        "activePollId",
+        "moderationEnabled",
+        "externalEmbedUrl",
+        "externalPlatform",
+        "sessionName",
+        "updatedAt"
+      ]
+    },
+    "Answer": {
+      "title": "Answer",
+      "description": "Participant response to one of the 7 PartnerUp Value Proposition worksheet questions",
+      "type": "object",
+      "properties": {
+        "q": {
+          "type": "integer",
+          "description": "Question index (0 to 6)"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 250,
+          "description": "Participant answer text"
+        },
+        "subText": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "Optional secondary field answer for structured prompts"
+        },
+        "businessName": {
+          "type": "string",
+          "maxLength": 60,
+          "description": "UMKM business name"
+        },
+        "participantId": {
+          "type": "string",
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Client device identifier for linking answers across parts 1 to 7"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "approved", "hidden"],
+          "description": "Moderation status"
+        },
+        "star": {
+          "type": "boolean",
+          "description": "Whether this answer is spotlighted on the projector"
+        },
+        "likes": {
+          "type": "integer",
+          "description": "Number of likes/upvotes from audience or presenter"
+        },
+        "mentorNote": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "Optional warm feedback note from presenter/moderator"
+        },
+        "ts": {
+          "type": "integer",
+          "description": "Submission timestamp in ms"
+        }
+      },
+      "required": [
+        "q",
+        "text",
+        "subText",
+        "businessName",
+        "participantId",
+        "status",
+        "star",
+        "likes",
+        "mentorNote",
+        "ts"
+      ]
+    },
+    "QnaItem": {
+      "title": "QnaItem",
+      "description": "Anonymous or named Q&A question with live upvoting (Slido style)",
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 250,
+          "description": "The question asked by the participant"
+        },
+        "authorName": {
+          "type": "string",
+          "maxLength": 60,
+          "description": "Author or UMKM name, or Anonim"
+        },
+        "isAnonymous": {
+          "type": "boolean",
+          "description": "Whether the question was submitted anonymously"
+        },
+        "topicTag": {
+          "type": "string",
+          "maxLength": 40,
+          "description": "Topic category (e.g. Rational Value, Emotional Value, Kemasan, Harga)"
+        },
+        "upvotes": {
+          "type": "integer",
+          "description": "Live upvote count from participants"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "approved", "hidden", "answered"],
+          "description": "Moderation and completion status"
+        },
+        "star": {
+          "type": "boolean",
+          "description": "Whether this question is currently highlighted on stage"
+        },
+        "participantId": {
+          "type": "string",
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Client identifier"
+        },
+        "ts": {
+          "type": "integer",
+          "description": "Submission timestamp in ms"
+        }
+      },
+      "required": [
+        "text",
+        "authorName",
+        "isAnonymous",
+        "topicTag",
+        "upvotes",
+        "status",
+        "star",
+        "participantId",
+        "ts"
+      ]
+    },
+    "PollVote": {
+      "title": "PollVote",
+      "description": "Participant vote on a live seminar poll or word cloud",
+      "type": "object",
+      "properties": {
+        "pollId": {
+          "type": "string",
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Poll identifier"
+        },
+        "optionId": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Selected option ID or word"
+        },
+        "customWord": {
+          "type": "string",
+          "maxLength": 40,
+          "description": "Custom word for word cloud"
+        },
+        "businessName": {
+          "type": "string",
+          "maxLength": 60,
+          "description": "Optional UMKM name"
+        },
+        "participantId": {
+          "type": "string",
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Participant device ID"
+        },
+        "ts": {
+          "type": "integer",
+          "description": "Vote timestamp in ms"
+        }
+      },
+      "required": [
+        "pollId",
+        "optionId",
+        "customWord",
+        "businessName",
+        "participantId",
+        "ts"
+      ]
+    }
+  },
+  "firestore": {
+    "/state/{sessionId}": {
+      "schema": { "$ref": "#/entities/SessionState" },
+      "description": "Global seminar session state controlled by presenter/moderator"
+    },
+    "/answers/{answerId}": {
+      "schema": { "$ref": "#/entities/Answer" },
+      "description": "Participant worksheet answers across the 7 seminar sections"
+    },
+    "/qna/{questionId}": {
+      "schema": { "$ref": "#/entities/QnaItem" },
+      "description": "Live Q&A questions with anonymous support and upvoting"
+    },
+    "/poll_votes/{voteId}": {
+      "schema": { "$ref": "#/entities/PollVote" },
+      "description": "Live poll and word cloud votes"
+    }
+  }
+}
