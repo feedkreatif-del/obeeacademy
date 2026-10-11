@@ -105,58 +105,58 @@ export const ProjectorView: React.FC<ProjectorViewProps> = ({
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       {/* Presenter Control Toolbar */}
       {!isFullscreenStage && (
-        <div className="bg-[#1F3A5F] text-white rounded-2xl p-4 sm:p-5 mb-6 shadow-sm flex flex-wrap items-center justify-between gap-4">
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+        <div className="bg-[#1F3A5F] text-white rounded-2xl p-4 sm:p-5 mb-6 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4 w-full max-w-full overflow-hidden">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 min-w-0 max-w-full">
             <span className="font-display font-bold text-sm sm:text-base text-[#F28C28] whitespace-nowrap">
               Tampilan Presenter
             </span>
-            <span aria-hidden="true" className="text-white/25">|</span>
+            <span aria-hidden="true" className="text-white/25 hidden sm:inline">|</span>
 
             {/* Mode Switcher */}
-            <div className="flex items-center gap-1 bg-white/10 p-1 rounded-xl">
+            <div className="flex flex-wrap items-center gap-1.5 bg-white/10 p-1.5 rounded-xl w-full sm:w-auto max-w-full">
               <button
                 onClick={() => onChangeMode('worksheet')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap ${
                   sessionState.activeMode === 'worksheet'
                     ? 'bg-[#F28C28] text-white'
                     : 'text-white/80 hover:text-white'
                 }`}
               >
-                <BookOpen className="w-3.5 h-3.5" />
+                <BookOpen className="w-3.5 h-3.5 shrink-0" />
                 <span>{totalQuestions} Pertanyaan Materi</span>
               </button>
               <button
                 onClick={() => onChangeMode('poll')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap ${
                   sessionState.activeMode === 'poll'
                     ? 'bg-[#2A9D8F] text-white'
                     : 'text-white/80 hover:text-white'
                 }`}
               >
-                <BarChart3 className="w-3.5 h-3.5" />
+                <BarChart3 className="w-3.5 h-3.5 shrink-0" />
                 <span>Live Polling ({polls.length})</span>
               </button>
               <button
                 onClick={() => onChangeMode('qna')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap ${
                   sessionState.activeMode === 'qna'
                     ? 'bg-[#F28C28] text-white'
                     : 'text-white/80 hover:text-white'
                 }`}
               >
-                <MessageSquare className="w-3.5 h-3.5" />
+                <MessageSquare className="w-3.5 h-3.5 shrink-0" />
                 <span>Q&A Anonim ({approvedQna.length})</span>
               </button>
               {sessionState.externalEmbedUrl && (
                 <button
                   onClick={() => onChangeMode('external')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap ${
                     sessionState.activeMode === 'external'
                       ? 'bg-[#2A9D8F] text-white'
                       : 'text-white/80 hover:text-white'
                   }`}
                 >
-                  <ExternalLink className="w-3.5 h-3.5" />
+                  <ExternalLink className="w-3.5 h-3.5 shrink-0" />
                   <span>Embed {sessionState.externalPlatform.toUpperCase()}</span>
                 </button>
               )}
@@ -164,7 +164,7 @@ export const ProjectorView: React.FC<ProjectorViewProps> = ({
           </div>
 
           {/* Navigation & Action Buttons */}
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 max-w-full">
             {sessionState.activeMode === 'worksheet' && (
               <>
                 <button

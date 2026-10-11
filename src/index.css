@@ -7,12 +7,14 @@
     --font-mono: 'IBM Plex Mono', monospace;
   }
 
-  body {
+  html, body {
     font-family: var(--font-sans);
     background-color: #FFF7EC;
     color: #1F3A5F;
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
+    overflow-x: hidden;
+    max-width: 100%;
   }
 
   h1, h2, h3, .font-display {

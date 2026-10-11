@@ -546,9 +546,9 @@ export default function App() {
     qnaList.filter((q) => q.status === 'pending').length;
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FFF7EC] text-[#1F3A5F]">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden flex flex-col bg-[#FFF7EC] text-[#1F3A5F]">
       {/* Strict 3-Zone Top Navigation Bar */}
-      <header className="flex items-center justify-between gap-8 px-4 sm:px-8 py-4 bg-[#1F3A5F] text-white border-b border-white/10 sticky top-0 z-30">
+      <header className="w-full max-w-full flex items-center justify-between gap-2.5 sm:gap-6 px-3 sm:px-8 py-3.5 sm:py-4 bg-[#1F3A5F] text-white border-b border-white/10 sticky top-0 z-30">
         {/* Zone 1: Brand Wordmark */}
         <a
           href="#top"
@@ -556,13 +556,13 @@ export default function App() {
             e.preventDefault();
             setViewRole('projector');
           }}
-          className="font-display text-lg sm:text-xl font-extrabold tracking-tight text-white whitespace-nowrap shrink-0"
+          className="font-display text-base sm:text-xl font-extrabold tracking-tight text-white whitespace-nowrap shrink-0"
         >
           PartnerUp Live
         </a>
 
         {/* Zone 2: 5 Concise Single-Line Navigation Links */}
-        <nav className="flex items-center gap-4 sm:gap-6 text-xs sm:text-sm font-medium text-white/80 overflow-x-auto">
+        <nav className="flex-1 min-w-0 flex items-center md:justify-center gap-3.5 sm:gap-6 text-xs sm:text-sm font-medium text-white/80 overflow-x-auto no-scrollbar py-0.5">
           <button
             onClick={() => setViewRole('projector')}
             className={`hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer pb-0.5 ${

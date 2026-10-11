@@ -171,8 +171,8 @@ export const ModerationView: React.FC<ModerationViewProps> = ({
       </div>
 
       {/* Category Tabs & Session Maintenance */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-2 bg-white p-1.5 rounded-xl border border-[#1F3A5F]/15">
+      <div className="flex flex-wrap items-center justify-between gap-4 max-w-full">
+        <div className="flex flex-wrap items-center gap-2 bg-white p-1.5 rounded-xl border border-[#1F3A5F]/15 max-w-full">
           <button
             onClick={() => setActiveCategory('answers')}
             className={`px-4 py-2.5 rounded-lg text-xs sm:text-sm font-bold flex items-center gap-2 cursor-pointer transition-colors ${
@@ -181,7 +181,7 @@ export const ModerationView: React.FC<ModerationViewProps> = ({
                 : 'text-[#1F3A5F]/75 hover:bg-[#1F3A5F]/5'
             }`}
           >
-            <BookOpen className="w-4 h-4" />
+            <BookOpen className="w-4 h-4 shrink-0" />
             <span>Jawaban Lembar Kerja ({allAnswers.length})</span>
             {pendingAnswersCount > 0 && (
               <span className="px-2 py-0.5 rounded-full bg-[#F28C28] text-white font-mono text-xs tabular-nums">
@@ -198,7 +198,7 @@ export const ModerationView: React.FC<ModerationViewProps> = ({
                 : 'text-[#1F3A5F]/75 hover:bg-[#1F3A5F]/5'
             }`}
           >
-            <MessageSquare className="w-4 h-4" />
+            <MessageSquare className="w-4 h-4 shrink-0" />
             <span>Pertanyaan Q&A Anonim ({allQna.length})</span>
             {pendingQnaCount > 0 && (
               <span className="px-2 py-0.5 rounded-full bg-[#F28C28] text-white font-mono text-xs tabular-nums">
@@ -215,13 +215,13 @@ export const ModerationView: React.FC<ModerationViewProps> = ({
                 : 'text-[#1F3A5F]/75 hover:bg-[#1F3A5F]/5'
             }`}
           >
-            <ExternalLink className="w-4 h-4" />
+            <ExternalLink className="w-4 h-4 shrink-0" />
             <span>Integrasi Slido / Mentimeter</span>
           </button>
         </div>
 
         {/* Utility Buttons */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 max-w-full">
           <button
             onClick={onSeedSampleData}
             className="px-3.5 py-2 rounded-xl bg-white border border-[#1F3A5F]/20 hover:border-[#2A9D8F] text-[#1F3A5F] text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
