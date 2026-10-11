@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { WorksheetQuestion, LivePollConfig } from '../data/seminarData';
 import { AnswerDoc, QnaDoc, PollVoteDoc, SessionStateDoc, InteractiveMode } from '../types';
 import { QRCodeSVG } from 'qrcode.react';
+import { PWAInstallModalTrigger } from './PWAInstallButton';
 import {
   ChevronLeft,
   ChevronRight,
@@ -192,6 +193,8 @@ export const ProjectorView: React.FC<ProjectorViewProps> = ({
               <QrCode className="w-4 h-4" />
               <span>QR Peserta</span>
             </button>
+
+            <PWAInstallModalTrigger variant="dark" />
 
             <button
               onClick={onDownloadCsv}

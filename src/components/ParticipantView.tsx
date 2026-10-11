@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { WorksheetQuestion, LivePollConfig } from '../data/seminarData';
 import { AnswerDoc, QnaDoc, PollVoteDoc, SessionStateDoc, InteractiveMode } from '../types';
+import { PWAInstallModalTrigger } from './PWAInstallButton';
 import {
   Send,
   CheckCircle2,
@@ -618,16 +619,19 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
       {/* MODE 4: REKAP USAHAKU */}
       {localTab === 'summary' && (
         <div className="bg-white border border-[#1F3A5F]/15 rounded-2xl p-6 sm:p-8 shadow-xs space-y-6">
-          <div className="border-b border-[#1F3A5F]/10 pb-4">
-            <span className="text-xs font-bold uppercase tracking-wider text-[#F28C28]">
-              Lembar Rekap Seminar
-            </span>
-            <h2 className="font-display text-2xl font-bold text-[#1F3A5F] mt-1">
-              Rangkuman Jawaban Usahaku
-            </h2>
-            <p className="text-sm text-[#1F3A5F]/75 mt-1">
-              Simpan atau salin rangkuman jawabanmu dari setiap bagian materi untuk langsung diterapkan di usahamu.
-            </p>
+          <div className="border-b border-[#1F3A5F]/10 pb-4 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <span className="text-xs font-bold uppercase tracking-wider text-[#F28C28]">
+                Lembar Rekap Seminar
+              </span>
+              <h2 className="font-display text-2xl font-bold text-[#1F3A5F] mt-1">
+                Rangkuman Jawaban Usahaku
+              </h2>
+              <p className="text-sm text-[#1F3A5F]/75 mt-1">
+                Simpan atau salin rangkuman jawabanmu dari setiap bagian materi untuk langsung diterapkan di usahamu.
+              </p>
+            </div>
+            <PWAInstallModalTrigger variant="light" />
           </div>
 
           <div className="space-y-3">

@@ -43,6 +43,7 @@ import { ParticipantView } from './components/ParticipantView';
 import { ModerationView } from './components/ModerationView';
 import { SlideDeckView } from './components/SlideDeckView';
 import { ContentEditorView, DEFAULT_QNA_TOPICS } from './components/ContentEditorView';
+import { OfflineBanner, PWAInstallModalTrigger } from './components/PWAInstallButton';
 import { Download } from 'lucide-react';
 
 const DEFAULT_SESSION_STATE: SessionStateDoc = {
@@ -666,7 +667,10 @@ export default function App() {
           <SlideDeckView
             slides={customContent.slides}
             questions={customContent.questions}
+            polls={customContent.polls}
+            pollVotes={pollVotes}
             organizerName={customContent.organizerName}
+            joinUrl={joinUrl}
             activeSlideIndex={sessionState.activeSlide}
             onChangeSlide={(newSlide) => updateSessionState({ activeSlide: newSlide })}
             onLaunchWorksheetQuestion={(qIdx) => {
@@ -681,6 +685,13 @@ export default function App() {
               updateSessionState({ activeMode: 'qna' });
               setViewRole('projector');
             }}
+            onSyncQuestionOnly={(qIdx) => {
+              updateSessionState({ activeQuestion: qIdx, activeMode: 'worksheet' });
+            }}
+            onSyncPollOnly={(pollId) => {
+              updateSessionState({ activePollId: pollId, activeMode: 'poll' });
+            }}
+            onToggleStarAnswer={handleToggleStarAnswer}
             approvedAnswers={approvedAnswers}
             activeMode={sessionState.activeMode}
           />
@@ -688,10 +699,11 @@ export default function App() {
 
         {viewRole === 'participant' && (
           <div>
-            <div className="bg-[#FFF7EC] border-b border-[#1F3A5F]/10 px-4 py-2 text-center text-xs text-[#1F3A5F]/75 flex items-center justify-center gap-3">
+            <div className="bg-[#FFF7EC] border-b border-[#1F3A5F]/10 px-4 py-2 text-center text-xs text-[#1F3A5F]/75 flex flex-wrap items-center justify-center gap-3">
               <span>
                 Anda sedang berada di tampilan <strong>HP Peserta UMKM</strong> ({customContent.seminarTitle}).
               </span>
+              <PWAInstallModalTrigger variant="dark" />
               <button
                 onClick={() => setViewRole('projector')}
                 className="font-bold text-[#F28C28] hover:underline cursor-pointer"
@@ -761,6 +773,7 @@ export default function App() {
       <footer className="border-t border-[#1F3A5F]/10 py-4 px-6 text-center text-xs text-[#1F3A5F]/60 bg-[#FFF7EC]">
         <span>{customContent.seminarTitle} · {customContent.organizerName}</span>
       </footer>
+      <OfflineBanner />
     </div>
   );
 }
