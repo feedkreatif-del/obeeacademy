@@ -1,5 +1,7 @@
+import { WorksheetQuestion, LivePollConfig, SlideDefinition } from './data/seminarData';
+
 export type InteractiveMode = 'worksheet' | 'poll' | 'qna' | 'external';
-export type ViewRole = 'projector' | 'participant' | 'moderation' | 'slides';
+export type ViewRole = 'projector' | 'participant' | 'moderation' | 'slides' | 'editor';
 
 export interface SessionStateDoc {
   activeQuestion: number;
@@ -10,6 +12,16 @@ export interface SessionStateDoc {
   externalEmbedUrl: string;
   externalPlatform: 'slido' | 'mentimeter' | 'custom';
   sessionName: string;
+  updatedAt: number;
+}
+
+export interface CustomContentDoc {
+  seminarTitle: string;
+  organizerName: string;
+  questions: WorksheetQuestion[];
+  polls: LivePollConfig[];
+  slides: SlideDefinition[];
+  qnaTopics: string[];
   updatedAt: number;
 }
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { PARTNERUP_QUESTIONS, LIVE_POLLS } from '../data/seminarData';
+import { WorksheetQuestion, LivePollConfig } from '../data/seminarData';
 import { AnswerDoc, QnaDoc, PollVoteDoc, SessionStateDoc, InteractiveMode } from '../types';
 import { QRCodeSVG } from 'qrcode.react';
 import {
@@ -22,6 +22,10 @@ import {
 } from 'lucide-react';
 
 interface ProjectorViewProps {
+  questions: WorksheetQuestion[];
+  polls: LivePollConfig[];
+  seminarTitle: string;
+  organizerName: string;
   sessionState: SessionStateDoc;
   approvedAnswers: AnswerDoc[];
   approvedQna: QnaDoc[];
@@ -39,6 +43,10 @@ interface ProjectorViewProps {
 }
 
 export const ProjectorView: React.FC<ProjectorViewProps> = ({
+  questions,
+  polls,
+  seminarTitle,
+  organizerName,
   sessionState,
   approvedAnswers,
   approvedQna,
@@ -57,9 +65,9 @@ export const ProjectorView: React.FC<ProjectorViewProps> = ({
   const [showQrModal, setShowQrModal] = useState(false);
   const [isFullscreenStage, setIsFullscreenStage] = useState(false);
 
-  const activeQIndex = sessionState.activeQuestion;
-  const currentQuestion = PARTNERUP_QUESTIONS[activeQIndex] || PARTNERUP_QUESTIONS[0];
-  const totalQuestions = PARTNERUP_QUESTIONS.length;
+  const totalQuestions = questions.length;
+  const activeQIndex = Math.min(sessionState.activeQuestion, Math.max(0, totalQuestions - 1));
+  const currentQuestion = questions[activeQIndex] || questions[0];
 
   // Filter answers for current active question, putting starred (Sorot) items at the very top
   const currentQuestionAnswers = approvedAnswers
@@ -73,11 +81,11 @@ export const ProjectorView: React.FC<ProjectorViewProps> = ({
   const regularAnswers = currentQuestionAnswers.filter((a) => !a.star);
 
   // Current Poll Calculation
-  const currentPoll = LIVE_POLLS.find((p) => p.id === sessionState.activePollId) || LIVE_POLLS[0];
-  const currentPollVotes = pollVotes.filter((v) => v.pollId === currentPoll.id);
+  const currentPoll = polls.find((p) => p.id === sessionState.activePollId) || polls[0];
+  const currentPollVotes = currentPoll ? pollVotes.filter((v) => v.pollId === currentPoll.id) : [];
   const totalPollVotes = currentPollVotes.length;
 
-  // Word cloud frequency aggregation for Poll 2
+  // Word cloud frequency aggregation
   const wordFrequencies: Record<string, number> = {};
   currentPollVotes.forEach((v) => {
     const key = (v.customWord || v.optionId || '').trim();
@@ -94,7 +102,7 @@ export const ProjectorView: React.FC<ProjectorViewProps> = ({
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-      {/* Presenter Control Toolbar (Hidden when Fullscreen Stage mode is active for projector cleanliness) */}
+      {/* Presenter Control Toolbar */}
       {!isFullscreenStage && (
         <div className="bg-[#1F3A5F] text-white rounded-2xl p-4 sm:p-5 mb-6 shadow-sm flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
@@ -114,7 +122,7 @@ export const ProjectorView: React.FC<ProjectorViewProps> = ({
                 }`}
               >
                 <BookOpen className="w-3.5 h-3.5" />
-                <span>7 Pertanyaan Materi</span>
+                <span>{totalQuestions} Pertanyaan Materi</span>
               </button>
               <button
                 onClick={() => onChangeMode('poll')}
@@ -125,7 +133,7 @@ export const ProjectorView: React.FC<ProjectorViewProps> = ({
                 }`}
               >
                 <BarChart3 className="w-3.5 h-3.5" />
-                <span>Live Polling / Awan Kata</span>
+                <span>Live Polling ({polls.length})</span>
               </button>
               <button
                 onClick={() => onChangeMode('qna')}
@@ -154,7 +162,7 @@ export const ProjectorView: React.FC<ProjectorViewProps> = ({
             </div>
           </div>
 
-          {/* Navigation & Action Buttons required by PDF */}
+          {/* Navigation & Action Buttons */}
           <div className="flex flex-wrap items-center gap-2">
             {sessionState.activeMode === 'worksheet' && (
               <>
@@ -224,10 +232,10 @@ export const ProjectorView: React.FC<ProjectorViewProps> = ({
         </div>
       )}
 
-      {/* STAGE MODE 1: WORKSHEET 7 PERTANYAAN INTI */}
-      {sessionState.activeMode === 'worksheet' && (
+      {/* STAGE MODE 1: WORKSHEET PERTANYAAN INTI */}
+      {sessionState.activeMode === 'worksheet' && currentQuestion && (
         <div className="space-y-6">
-          {/* Active Question Banner — Extra Large Font for Projector Legibility from Back of Room */}
+          {/* Active Question Banner */}
           <div className="bg-white border-2 border-[#1F3A5F]/15 rounded-2xl p-6 sm:p-10 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             <div className="space-y-3 max-w-4xl">
               <div className="flex flex-wrap items-center gap-3 text-sm sm:text-base font-bold text-[#F28C28]">
@@ -273,22 +281,22 @@ export const ProjectorView: React.FC<ProjectorViewProps> = ({
             </div>
           </div>
 
-          {/* Step Selector Pills for fast jumping between Parts 1-7 */}
+          {/* Step Selector Buttons */}
           <div className="flex items-center gap-2 overflow-x-auto pb-1">
-            {PARTNERUP_QUESTIONS.map((q) => {
-              const count = approvedAnswers.filter((a) => a.q === q.index).length;
-              const isActive = q.index === activeQIndex;
+            {questions.map((q, idx) => {
+              const count = approvedAnswers.filter((a) => a.q === idx).length;
+              const isActive = idx === activeQIndex;
               return (
                 <button
-                  key={q.index}
-                  onClick={() => onChangeQuestion(q.index)}
+                  key={idx}
+                  onClick={() => onChangeQuestion(idx)}
                   className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-colors cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-2 ${
                     isActive
                       ? 'bg-[#1F3A5F] text-white'
                       : 'bg-white text-[#1F3A5F] border border-[#1F3A5F]/15 hover:border-[#F28C28]'
                   }`}
                 >
-                  <span>Bagian {q.sectionNumber}</span>
+                  <span>Bagian {idx + 1}</span>
                   <span
                     className={`font-mono text-xs px-1.5 py-0.5 rounded tabular-nums ${
                       isActive ? 'bg-[#F28C28] text-white' : 'bg-[#FFF7EC] text-[#1F3A5F]'
@@ -301,7 +309,7 @@ export const ProjectorView: React.FC<ProjectorViewProps> = ({
             })}
           </div>
 
-          {/* SPOTLIGHT (SOROT) ANSWERS — Spans Full Row at the Top when Presenter clicks "Sorot" */}
+          {/* SPOTLIGHT (SOROT) ANSWERS */}
           {starredAnswers.length > 0 && (
             <div className="space-y-4">
               {starredAnswers.map((ans) => (
@@ -363,7 +371,7 @@ export const ProjectorView: React.FC<ProjectorViewProps> = ({
             </div>
           )}
 
-          {/* REGULAR ANSWERS GRID — Big Readable Font from Back of Room */}
+          {/* REGULAR ANSWERS GRID */}
           {currentQuestionAnswers.length === 0 ? (
             <div className="bg-white border border-[#1F3A5F]/15 rounded-2xl p-12 text-center">
               <p className="font-display text-2xl sm:text-3xl font-bold text-[#1F3A5F]/60">
@@ -405,7 +413,6 @@ export const ProjectorView: React.FC<ProjectorViewProps> = ({
                     )}
                   </div>
 
-                  {/* Presenter Card Actions: "Sorot" and "Sembunyikan" as specified in PDF */}
                   <div className="pt-3 border-t border-[#1F3A5F]/10 flex items-center justify-between gap-2">
                     <span className="font-mono text-xs text-[#1F3A5F]/50 tabular-nums">
                       {new Date(ans.ts).toLocaleTimeString('id-ID', {
@@ -437,8 +444,8 @@ export const ProjectorView: React.FC<ProjectorViewProps> = ({
         </div>
       )}
 
-      {/* STAGE MODE 2: LIVE POLLING & WORD CLOUD (MENTIMETER STYLE) */}
-      {sessionState.activeMode === 'poll' && (
+      {/* STAGE MODE 2: LIVE POLLING & WORD CLOUD */}
+      {sessionState.activeMode === 'poll' && currentPoll && (
         <div className="space-y-6">
           <div className="flex flex-wrap items-center justify-between gap-4 bg-white border border-[#1F3A5F]/15 rounded-2xl p-6">
             <div>
@@ -451,8 +458,8 @@ export const ProjectorView: React.FC<ProjectorViewProps> = ({
               <p className="text-lg text-[#1F3A5F]/75 mt-1">{currentPoll.subtitle}</p>
             </div>
 
-            <div className="flex items-center gap-2">
-              {LIVE_POLLS.map((p) => (
+            <div className="flex flex-wrap items-center gap-2">
+              {polls.map((p, idx) => (
                 <button
                   key={p.id}
                   onClick={() => onChangePoll(p.id)}
@@ -462,7 +469,7 @@ export const ProjectorView: React.FC<ProjectorViewProps> = ({
                       : 'bg-[#FFF7EC] text-[#1F3A5F] border border-[#1F3A5F]/20'
                   }`}
                 >
-                  {p.type === 'bar' ? 'Polling 4 Alasan (Bagian 4)' : 'Awan Kata Perasaan (Bagian 5)'}
+                  Polling #{idx + 1}: {p.title.slice(0, 26)}
                 </button>
               ))}
             </div>
@@ -510,11 +517,10 @@ export const ProjectorView: React.FC<ProjectorViewProps> = ({
               })}
             </div>
 
-            {/* Word Cloud section for custom feelings */}
             {Object.keys(wordFrequencies).length > 0 && (
               <div className="mt-10 pt-8 border-t border-[#1F3A5F]/10">
                 <h3 className="font-display text-lg font-bold text-[#1F3A5F] mb-4">
-                  Awan Kata Perasaan Pembeli yang Dikirim Peserta:
+                  Awan Kata yang Dikirim Peserta:
                 </h3>
                 <div className="flex flex-wrap items-center justify-center gap-4 p-6 rounded-2xl bg-[#FFF7EC]">
                   {Object.entries(wordFrequencies).map(([word, freq], idx) => {
@@ -540,7 +546,7 @@ export const ProjectorView: React.FC<ProjectorViewProps> = ({
         </div>
       )}
 
-      {/* STAGE MODE 3: LIVE Q&A ANONIM & UPVOTING (SLIDO STYLE) */}
+      {/* STAGE MODE 3: LIVE Q&A ANONIM & UPVOTING */}
       {sessionState.activeMode === 'qna' && (
         <div className="space-y-6">
           <div className="bg-white border border-[#1F3A5F]/15 rounded-2xl p-6 sm:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -684,12 +690,13 @@ export const ProjectorView: React.FC<ProjectorViewProps> = ({
           >
             <div>
               <span className="text-xs font-bold uppercase tracking-wider text-[#F28C28]">
-                SEMINAR PARTNERUP | OBEECREATIVES
+                {organizerName.toUpperCase()}
               </span>
               <h3 className="font-display text-3xl font-extrabold text-[#1F3A5F] mt-1">
                 Scan QR di HP Anda
               </h3>
-              <p className="text-base text-[#1F3A5F]/80 mt-1">
+              <p className="text-sm font-semibold text-[#2A9D8F] mt-1">{seminarTitle}</p>
+              <p className="text-xs text-[#1F3A5F]/75 mt-1">
                 Langsung masuk tanpa perlu instal aplikasi dan tanpa perlu buat akun.
               </p>
             </div>

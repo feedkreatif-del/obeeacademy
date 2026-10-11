@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { PARTNERUP_QUESTIONS } from '../data/seminarData';
+import { WorksheetQuestion } from '../data/seminarData';
 import { AnswerDoc, QnaDoc, SessionStateDoc } from '../types';
 import {
   Shield,
@@ -15,9 +15,11 @@ import {
   BookOpen,
   Sparkles,
   Store,
+  Settings,
 } from 'lucide-react';
 
 interface ModerationViewProps {
+  questions: WorksheetQuestion[];
   sessionState: SessionStateDoc;
   allAnswers: AnswerDoc[];
   allQna: QnaDoc[];
@@ -35,9 +37,11 @@ interface ModerationViewProps {
   onClearAllDemoData: () => Promise<void>;
   onSeedSampleData: () => Promise<void>;
   onDownloadCsv: () => void;
+  onOpenContentEditor: () => void;
 }
 
 export const ModerationView: React.FC<ModerationViewProps> = ({
+  questions,
   sessionState,
   allAnswers,
   allQna,
@@ -55,24 +59,22 @@ export const ModerationView: React.FC<ModerationViewProps> = ({
   onClearAllDemoData,
   onSeedSampleData,
   onDownloadCsv,
+  onOpenContentEditor,
 }) => {
   const [activeCategory, setActiveCategory] = useState<'answers' | 'qna' | 'embed'>('answers');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'hidden'>('all');
   const [questionFilter, setQuestionFilter] = useState<number | 'all'>('all');
 
-  // Inline Editing State for Moderator to sanitize phone numbers or add warm feedback
   const [editingAnswerId, setEditingAnswerId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
   const [editMentorNote, setEditMentorNote] = useState('');
 
-  // External Slido/Mentimeter URL State
   const [embedPlatform, setEmbedPlatform] = useState<'slido' | 'mentimeter' | 'custom'>(
     sessionState.externalPlatform || 'slido'
   );
   const [embedUrlInput, setEmbedUrlInput] = useState(sessionState.externalEmbedUrl || '');
   const [embedSaved, setEmbedSaved] = useState(false);
 
-  // Confirm reset modal state (avoid window.confirm in iframe)
   const [confirmClear, setConfirmClear] = useState(false);
 
   const pendingAnswersCount = allAnswers.filter((a) => a.status === 'pending').length;
@@ -120,11 +122,11 @@ export const ModerationView: React.FC<ModerationViewProps> = ({
             Dasbor Moderasi & Saringan Jawaban Real-Time
           </h1>
           <p className="text-sm text-[#1F3A5F]/75">
-            Saring jawaban atau pertanyaan yang masuk sebelum ditampilkan di proyektor, beri catatan apresiasi hangat, atau sorot ke panggung.
+            Saring jawaban atau pertanyaan yang masuk sebelum ditampilkan di proyektor, beri catatan apresiasi hangat, atau buka Editor Materi.
           </p>
         </div>
 
-        {/* Strict Moderation Gate Switch & Quick Export */}
+        {/* Strict Moderation Gate Switch & Quick Actions */}
         <div className="flex flex-wrap items-center gap-3 shrink-0">
           <div className="bg-[#FFF7EC] border border-[#1F3A5F]/20 rounded-xl p-3 flex items-center gap-3">
             <div>
@@ -149,6 +151,14 @@ export const ModerationView: React.FC<ModerationViewProps> = ({
               {sessionState.moderationEnabled ? 'Saringan: ON' : 'Langsung Tampil'}
             </button>
           </div>
+
+          <button
+            onClick={onOpenContentEditor}
+            className="px-4 py-3 rounded-xl bg-[#1F3A5F] hover:bg-[#162944] text-white text-xs font-bold flex items-center gap-2 cursor-pointer"
+          >
+            <Settings className="w-4 h-4" />
+            <span>Ubah Materi / Pertanyaan</span>
+          </button>
 
           <button
             onClick={onDownloadCsv}
@@ -210,7 +220,7 @@ export const ModerationView: React.FC<ModerationViewProps> = ({
           </button>
         </div>
 
-        {/* Utility Buttons for Testing & Seminar Day Reset (PDF Section 5: "hapus jawaban uji agar tidak muncul di hari H") */}
+        {/* Utility Buttons */}
         <div className="flex items-center gap-2">
           <button
             onClick={onSeedSampleData}
@@ -254,7 +264,6 @@ export const ModerationView: React.FC<ModerationViewProps> = ({
       {/* TAB 1: MODERASI JAWABAN LEMBAR KERJA */}
       {activeCategory === 'answers' && (
         <div className="space-y-4">
-          {/* Filter Bar */}
           <div className="bg-white border border-[#1F3A5F]/15 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-1.5 bg-[#FFF7EC] p-1 rounded-lg border border-[#1F3A5F]/10">
               {(['all', 'pending', 'approved', 'hidden'] as const).map((st) => (
@@ -282,9 +291,9 @@ export const ModerationView: React.FC<ModerationViewProps> = ({
               }
               className="rounded-lg border border-[#1F3A5F]/20 bg-white px-3 py-2 text-xs font-bold text-[#1F3A5F]"
             >
-              <option value="all">Semua Bagian Materi (1–7)</option>
-              {PARTNERUP_QUESTIONS.map((q) => (
-                <option key={q.index} value={q.index}>
+              <option value="all">Semua Bagian Materi (1–{questions.length})</option>
+              {questions.map((q, idx) => (
+                <option key={idx} value={idx}>
                   {q.sectionTitle}
                 </option>
               ))}
@@ -298,7 +307,7 @@ export const ModerationView: React.FC<ModerationViewProps> = ({
           ) : (
             <div className="space-y-3">
               {filteredAnswers.map((ans) => {
-                const qInfo = PARTNERUP_QUESTIONS[ans.q] || PARTNERUP_QUESTIONS[0];
+                const qInfo = questions[ans.q] || questions[0];
                 const isEditing = editingAnswerId === ans.id;
 
                 return (
@@ -315,7 +324,9 @@ export const ModerationView: React.FC<ModerationViewProps> = ({
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                       <div className="space-y-2 flex-1">
                         <div className="flex flex-wrap items-center gap-2 text-xs text-[#1F3A5F]/70">
-                          <span className="font-bold text-[#1F3A5F]">{qInfo.sectionTitle}</span>
+                          <span className="font-bold text-[#1F3A5F]">
+                            {qInfo ? qInfo.sectionTitle : `Pertanyaan #${ans.q + 1}`}
+                          </span>
                           <span aria-hidden="true">·</span>
                           {ans.businessName ? (
                             <span className="font-bold text-[#2A9D8F] flex items-center gap-1">
@@ -406,7 +417,6 @@ export const ModerationView: React.FC<ModerationViewProps> = ({
                         )}
                       </div>
 
-                      {/* Moderator Action Buttons */}
                       <div className="flex flex-wrap items-center gap-2 shrink-0">
                         {ans.status !== 'approved' && (
                           <button

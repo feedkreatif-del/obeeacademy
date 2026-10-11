@@ -7,11 +7,11 @@
       "properties": {
         "activeQuestion": {
           "type": "integer",
-          "description": "Current active worksheet question index (0 to 6)"
+          "description": "Current active worksheet question index (0 to 19)"
         },
         "activeSlide": {
           "type": "integer",
-          "description": "Current active presentation slide index (0 to 16)"
+          "description": "Current active presentation slide index (0 to 29)"
         },
         "activeMode": {
           "type": "string",
@@ -22,7 +22,7 @@
           "type": "string",
           "maxLength": 64,
           "pattern": "^[a-zA-Z0-9_\\-]+$",
-          "description": "ID of the active live poll (rational_4types or emotional_feelings)"
+          "description": "ID of the active live poll"
         },
         "moderationEnabled": {
           "type": "boolean",
@@ -60,14 +60,60 @@
         "updatedAt"
       ]
     },
+    "CustomContentConfig": {
+      "title": "CustomContentConfig",
+      "description": "Dynamic editable seminar content: worksheet questions, slides, live polls, and Q&A topics",
+      "type": "object",
+      "properties": {
+        "seminarTitle": {
+          "type": "string",
+          "maxLength": 120,
+          "description": "Custom seminar title"
+        },
+        "organizerName": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Organizer name (e.g. Program PartnerUp | Obeecreatives)"
+        },
+        "questions": {
+          "type": "array",
+          "description": "Array of custom worksheet questions"
+        },
+        "polls": {
+          "type": "array",
+          "description": "Array of custom live polls and word clouds"
+        },
+        "slides": {
+          "type": "array",
+          "description": "Array of custom presentation slides"
+        },
+        "qnaTopics": {
+          "type": "array",
+          "description": "Array of custom Q&A topic tags"
+        },
+        "updatedAt": {
+          "type": "integer",
+          "description": "Last modified timestamp in ms"
+        }
+      },
+      "required": [
+        "seminarTitle",
+        "organizerName",
+        "questions",
+        "polls",
+        "slides",
+        "qnaTopics",
+        "updatedAt"
+      ]
+    },
     "Answer": {
       "title": "Answer",
-      "description": "Participant response to one of the 7 PartnerUp Value Proposition worksheet questions",
+      "description": "Participant response to one of the worksheet questions",
       "type": "object",
       "properties": {
         "q": {
           "type": "integer",
-          "description": "Question index (0 to 6)"
+          "description": "Question index"
         },
         "text": {
           "type": "string",
@@ -89,7 +135,7 @@
           "type": "string",
           "maxLength": 64,
           "pattern": "^[a-zA-Z0-9_\\-]+$",
-          "description": "Client device identifier for linking answers across parts 1 to 7"
+          "description": "Client device identifier"
         },
         "status": {
           "type": "string",
@@ -102,7 +148,7 @@
         },
         "likes": {
           "type": "integer",
-          "description": "Number of likes/upvotes from audience or presenter"
+          "description": "Number of likes/upvotes"
         },
         "mentorNote": {
           "type": "string",
@@ -150,7 +196,7 @@
         "topicTag": {
           "type": "string",
           "maxLength": 40,
-          "description": "Topic category (e.g. Rational Value, Emotional Value, Kemasan, Harga)"
+          "description": "Topic category"
         },
         "upvotes": {
           "type": "integer",
@@ -240,9 +286,13 @@
       "schema": { "$ref": "#/entities/SessionState" },
       "description": "Global seminar session state controlled by presenter/moderator"
     },
+    "/custom_content/{docId}": {
+      "schema": { "$ref": "#/entities/CustomContentConfig" },
+      "description": "Editable custom seminar questions, slides, polls, and Q&A topics"
+    },
     "/answers/{answerId}": {
       "schema": { "$ref": "#/entities/Answer" },
-      "description": "Participant worksheet answers across the 7 seminar sections"
+      "description": "Participant worksheet answers across the seminar sections"
     },
     "/qna/{questionId}": {
       "schema": { "$ref": "#/entities/QnaItem" },

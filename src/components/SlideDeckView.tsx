@@ -1,9 +1,12 @@
 import React from 'react';
-import { SEMINAR_SLIDES, PARTNERUP_QUESTIONS } from '../data/seminarData';
+import { SlideDefinition, WorksheetQuestion } from '../data/seminarData';
 import { AnswerDoc, InteractiveMode } from '../types';
 import { ChevronLeft, ChevronRight, MessageSquare, BarChart3, CheckCircle2, Sparkles, ArrowRight } from 'lucide-react';
 
 interface SlideDeckViewProps {
+  slides: SlideDefinition[];
+  questions: WorksheetQuestion[];
+  organizerName: string;
   activeSlideIndex: number;
   onChangeSlide: (newIndex: number) => void;
   onLaunchWorksheetQuestion: (questionIndex: number) => void;
@@ -14,6 +17,9 @@ interface SlideDeckViewProps {
 }
 
 export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
+  slides,
+  questions,
+  organizerName,
   activeSlideIndex,
   onChangeSlide,
   onLaunchWorksheetQuestion,
@@ -21,16 +27,18 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
   onLaunchQna,
   approvedAnswers,
 }) => {
-  const slide = SEMINAR_SLIDES[activeSlideIndex] || SEMINAR_SLIDES[0];
-  const totalSlides = SEMINAR_SLIDES.length;
+  const slide = slides[activeSlideIndex] || slides[0];
+  const totalSlides = slides.length;
 
   const linkedQuestion =
-    slide.linkedQuestionIndex !== undefined ? PARTNERUP_QUESTIONS[slide.linkedQuestionIndex] : null;
+    slide?.linkedQuestionIndex !== undefined ? questions[slide.linkedQuestionIndex] : null;
 
   const questionAnswers =
-    slide.linkedQuestionIndex !== undefined
+    slide?.linkedQuestionIndex !== undefined
       ? approvedAnswers.filter((a) => a.q === slide.linkedQuestionIndex)
       : [];
+
+  if (!slide) return null;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -53,7 +61,7 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
               className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold bg-[#F28C28] text-white hover:bg-[#d97719] transition-colors cursor-pointer whitespace-nowrap shrink-0"
             >
               <MessageSquare className="w-3.5 h-3.5" />
-              Buka Pertanyaan Bagian {slide.linkedQuestionIndex + 1} di HP Peserta ({questionAnswers.length} Jawaban)
+              Buka Pertanyaan #{slide.linkedQuestionIndex + 1} di HP Peserta ({questionAnswers.length} Jawaban)
             </button>
           )}
           {slide.linkedPollId && (
@@ -106,14 +114,16 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
             <h1 className="font-display text-4xl sm:text-6xl font-bold tracking-tight leading-tight max-w-4xl mb-6">
               {slide.title}
             </h1>
-            <p className="text-xl sm:text-2xl text-white/85 max-w-3xl font-normal">
-              Value Proposition & Rational Value untuk UMKM Pemula
-            </p>
+            {slide.subtitle && (
+              <p className="text-xl sm:text-2xl text-white/85 max-w-3xl font-normal">
+                {slide.subtitle}
+              </p>
+            )}
           </div>
         ) : slide.type === 'closing' ? (
           <div className="flex-1 bg-[#1F3A5F] text-white p-10 sm:p-14 flex flex-col justify-between">
             <div>
-              <p className="text-[#F28C28] font-bold text-xl sm:text-2xl mb-8">3 Pesan Kunci</p>
+              <p className="text-[#F28C28] font-bold text-xl sm:text-2xl mb-8">{slide.title}</p>
               <div className="space-y-6 max-w-3xl">
                 {slide.cards?.map((card, idx) => (
                   <div key={idx} className="flex items-start gap-5">
@@ -132,9 +142,8 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
             </div>
             <div className="pt-8 border-t border-white/15 flex flex-wrap items-center justify-between gap-4">
               <div>
-                <p className="text-xl font-medium text-white">Terima kasih! Tanya jawab dipersilakan.</p>
-                <p className="text-xs text-white/60 mt-1">
-                  Referensi: "Value Proposition: Pengertian, Fungsi, Unsur, dan Cara Membuatnya", BINUS @Bandung
+                <p className="text-xl font-medium text-white">
+                  {slide.subtitle || 'Terima kasih! Tanya jawab dipersilakan.'}
                 </p>
               </div>
               <button
@@ -148,7 +157,7 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
           </div>
         ) : (
           <>
-            {/* Slide Header Bar matching PDF Navy Top Bar */}
+            {/* Slide Header Bar */}
             <div className="bg-[#1F3A5F] text-white px-8 py-5 flex items-center justify-between gap-4">
               <h2 className="font-display text-2xl sm:text-4xl font-bold tracking-tight">
                 {slide.title}
@@ -166,13 +175,15 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                 </p>
               )}
 
-              {/* Agenda 7 Steps Layout */}
+              {/* Agenda Steps Layout */}
               {slide.type === 'agenda' && slide.cards && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-auto">
                   {slide.cards.map((item, idx) => (
                     <div
                       key={idx}
-                      onClick={() => onLaunchWorksheetQuestion(idx)}
+                      onClick={() => {
+                        if (idx < questions.length) onLaunchWorksheetQuestion(idx);
+                      }}
                       className="flex items-center gap-4 p-4 rounded-xl bg-white border border-[#1F3A5F]/15 hover:border-[#F28C28] transition-colors cursor-pointer group"
                     >
                       <div
@@ -193,7 +204,7 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                 </div>
               )}
 
-              {/* Concept horizontal rows (Artinya / Contohnya / Gampang Diingat) */}
+              {/* Concept horizontal rows */}
               {slide.type === 'concept' && slide.cards && slide.cards[0]?.title === 'ARTINYA' && (
                 <div className="space-y-4 my-auto">
                   {slide.cards.map((card, i) => (
@@ -256,7 +267,7 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                 </div>
               )}
 
-              {/* Comparison boxes (Lemah vs Kuat / Sebelum vs Sesudah / Rational vs Emotional) */}
+              {/* Comparison boxes */}
               {slide.comparison && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div className="rounded-xl p-6 bg-[#FDE8E8] border border-red-200">
@@ -281,21 +292,22 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                 </div>
               )}
 
-              {/* "TULIS DI SINI" Interactive Box matching the PDF Slide Deck */}
-              {slide.promptLines && (
+              {/* "TULIS DI SINI" Interactive Box */}
+              {(slide.promptLines || slide.linkedQuestionIndex !== undefined || slide.linkedPollId) && (
                 <div className="rounded-xl bg-[#FDE6C4]/70 border-2 border-dashed border-[#F28C28] p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
                   <div className="space-y-2.5">
                     <p className="text-xs font-bold tracking-wider text-[#F28C28] uppercase">
                       TULIS DI SINI (TERHUBUNG KE HP PESERTA)
                     </p>
-                    {slide.promptLines.map((line, idx) => (
+                    {slide.promptLines?.map((line, idx) => (
                       <p key={idx} className="text-base sm:text-lg font-medium text-[#1F3A5F]">
                         {line}
                       </p>
                     ))}
                     {linkedQuestion && (
                       <p className="text-xs text-[#1F3A5F]/70 pt-1">
-                        Contoh: <span className="italic">{linkedQuestion.exampleAnswer}</span>
+                        Pertanyaan Aktif: <strong>{linkedQuestion.questionText}</strong> — Contoh:{' '}
+                        <span className="italic">{linkedQuestion.exampleAnswer}</span>
                       </p>
                     )}
                   </div>
@@ -328,14 +340,14 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
 
         {/* Bottom Brand Strip */}
         <div className="bg-[#F28C28] text-white px-8 py-3 flex items-center justify-between text-xs sm:text-sm font-semibold">
-          <span>Program PartnerUp | Obeecreatives</span>
+          <span>{organizerName}</span>
           <span className="font-mono tabular-nums">Slide {slide.pageNumber} / {totalSlides}</span>
         </div>
       </div>
 
       {/* Quick Slide Thumbnail Strip */}
       <div className="mt-6 flex items-center gap-2 overflow-x-auto pb-2">
-        {SEMINAR_SLIDES.map((s) => {
+        {slides.map((s) => {
           const isCurrent = s.index === activeSlideIndex;
           const hasInteractive = s.linkedQuestionIndex !== undefined || s.linkedPollId !== undefined;
           return (

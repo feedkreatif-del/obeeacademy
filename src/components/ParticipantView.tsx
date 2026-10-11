@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PARTNERUP_QUESTIONS, LIVE_POLLS } from '../data/seminarData';
+import { WorksheetQuestion, LivePollConfig } from '../data/seminarData';
 import { AnswerDoc, QnaDoc, PollVoteDoc, SessionStateDoc, InteractiveMode } from '../types';
 import {
   Send,
@@ -17,6 +17,9 @@ import {
 } from 'lucide-react';
 
 interface ParticipantViewProps {
+  questions: WorksheetQuestion[];
+  polls: LivePollConfig[];
+  qnaTopics: string[];
   sessionState: SessionStateDoc;
   participantId: string;
   myAnswers: AnswerDoc[];
@@ -29,6 +32,9 @@ interface ParticipantViewProps {
 }
 
 export const ParticipantView: React.FC<ParticipantViewProps> = ({
+  questions,
+  polls,
+  qnaTopics,
   sessionState,
   participantId,
   myAnswers,
@@ -39,14 +45,12 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
   onUpvoteQna,
   onSubmitPollVote,
 }) => {
-  // Local tab override so participant can also switch to Q&A or Summary Card anytime, while auto-syncing when presenter switches mode
   const [localTab, setLocalTab] = useState<InteractiveMode | 'summary'>(sessionState.activeMode);
 
   useEffect(() => {
     setLocalTab(sessionState.activeMode);
   }, [sessionState.activeMode, sessionState.activeQuestion, sessionState.activePollId]);
 
-  // Persistent Business Name on participant device
   const [businessName, setBusinessName] = useState<string>(() => {
     try {
       return window.localStorage.getItem('partnerup_umkm_name') || '';
@@ -61,13 +65,12 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
     try {
       window.localStorage.setItem('partnerup_umkm_name', trimmed);
     } catch {
-      // ignore storage error
+      // ignore
     }
   };
 
-  // Worksheet Form state — only reset when activeQuestion changes! (per PDF requirement: "Jangan menggambar ulang formulir saat jawaban orang lain masuk, supaya ketikan peserta tidak hilang")
-  const activeQIndex = sessionState.activeQuestion;
-  const currentQuestion = PARTNERUP_QUESTIONS[activeQIndex] || PARTNERUP_QUESTIONS[0];
+  const activeQIndex = Math.min(sessionState.activeQuestion, Math.max(0, questions.length - 1));
+  const currentQuestion = questions[activeQIndex] || questions[0];
 
   const [answerText, setAnswerText] = useState('');
   const [subAnswerText, setSubAnswerText] = useState('');
@@ -82,7 +85,6 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
     setSubmitError(false);
   }, [activeQIndex]);
 
-  // Helper to get participant's previous answers for Part 6 Smart Formula Builder
   const getMyPreviousAnswer = (qIdx: number) => {
     const found = myAnswers.find((a) => a.q === qIdx);
     return found ? found.text : '';
@@ -123,10 +125,16 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
   // Q&A Form State
   const [qnaText, setQnaText] = useState('');
   const [isAnonymous, setIsAnonymous] = useState(true);
-  const [topicTag, setTopicTag] = useState('Value Proposition');
+  const [topicTag, setTopicTag] = useState(qnaTopics[0] || 'Umum');
   const [qnaSubmitting, setQnaSubmitting] = useState(false);
   const [qnaSuccess, setQnaSuccess] = useState(false);
   const [upvotedIds, setUpvotedIds] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    if (qnaTopics.length > 0 && !qnaTopics.includes(topicTag)) {
+      setTopicTag(qnaTopics[0]);
+    }
+  }, [qnaTopics, topicTag]);
 
   const handleQnaSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -150,16 +158,17 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
   };
 
   // Poll State
-  const currentPoll = LIVE_POLLS.find((p) => p.id === sessionState.activePollId) || LIVE_POLLS[0];
+  const currentPoll = polls.find((p) => p.id === sessionState.activePollId) || polls[0];
   const [selectedOption, setSelectedOption] = useState<string>('');
   const [customEmotionWord, setCustomEmotionWord] = useState<string>('');
   const [pollSubmitted, setPollSubmitted] = useState(false);
 
-  const myExistingVote = pollVotes.find(
-    (v) => v.pollId === currentPoll.id && v.participantId === participantId
-  );
+  const myExistingVote = currentPoll
+    ? pollVotes.find((v) => v.pollId === currentPoll.id && v.participantId === participantId)
+    : undefined;
 
   const handlePollVoteSubmit = async (optionId: string, customWord = '') => {
+    if (!currentPoll) return;
     setSelectedOption(optionId);
     await onSubmitPollVote(currentPoll.id, optionId, customWord.slice(0, 35), businessName);
     setPollSubmitted(true);
@@ -178,7 +187,7 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
           }`}
         >
           <BookOpen className="w-4 h-4" />
-          <span>Lembar Kerja ({activeQIndex + 1}/7)</span>
+          <span>Lembar Kerja ({activeQIndex + 1}/{questions.length})</span>
         </button>
 
         <button
@@ -218,19 +227,18 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
         </button>
       </div>
 
-      {/* MODE 1: WORKSHEET (7 PERTANYAAN INTI PARTNERUP) */}
-      {localTab === 'worksheet' && (
+      {/* MODE 1: WORKSHEET */}
+      {localTab === 'worksheet' && currentQuestion && (
         <div className="bg-white border border-[#1F3A5F]/15 rounded-2xl p-6 sm:p-8 shadow-xs">
           <div className="flex flex-wrap items-center justify-between gap-2 pb-4 mb-5 border-b border-[#1F3A5F]/10">
             <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-[#F28C28]">
-              <span>Pertanyaan {activeQIndex + 1} dari {PARTNERUP_QUESTIONS.length}</span>
+              <span>Pertanyaan {activeQIndex + 1} dari {questions.length}</span>
               <span aria-hidden="true">·</span>
               <span className="text-[#1F3A5F]">{currentQuestion.sectionTitle}</span>
             </div>
             <span className="text-xs text-[#1F3A5F]/65">{currentQuestion.coreLearning}</span>
           </div>
 
-          {/* Big Question Heading for UMKM Readability */}
           <h1 className="font-display text-2xl sm:text-3xl font-bold text-[#1F3A5F] leading-snug mb-3">
             {currentQuestion.questionText}
           </h1>
@@ -241,7 +249,6 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
             </p>
           )}
 
-          {/* Example Callout Box */}
           <div className="rounded-xl bg-[#FFF7EC] border border-[#F28C28]/40 p-4 mb-6">
             <p className="text-xs font-bold text-[#F28C28] uppercase tracking-wider mb-1">
               Contoh Jawaban Sederhana:
@@ -251,8 +258,7 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
             </p>
           </div>
 
-          {/* Smart Builder Helper specifically on Question 6 (Index 5) */}
-          {activeQIndex === 5 && (
+          {activeQIndex === 5 && questions.length >= 6 && (
             <div className="rounded-xl bg-[#E3F5F2] border border-[#2A9D8F]/40 p-4 mb-6 space-y-3">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-sm font-bold text-[#1F3A5F] flex items-center gap-1.5">
@@ -269,16 +275,16 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
               </div>
               <div className="text-xs text-[#1F3A5F]/80 space-y-1">
                 <p>
-                  <strong>Produk (Bagian 1):</strong> {getMyPreviousAnswer(0) || 'Belum diisi'}
+                  <strong>Bagian 1:</strong> {getMyPreviousAnswer(0) || 'Belum diisi'}
                 </p>
                 <p>
-                  <strong>Pembeli (Bagian 2):</strong> {getMyPreviousAnswer(1) || 'Belum diisi'}
+                  <strong>Bagian 2:</strong> {getMyPreviousAnswer(1) || 'Belum diisi'}
                 </p>
                 <p>
-                  <strong>Bukti Angka (Bagian 4):</strong> {getMyPreviousAnswer(3) || 'Belum diisi'}
+                  <strong>Bagian 4:</strong> {getMyPreviousAnswer(3) || 'Belum diisi'}
                 </p>
                 <p>
-                  <strong>Perasaan (Bagian 5):</strong> {getMyPreviousAnswer(4) || 'Belum diisi'}
+                  <strong>Bagian 5:</strong> {getMyPreviousAnswer(4) || 'Belum diisi'}
                 </p>
               </div>
             </div>
@@ -379,8 +385,8 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
         </div>
       )}
 
-      {/* MODE 2: LIVE POLLING & WORD CLOUD (MENTIMETER STYLE) */}
-      {localTab === 'poll' && (
+      {/* MODE 2: LIVE POLLING & WORD CLOUD */}
+      {localTab === 'poll' && currentPoll && (
         <div className="bg-white border border-[#1F3A5F]/15 rounded-2xl p-6 sm:p-8 shadow-xs space-y-6">
           <div>
             <span className="text-xs font-bold uppercase tracking-wider text-[#2A9D8F]">
@@ -426,7 +432,7 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
           {currentPoll.type === 'wordcloud' && (
             <div className="pt-4 border-t border-[#1F3A5F]/10 space-y-3">
               <label className="block text-sm font-bold text-[#1F3A5F]">
-                Atau tulis 1–2 kata perasaan lain yang sesuai produkmu:
+                Atau tulis 1–2 kata singkat lain yang sesuai usahamu:
               </label>
               <div className="flex gap-2">
                 <input
@@ -434,7 +440,7 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
                   maxLength={30}
                   value={customEmotionWord}
                   onChange={(e) => setCustomEmotionWord(e.target.value)}
-                  placeholder="Contoh: Nostalgia, Hemat Waktu, Segar..."
+                  placeholder="Ketik 1-2 kata di sini..."
                   className="flex-1 rounded-xl border border-[#1F3A5F]/25 px-4 py-3 text-base"
                 />
                 <button
@@ -463,7 +469,7 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
         </div>
       )}
 
-      {/* MODE 3: Q&A ANONIM & LIVE VOTING (SLIDO STYLE) */}
+      {/* MODE 3: Q&A ANONIM & LIVE VOTING */}
       {localTab === 'qna' && (
         <div className="space-y-6">
           <div className="bg-white border border-[#1F3A5F]/15 rounded-2xl p-6 sm:p-8 shadow-xs">
@@ -482,13 +488,12 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
                   required
                   value={qnaText}
                   onChange={(e) => setQnaText(e.target.value)}
-                  placeholder="Tulis pertanyaanmu seputar produk, kemasan, harga, atau kalimat promosi..."
+                  placeholder="Tulis pertanyaanmu di sini..."
                   className="w-full rounded-xl border-2 border-[#1F3A5F]/20 bg-[#FFF7EC]/50 px-4 py-3 text-base sm:text-lg text-[#1F3A5F] focus:border-[#F28C28] focus:bg-white focus:outline-none"
                 />
               </div>
 
               <div className="flex flex-wrap items-center justify-between gap-3">
-                {/* Toggle Anonymous vs Named */}
                 <div className="flex items-center gap-2 bg-[#FFF7EC] p-1.5 rounded-xl border border-[#1F3A5F]/15">
                   <button
                     type="button"
@@ -512,17 +517,16 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
                   </button>
                 </div>
 
-                {/* Topic category selector */}
                 <select
                   value={topicTag}
                   onChange={(e) => setTopicTag(e.target.value)}
                   className="rounded-xl border border-[#1F3A5F]/20 bg-white px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-[#1F3A5F]"
                 >
-                  <option value="Value Proposition">Topik: Value Proposition</option>
-                  <option value="Rational Value (Bukti)">Topik: Rational Value (Angka)</option>
-                  <option value="Emotional Value (Rasa)">Topik: Emotional Value (Rasa)</option>
-                  <option value="Strategi Harga">Topik: Strategi Harga</option>
-                  <option value="Bio & Kemasan">Topik: Bio IG & Kemasan</option>
+                  {qnaTopics.map((topic, idx) => (
+                    <option key={idx} value={topic}>
+                      Topik: {topic}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -611,29 +615,29 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
         </div>
       )}
 
-      {/* MODE 4: REKAP USAHAKU (UMKM VALUE PROPOSITION TAKEAWAY CARD) */}
+      {/* MODE 4: REKAP USAHAKU */}
       {localTab === 'summary' && (
         <div className="bg-white border border-[#1F3A5F]/15 rounded-2xl p-6 sm:p-8 shadow-xs space-y-6">
           <div className="border-b border-[#1F3A5F]/10 pb-4">
             <span className="text-xs font-bold uppercase tracking-wider text-[#F28C28]">
-              Lembar Rekap Seminar PartnerUp
+              Lembar Rekap Seminar
             </span>
             <h2 className="font-display text-2xl font-bold text-[#1F3A5F] mt-1">
-              Rangkuman Value Proposition Usahaku
+              Rangkuman Jawaban Usahaku
             </h2>
             <p className="text-sm text-[#1F3A5F]/75 mt-1">
-              Simpan atau salin rangkuman jawabanmu dari Bagian 1 sampai 7 untuk langsung dipasang di Bio Instagram, WhatsApp Business, atau kemasan produk.
+              Simpan atau salin rangkuman jawabanmu dari setiap bagian materi untuk langsung diterapkan di usahamu.
             </p>
           </div>
 
           <div className="space-y-3">
-            {PARTNERUP_QUESTIONS.map((q) => {
-              const myAns = myAnswers.find((a) => a.q === q.index);
+            {questions.map((q, idx) => {
+              const myAns = myAnswers.find((a) => a.q === idx);
               return (
                 <div
-                  key={q.index}
+                  key={idx}
                   className={`p-4 rounded-xl border ${
-                    q.index === 5
+                    idx === questions.length - 2
                       ? 'bg-[#FFF7EC] border-[#F28C28] border-2'
                       : 'bg-white border-[#1F3A5F]/15'
                   }`}

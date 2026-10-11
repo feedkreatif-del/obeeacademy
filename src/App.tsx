@@ -24,11 +24,14 @@ import {
 } from './firebase';
 import {
   PARTNERUP_QUESTIONS,
+  LIVE_POLLS,
+  SEMINAR_SLIDES,
   INITIAL_SEED_ANSWERS,
   INITIAL_SEED_QNA,
 } from './data/seminarData';
 import {
   SessionStateDoc,
+  CustomContentDoc,
   AnswerDoc,
   QnaDoc,
   PollVoteDoc,
@@ -39,6 +42,7 @@ import { ProjectorView } from './components/ProjectorView';
 import { ParticipantView } from './components/ParticipantView';
 import { ModerationView } from './components/ModerationView';
 import { SlideDeckView } from './components/SlideDeckView';
+import { ContentEditorView, DEFAULT_QNA_TOPICS } from './components/ContentEditorView';
 import { Download } from 'lucide-react';
 
 const DEFAULT_SESSION_STATE: SessionStateDoc = {
@@ -53,12 +57,27 @@ const DEFAULT_SESSION_STATE: SessionStateDoc = {
   updatedAt: Date.now(),
 };
 
+const DEFAULT_CUSTOM_CONTENT: CustomContentDoc = {
+  seminarTitle: 'Kenapa Pembeli Harus Pilih Kamu? (Value Proposition UMKM)',
+  organizerName: 'Program PartnerUp | Obeecreatives',
+  questions: PARTNERUP_QUESTIONS,
+  polls: LIVE_POLLS,
+  slides: SEMINAR_SLIDES,
+  qnaTopics: DEFAULT_QNA_TOPICS,
+  updatedAt: Date.now(),
+};
+
 export default function App() {
-  // Determine initial view role from URL query (?view=participant) or screen width
   const [viewRole, setViewRole] = useState<ViewRole>(() => {
     const params = new URLSearchParams(window.location.search);
     const v = params.get('view');
-    if (v === 'participant' || v === 'moderation' || v === 'slides' || v === 'projector') {
+    if (
+      v === 'participant' ||
+      v === 'moderation' ||
+      v === 'slides' ||
+      v === 'projector' ||
+      v === 'editor'
+    ) {
       return v;
     }
     return window.innerWidth < 768 ? 'participant' : 'projector';
@@ -66,15 +85,15 @@ export default function App() {
 
   const [participantId] = useState<string>(() => getOrCreateParticipantId());
   const [sessionState, setSessionState] = useState<SessionStateDoc>(DEFAULT_SESSION_STATE);
+  const [customContent, setCustomContent] = useState<CustomContentDoc>(DEFAULT_CUSTOM_CONTENT);
   const [answers, setAnswers] = useState<AnswerDoc[]>([]);
   const [qnaList, setQnaList] = useState<QnaDoc[]>([]);
   const [pollVotes, setPollVotes] = useState<PollVoteDoc[]>([]);
   const [hasSeededInitial, setHasSeededInitial] = useState<boolean>(false);
 
-  // Join URL that automatically opens Participant View on mobile QR scan
   const joinUrl = `${window.location.origin}${window.location.pathname}?view=participant`;
 
-  // Subscribe once to Session State, Answers, Q&A, and Poll Votes (Per PDF: "Berlangganan onSnapshot sekali saja, bukan di dalam fungsi render")
+  // Subscribe once to Session State, Custom Content, Answers, Q&A, and Poll Votes
   useEffect(() => {
     const stateRef = doc(db, 'state', 'session');
     const unsubState = onSnapshot(
@@ -97,6 +116,38 @@ export default function App() {
       },
       (err) => {
         console.warn('Session listener warning:', err);
+      }
+    );
+
+    const contentRef = doc(db, 'custom_content', 'active');
+    const unsubContent = onSnapshot(
+      contentRef,
+      (snap) => {
+        if (snap.exists()) {
+          const data = snap.data() as CustomContentDoc;
+          setCustomContent({
+            seminarTitle: data.seminarTitle || DEFAULT_CUSTOM_CONTENT.seminarTitle,
+            organizerName: data.organizerName || DEFAULT_CUSTOM_CONTENT.organizerName,
+            questions:
+              Array.isArray(data.questions) && data.questions.length > 0
+                ? data.questions
+                : PARTNERUP_QUESTIONS,
+            polls:
+              Array.isArray(data.polls) && data.polls.length > 0 ? data.polls : LIVE_POLLS,
+            slides:
+              Array.isArray(data.slides) && data.slides.length > 0
+                ? data.slides
+                : SEMINAR_SLIDES,
+            qnaTopics:
+              Array.isArray(data.qnaTopics) && data.qnaTopics.length > 0
+                ? data.qnaTopics
+                : DEFAULT_QNA_TOPICS,
+            updatedAt: data.updatedAt || Date.now(),
+          });
+        }
+      },
+      (err) => {
+        console.warn('Custom content listener warning:', err);
       }
     );
 
@@ -147,6 +198,7 @@ export default function App() {
 
     return () => {
       unsubState();
+      unsubContent();
       unsubAnswers();
       unsubQna();
       unsubVotes();
@@ -170,6 +222,10 @@ export default function App() {
             ...DEFAULT_SESSION_STATE,
             updatedAt: Date.now(),
           });
+          await setDoc(doc(db, 'custom_content', 'active'), {
+            ...DEFAULT_CUSTOM_CONTENT,
+            updatedAt: Date.now(),
+          });
           for (const item of INITIAL_SEED_ANSWERS) {
             await addDoc(collection(db, 'answers'), item);
           }
@@ -185,7 +241,6 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [answers.length, qnaList.length, hasSeededInitial]);
 
-  // Helper to update global session state
   const updateSessionState = async (partial: Partial<SessionStateDoc>) => {
     const nextState: SessionStateDoc = {
       ...sessionState,
@@ -198,6 +253,36 @@ export default function App() {
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, 'state/session');
     }
+  };
+
+  // Custom Content Save & Reset Handlers
+  const handleSaveCustomContent = async (updated: CustomContentDoc) => {
+    setCustomContent(updated);
+    try {
+      await setDoc(doc(db, 'custom_content', 'active'), updated);
+      // Ensure activeQuestion and activeSlide are within new bounds
+      const maxQ = Math.max(0, updated.questions.length - 1);
+      const maxSlide = Math.max(0, updated.slides.length - 1);
+      const firstPollId = updated.polls[0]?.id || 'rational_4types';
+      await updateSessionState({
+        activeQuestion: Math.min(sessionState.activeQuestion, maxQ),
+        activeSlide: Math.min(sessionState.activeSlide, maxSlide),
+        activePollId: updated.polls.some((p) => p.id === sessionState.activePollId)
+          ? sessionState.activePollId
+          : firstPollId,
+        sessionName: updated.seminarTitle.slice(0, 120),
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, 'custom_content/active');
+    }
+  };
+
+  const handleResetToPartnerUpDefault = async () => {
+    const resetDoc: CustomContentDoc = {
+      ...DEFAULT_CUSTOM_CONTENT,
+      updatedAt: Date.now(),
+    };
+    await handleSaveCustomContent(resetDoc);
   };
 
   // Worksheet Answer Handlers
@@ -391,7 +476,7 @@ export default function App() {
     }
   };
 
-  // Export CSV (Per PDF: "menyimpan CSV dengan kolom Pertanyaan, Jawaban, Nama usaha. Lewati jawaban yang disembunyikan.")
+  // Export CSV using dynamic custom questions
   const handleDownloadCsv = () => {
     try {
       const visibleAnswers = answers
@@ -402,7 +487,7 @@ export default function App() {
       const escapeCsv = (val: string) => `"${(val || '').replace(/"/g, '""')}"`;
 
       const rows = visibleAnswers.map((a) => {
-        const qTitle = PARTNERUP_QUESTIONS[a.q]?.questionText || `Pertanyaan ${a.q + 1}`;
+        const qTitle = customContent.questions[a.q]?.questionText || `Pertanyaan ${a.q + 1}`;
         return [
           escapeCsv(`${a.q + 1}. ${qTitle}`),
           escapeCsv(a.text),
@@ -420,7 +505,7 @@ export default function App() {
       link.href = url;
       link.setAttribute(
         'download',
-        `Rekap_Jawaban_Seminar_PartnerUp_${new Date().toISOString().slice(0, 10)}.csv`
+        `Rekap_Jawaban_Seminar_${new Date().toISOString().slice(0, 10)}.csv`
       );
       document.body.appendChild(link);
       link.click();
@@ -431,7 +516,6 @@ export default function App() {
     }
   };
 
-  // Clear test data before seminar day
   const handleClearAllDemoData = async () => {
     for (const a of answers) {
       await deleteDoc(doc(db, 'answers', a.id));
@@ -462,9 +546,9 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#FFF7EC] text-[#1F3A5F]">
-      {/* Strict 3-Zone Top Navigation Bar following Universal Design Constitution */}
+      {/* Strict 3-Zone Top Navigation Bar */}
       <header className="flex items-center justify-between gap-8 px-4 sm:px-8 py-4 bg-[#1F3A5F] text-white border-b border-white/10 sticky top-0 z-30">
-        {/* Zone 1: Single text element Brand Wordmark */}
+        {/* Zone 1: Brand Wordmark */}
         <a
           href="#top"
           onClick={(e) => {
@@ -476,8 +560,8 @@ export default function App() {
           PartnerUp Live
         </a>
 
-        {/* Zone 2: 4 Concise Single-Line Navigation Links */}
-        <nav className="flex items-center gap-4 sm:gap-7 text-xs sm:text-sm font-medium text-white/80 overflow-x-auto">
+        {/* Zone 2: 5 Concise Single-Line Navigation Links */}
+        <nav className="flex items-center gap-4 sm:gap-6 text-xs sm:text-sm font-medium text-white/80 overflow-x-auto">
           <button
             onClick={() => setViewRole('projector')}
             className={`hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer pb-0.5 ${
@@ -497,7 +581,7 @@ export default function App() {
                 : ''
             }`}
           >
-            Materi 17 Slide
+            Materi Slide
           </button>
 
           <button
@@ -521,6 +605,17 @@ export default function App() {
           >
             Moderasi {pendingCount > 0 ? `(${pendingCount})` : ''}
           </button>
+
+          <button
+            onClick={() => setViewRole('editor')}
+            className={`hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer pb-0.5 ${
+              viewRole === 'editor'
+                ? 'text-[#F28C28] font-bold border-b-2 border-[#F28C28]'
+                : ''
+            }`}
+          >
+            Editor Materi
+          </button>
         </nav>
 
         {/* Zone 3: 1 Primary Action Button */}
@@ -540,6 +635,10 @@ export default function App() {
       <main className="flex-1">
         {viewRole === 'projector' && (
           <ProjectorView
+            questions={customContent.questions}
+            polls={customContent.polls}
+            seminarTitle={customContent.seminarTitle}
+            organizerName={customContent.organizerName}
             sessionState={sessionState}
             approvedAnswers={approvedAnswers}
             approvedQna={approvedQna}
@@ -565,6 +664,9 @@ export default function App() {
 
         {viewRole === 'slides' && (
           <SlideDeckView
+            slides={customContent.slides}
+            questions={customContent.questions}
+            organizerName={customContent.organizerName}
             activeSlideIndex={sessionState.activeSlide}
             onChangeSlide={(newSlide) => updateSessionState({ activeSlide: newSlide })}
             onLaunchWorksheetQuestion={(qIdx) => {
@@ -586,9 +688,10 @@ export default function App() {
 
         {viewRole === 'participant' && (
           <div>
-            {/* Quick banner to jump back to Presenter if presenter clicked "Lihat sebagai peserta" */}
             <div className="bg-[#FFF7EC] border-b border-[#1F3A5F]/10 px-4 py-2 text-center text-xs text-[#1F3A5F]/75 flex items-center justify-center gap-3">
-              <span>Anda sedang berada di tampilan <strong>HP Peserta UMKM</strong>.</span>
+              <span>
+                Anda sedang berada di tampilan <strong>HP Peserta UMKM</strong> ({customContent.seminarTitle}).
+              </span>
               <button
                 onClick={() => setViewRole('projector')}
                 className="font-bold text-[#F28C28] hover:underline cursor-pointer"
@@ -597,6 +700,9 @@ export default function App() {
               </button>
             </div>
             <ParticipantView
+              questions={customContent.questions}
+              polls={customContent.polls}
+              qnaTopics={customContent.qnaTopics}
               sessionState={sessionState}
               participantId={participantId}
               myAnswers={myAnswers}
@@ -612,6 +718,7 @@ export default function App() {
 
         {viewRole === 'moderation' && (
           <ModerationView
+            questions={customContent.questions}
             sessionState={sessionState}
             allAnswers={answers}
             allQna={qnaList}
@@ -637,13 +744,22 @@ export default function App() {
             onClearAllDemoData={handleClearAllDemoData}
             onSeedSampleData={handleSeedSampleData}
             onDownloadCsv={handleDownloadCsv}
+            onOpenContentEditor={() => setViewRole('editor')}
+          />
+        )}
+
+        {viewRole === 'editor' && (
+          <ContentEditorView
+            customContent={customContent}
+            onSaveCustomContent={handleSaveCustomContent}
+            onResetToPartnerUpDefault={handleResetToPartnerUpDefault}
           />
         )}
       </main>
 
       {/* Quiet Footer */}
       <footer className="border-t border-[#1F3A5F]/10 py-4 px-6 text-center text-xs text-[#1F3A5F]/60 bg-[#FFF7EC]">
-        <span>Seminar Value Proposition PartnerUp · Obeecreatives · Platform Tanya-Jawab & Lembar Kerja Interaktif UMKM</span>
+        <span>{customContent.seminarTitle} · {customContent.organizerName}</span>
       </footer>
     </div>
   );

@@ -52,14 +52,43 @@ service cloud.firestore {
         'sessionName',
         'updatedAt'
       ]) &&
-      data.activeQuestion is int && data.activeQuestion >= 0 && data.activeQuestion <= 20 &&
-      data.activeSlide is int && data.activeSlide >= 0 && data.activeSlide <= 30 &&
+      data.activeQuestion is int && data.activeQuestion >= 0 && data.activeQuestion <= 30 &&
+      data.activeSlide is int && data.activeSlide >= 0 && data.activeSlide <= 50 &&
       data.activeMode is string && data.activeMode in ['worksheet', 'poll', 'qna', 'external'] &&
       data.activePollId is string && data.activePollId.size() <= 64 &&
       data.moderationEnabled is bool &&
       data.externalEmbedUrl is string && data.externalEmbedUrl.size() <= 500 &&
       data.externalPlatform is string && data.externalPlatform in ['slido', 'mentimeter', 'custom'] &&
       data.sessionName is string && data.sessionName.size() <= 120 &&
+      data.updatedAt is int;
+    }
+
+    function isValidCustomContent(data) {
+      return data.keys().hasAll([
+        'seminarTitle',
+        'organizerName',
+        'questions',
+        'polls',
+        'slides',
+        'qnaTopics',
+        'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'seminarTitle',
+        'organizerName',
+        'questions',
+        'polls',
+        'slides',
+        'qnaTopics',
+        'updatedAt'
+      ]) &&
+      data.seminarTitle is string && data.seminarTitle.size() >= 1 && data.seminarTitle.size() <= 120 &&
+      data.organizerName is string && data.organizerName.size() >= 1 && data.organizerName.size() <= 100 &&
+      data.questions is list && data.questions.size() >= 1 && data.questions.size() <= 25 &&
+      data.polls is list && data.polls.size() >= 1 && data.polls.size() <= 15 &&
+      data.slides is list && data.slides.size() >= 1 && data.slides.size() <= 40 &&
+      data.qnaTopics is list && data.qnaTopics.size() >= 1 && data.qnaTopics.size() <= 15 &&
+      data.qnaTopics[0] is string &&
       data.updatedAt is int;
     }
 
@@ -88,7 +117,7 @@ service cloud.firestore {
         'mentorNote',
         'ts'
       ]) &&
-      data.q is int && data.q >= 0 && data.q <= 20 &&
+      data.q is int && data.q >= 0 && data.q <= 30 &&
       data.text is string && data.text.size() >= 1 && data.text.size() <= 250 &&
       data.subText is string && data.subText.size() <= 200 &&
       data.businessName is string && data.businessName.size() <= 60 &&
@@ -164,7 +193,7 @@ service cloud.firestore {
       allow get: if isValidId(docId);
     }
 
-    // Session state: readable by all seminar participants (no account needed per PDF requirement), writable for seminar control
+    // Session state
     match /state/{sessionId} {
       allow get: if isValidId(sessionId);
       allow list: if existing().activeQuestion >= 0;
@@ -185,14 +214,32 @@ service cloud.firestore {
       );
     }
 
-    // Worksheet Answers: participants without accounts can submit answers & view approved/own answers
+    // Custom seminar content (Questions, Slides, Polls, Q&A Topics)
+    match /custom_content/{docId} {
+      allow get: if isValidId(docId);
+      allow list: if existing().updatedAt > 0;
+      allow create: if isValidId(docId) && isValidCustomContent(incoming());
+      allow update: if isValidId(docId) && isValidCustomContent(incoming()) && (
+        isAdmin() ||
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'seminarTitle',
+          'organizerName',
+          'questions',
+          'polls',
+          'slides',
+          'qnaTopics',
+          'updatedAt'
+        ])
+      );
+    }
+
+    // Worksheet Answers
     match /answers/{answerId} {
       allow get: if isValidId(answerId);
       allow list: if existing().q >= 0;
       allow create: if isValidId(answerId) && isValidAnswer(incoming());
       allow update: if isValidId(answerId) && isValidAnswer(incoming()) && (
         isAdmin() ||
-        // Moderation, spotlight, likes, or text refinement
         (incoming().q == existing().q &&
          incoming().participantId == existing().participantId &&
          incoming().ts == existing().ts &&
@@ -201,7 +248,7 @@ service cloud.firestore {
       allow delete: if isValidId(answerId);
     }
 
-    // Live Q&A (Slido style): anonymous or named questions + live upvoting
+    // Live Q&A
     match /qna/{questionId} {
       allow get: if isValidId(questionId);
       allow list: if existing().upvotes >= 0;
@@ -215,7 +262,7 @@ service cloud.firestore {
       allow delete: if isValidId(questionId);
     }
 
-    // Live Poll & Word Cloud Votes (Mentimeter style)
+    // Live Poll & Word Cloud Votes
     match /poll_votes/{voteId} {
       allow get: if isValidId(voteId);
       allow list: if existing().ts > 0;
