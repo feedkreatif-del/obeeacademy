@@ -692,7 +692,9 @@ export default function App() {
               updateSessionState({ activePollId: pollId, activeMode: 'poll' });
             }}
             onToggleStarAnswer={handleToggleStarAnswer}
+            onApproveAnswer={handleApproveAnswer}
             approvedAnswers={approvedAnswers}
+            allAnswers={answers}
             activeMode={sessionState.activeMode}
           />
         )}
