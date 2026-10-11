@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { WorksheetQuestion, LivePollConfig } from '../data/seminarData';
+import {
+  WorksheetQuestion,
+  LivePollConfig,
+  RATIONAL_CONVERSION_DICTIONARY,
+  FORBIDDEN_VAGUE_WORDS,
+} from '../data/seminarData';
 import { AnswerDoc, QnaDoc, PollVoteDoc, SessionStateDoc, InteractiveMode } from '../types';
 import { PWAInstallModalTrigger } from './PWAInstallButton';
 import {
@@ -15,6 +20,12 @@ import {
   UserCheck,
   EyeOff,
   Store,
+  Copy,
+  Check,
+  Instagram,
+  MessageCircle,
+  Tag,
+  HelpCircle,
 } from 'lucide-react';
 
 interface ParticipantViewProps {
@@ -78,6 +89,10 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
   const [submitting, setSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submitError, setSubmitError] = useState(false);
+  const [showConversionGuide, setShowConversionGuide] = useState(true);
+
+  // Copy states for Bio IG / WA Chat / Sticker Generator
+  const [copiedType, setCopiedType] = useState<'ig' | 'wa' | 'sticker' | 'vp' | null>(null);
 
   useEffect(() => {
     setAnswerText('');
@@ -98,6 +113,23 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
     const emotional = getMyPreviousAnswer(4) || '[Perasaan Pembeli]';
     const drafted = `${prod} untuk ${buyer} yang ingin ${emotional}, karena ${rational}.`.slice(0, 200);
     setAnswerText(drafted);
+  };
+
+  const handleInsertChip = (chipText: string) => {
+    setAnswerText((prev) => {
+      if (!prev.trim()) return chipText;
+      return `${prev.trim()}, ${chipText}`.slice(0, 200);
+    });
+  };
+
+  const handleCopyText = async (text: string, type: 'ig' | 'wa' | 'sticker' | 'vp') => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedType(type);
+      setTimeout(() => setCopiedType(null), 2500);
+    } catch {
+      // Fallback copy
+    }
   };
 
   const handleWorksheetSubmit = async (e: React.FormEvent) => {
@@ -175,6 +207,22 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
     setPollSubmitted(true);
   };
 
+  // Auto-Generated Marketing Kit Data from Participant's Answers (Parts 1 to 7)
+  const umkmTitle = businessName.trim() || getMyPreviousAnswer(0) || 'Nama Usaha UMKM';
+  const productInfo = getMyPreviousAnswer(0) || 'Produk Andalan Pilihan';
+  const targetBuyer = getMyPreviousAnswer(1) || 'Pelanggan Setia & Keluarga';
+  const rationalProof = getMyPreviousAnswer(3) || getMyPreviousAnswer(2) || 'Bahan Asli · Kualitas Terjamin · Harga Bersahabat';
+  const emotionalFeeling = getMyPreviousAnswer(4) || 'Praktis, Tenang & Bikin Keluarga Senang';
+  const finalVpSentence =
+    getMyPreviousAnswer(5) ||
+    `${productInfo} untuk ${targetBuyer} yang ingin ${emotionalFeeling}, karena ${rationalProof}.`;
+
+  const generatedInstagramBio = `✨ ${umkmTitle}\n🎯 Solusi untuk: ${targetBuyer}\n✅ ${rationalProof}\n💛 ${emotionalFeeling}\n👇 Pesan sekarang via WhatsApp di bawah:`;
+
+  const generatedWhatsappGreeting = `Halo Kak! 👋 Terima kasih sudah menghubungi *${umkmTitle}*.\n\nKami menyediakan ${finalVpSentence}\n\nAda varian atau paket yang ingin Kakak pesan untuk hari ini? 😊`;
+
+  const generatedPackagingSticker = `${umkmTitle.toUpperCase()}\n"${emotionalFeeling}"\n• ${rationalProof} •`;
+
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 pb-24">
       {/* Top Mode Selector Bar for Participant */}
@@ -224,7 +272,7 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
           }`}
         >
           <Download className="w-4 h-4" />
-          <span>Rekap Usahaku</span>
+          <span>Bio IG & Rekap</span>
         </button>
       </div>
 
@@ -250,7 +298,7 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
             </p>
           )}
 
-          <div className="rounded-xl bg-[#FFF7EC] border border-[#F28C28]/40 p-4 mb-6">
+          <div className="rounded-xl bg-[#FFF7EC] border border-[#F28C28]/40 p-4 mb-5">
             <p className="text-xs font-bold text-[#F28C28] uppercase tracking-wider mb-1">
               Contoh Jawaban Sederhana:
             </p>
@@ -259,6 +307,53 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
             </p>
           </div>
 
+          {/* KATA TERLARANG & KAMUS KONVERSI ANGKA INTERAKTIF (Khusus Bagian 3 & Bagian 4) */}
+          {(activeQIndex === 2 || activeQIndex === 3) && (
+            <div className="rounded-xl bg-[#E3F5F2] border border-[#2A9D8F]/40 p-4 mb-6 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs sm:text-sm font-bold text-[#1F3A5F] flex items-center gap-1.5">
+                  <HelpCircle className="w-4 h-4 text-[#2A9D8F] shrink-0" />
+                  <span>Kamus Konversi: Ubah Kata Sifat Jadi Bukti Angka!</span>
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowConversionGuide(!showConversionGuide)}
+                  className="text-xs font-bold text-[#2A9D8F] hover:underline cursor-pointer"
+                >
+                  {showConversionGuide ? 'Sembunyikan' : 'Lihat Contekan'}
+                </button>
+              </div>
+
+              {showConversionGuide && (
+                <div className="space-y-3 pt-1">
+                  <p className="text-xs text-[#1F3A5F]/80">
+                    Hindari kata umum seperti <strong>"Enak, Murah, Berkualitas"</strong>. Ketuk salah satu contoh bukti di bawah untuk langsung memasukkannya ke kolom jawabanmu:
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {RATIONAL_CONVERSION_DICTIONARY.map((dict, idx) => (
+                      <div
+                        key={idx}
+                        onClick={() => handleInsertChip(dict.chipText)}
+                        className="bg-white rounded-lg p-2.5 border border-[#2A9D8F]/30 hover:border-[#F28C28] cursor-pointer transition-colors"
+                      >
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-red-700 line-through font-semibold">
+                            Jangan: {dict.vagueWord}
+                          </span>
+                          <span className="font-bold text-[#F28C28]">+ Pakai Ini</span>
+                        </div>
+                        <p className="text-xs font-bold text-[#1F3A5F] mt-1">
+                          {dict.concreteProof}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Smart Formula Builder on Question 6 (Index 5) */}
           {activeQIndex === 5 && questions.length >= 6 && (
             <div className="rounded-xl bg-[#E3F5F2] border border-[#2A9D8F]/40 p-4 mb-6 space-y-3">
               <div className="flex items-center justify-between gap-2">
@@ -276,16 +371,16 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
               </div>
               <div className="text-xs text-[#1F3A5F]/80 space-y-1">
                 <p>
-                  <strong>Bagian 1:</strong> {getMyPreviousAnswer(0) || 'Belum diisi'}
+                  <strong>Bagian 1 (Produk):</strong> {getMyPreviousAnswer(0) || 'Belum diisi'}
                 </p>
                 <p>
-                  <strong>Bagian 2:</strong> {getMyPreviousAnswer(1) || 'Belum diisi'}
+                  <strong>Bagian 2 (Pembeli):</strong> {getMyPreviousAnswer(1) || 'Belum diisi'}
                 </p>
                 <p>
-                  <strong>Bagian 4:</strong> {getMyPreviousAnswer(3) || 'Belum diisi'}
+                  <strong>Bagian 4 (Bukti Angka):</strong> {getMyPreviousAnswer(3) || 'Belum diisi'}
                 </p>
                 <p>
-                  <strong>Bagian 5:</strong> {getMyPreviousAnswer(4) || 'Belum diisi'}
+                  <strong>Bagian 5 (Perasaan):</strong> {getMyPreviousAnswer(4) || 'Belum diisi'}
                 </p>
               </div>
             </div>
@@ -551,7 +646,6 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
             </form>
           </div>
 
-          {/* Live Upvote List */}
           <div className="bg-white border border-[#1F3A5F]/15 rounded-2xl p-6 shadow-xs space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-display text-lg font-bold text-[#1F3A5F]">
@@ -616,53 +710,147 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
         </div>
       )}
 
-      {/* MODE 4: REKAP USAHAKU */}
+      {/* MODE 4: GENERATOR BIO IG, CHAT WA, STIKER KEMASAN & REKAP USAHAKU */}
       {localTab === 'summary' && (
-        <div className="bg-white border border-[#1F3A5F]/15 rounded-2xl p-6 sm:p-8 shadow-xs space-y-6">
-          <div className="border-b border-[#1F3A5F]/10 pb-4 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <span className="text-xs font-bold uppercase tracking-wider text-[#F28C28]">
-                Lembar Rekap Seminar
-              </span>
-              <h2 className="font-display text-2xl font-bold text-[#1F3A5F] mt-1">
-                Rangkuman Jawaban Usahaku
-              </h2>
-              <p className="text-sm text-[#1F3A5F]/75 mt-1">
-                Simpan atau salin rangkuman jawabanmu dari setiap bagian materi untuk langsung diterapkan di usahamu.
+        <div className="space-y-6">
+          {/* Instant Marketing Kit Generator */}
+          <div className="bg-white border-2 border-[#F28C28] rounded-2xl p-6 sm:p-8 shadow-xs space-y-6">
+            <div className="border-b border-[#1F3A5F]/10 pb-4 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-[#F28C28]">
+                  Generator Otomatis dari Jawabanmu
+                </span>
+                <h2 className="font-display text-2xl font-bold text-[#1F3A5F] mt-0.5">
+                  3 Format Promosi Siap Pakai ({umkmTitle})
+                </h2>
+                <p className="text-sm text-[#1F3A5F]/75 mt-1">
+                  Hasil jawabanmu dari Bagian 1–6 otomatis dirangkai menjadi Bio Instagram, Salam Pembuka WhatsApp Business, dan Label Stiker Kemasan.
+                </p>
+              </div>
+              <PWAInstallModalTrigger variant="light" />
+            </div>
+
+            {/* 1. Kalimat Value Proposition Utuh */}
+            <div className="rounded-xl bg-[#FFF7EC] border border-[#F28C28]/50 p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase text-[#F28C28]">
+                  Kalimat Value Proposition Utama
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleCopyText(finalVpSentence, 'vp')}
+                  className="px-3 py-1 rounded-lg bg-[#F28C28] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                >
+                  {copiedType === 'vp' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedType === 'vp' ? 'Tersalin!' : 'Salin Kalimat'}</span>
+                </button>
+              </div>
+              <p className="font-display text-lg font-bold text-[#1F3A5F]">
+                "{finalVpSentence}"
               </p>
             </div>
-            <PWAInstallModalTrigger variant="light" />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* 2. Generator Bio Instagram / Shopee / TikTok */}
+              <div className="rounded-xl border border-[#1F3A5F]/15 p-4 flex flex-col justify-between gap-4 bg-white">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-[#1F3A5F] flex items-center gap-1.5">
+                      <Instagram className="w-4 h-4 text-[#F28C28]" />
+                      1. Format Bio Instagram / Profil Toko
+                    </span>
+                  </div>
+                  <pre className="font-sans text-xs sm:text-sm text-[#1F3A5F] bg-[#FFF7EC]/70 p-3.5 rounded-lg border border-[#1F3A5F]/10 whitespace-pre-wrap leading-relaxed">
+                    {generatedInstagramBio}
+                  </pre>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleCopyText(generatedInstagramBio, 'ig')}
+                  className="w-full py-2.5 rounded-xl bg-[#1F3A5F] hover:bg-[#162944] text-white text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  {copiedType === 'ig' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  <span>{copiedType === 'ig' ? 'Bio IG Berhasil Disalin!' : 'Salin untuk Bio Instagram'}</span>
+                </button>
+              </div>
+
+              {/* 3. Generator Salam Pembuka WhatsApp Business */}
+              <div className="rounded-xl border border-[#1F3A5F]/15 p-4 flex flex-col justify-between gap-4 bg-white">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-[#2A9D8F] flex items-center gap-1.5">
+                      <MessageCircle className="w-4 h-4 text-[#2A9D8F]" />
+                      2. Salam Otomatis WhatsApp Business
+                    </span>
+                  </div>
+                  <pre className="font-sans text-xs sm:text-sm text-[#1F3A5F] bg-[#E3F5F2]/50 p-3.5 rounded-lg border border-[#2A9D8F]/20 whitespace-pre-wrap leading-relaxed">
+                    {generatedWhatsappGreeting}
+                  </pre>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleCopyText(generatedWhatsappGreeting, 'wa')}
+                  className="w-full py-2.5 rounded-xl bg-[#2A9D8F] hover:bg-[#218276] text-white text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  {copiedType === 'wa' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  <span>{copiedType === 'wa' ? 'Pesan WA Berhasil Disalin!' : 'Salin Pesan Sambutan WA'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* 4. Generator Stiker Kemasan / Spanduk */}
+            <div className="rounded-xl border border-[#1F3A5F]/15 p-4 bg-[#1F3A5F] text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <span className="text-xs font-bold text-[#F28C28] flex items-center gap-1.5">
+                  <Tag className="w-4 h-4" />
+                  3. Tagline Pendek Stiker Kemasan / Banner Lapak
+                </span>
+                <p className="font-display text-base sm:text-lg font-bold whitespace-pre-line">
+                  {generatedPackagingSticker}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleCopyText(generatedPackagingSticker, 'sticker')}
+                className="px-4 py-2.5 rounded-xl bg-white text-[#1F3A5F] text-xs font-bold flex items-center gap-1.5 shrink-0 cursor-pointer"
+              >
+                {copiedType === 'sticker' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                <span>{copiedType === 'sticker' ? 'Tersalin!' : 'Salin Teks Stiker'}</span>
+              </button>
+            </div>
           </div>
 
-          <div className="space-y-3">
-            {questions.map((q, idx) => {
-              const myAns = myAnswers.find((a) => a.q === idx);
-              return (
-                <div
-                  key={idx}
-                  className={`p-4 rounded-xl border ${
-                    idx === questions.length - 2
-                      ? 'bg-[#FFF7EC] border-[#F28C28] border-2'
-                      : 'bg-white border-[#1F3A5F]/15'
-                  }`}
-                >
-                  <p className="text-xs font-bold text-[#1F3A5F]/65">{q.sectionTitle}</p>
-                  <p className="text-sm font-semibold text-[#1F3A5F] mt-0.5">{q.questionText}</p>
-                  {myAns ? (
-                    <div className="mt-2 pt-2 border-t border-[#1F3A5F]/10">
-                      <p className="text-base font-bold text-[#2A9D8F]">{myAns.text}</p>
-                      {myAns.subText && (
-                        <p className="text-xs text-[#1F3A5F]/75 mt-0.5">{myAns.subText}</p>
-                      )}
-                    </div>
-                  ) : (
-                    <p className="text-xs italic text-[#1F3A5F]/45 mt-2">
-                      Belum diisi pada sesi ini.
-                    </p>
-                  )}
-                </div>
-              );
-            })}
+          {/* Complete 1-7 Answers List */}
+          <div className="bg-white border border-[#1F3A5F]/15 rounded-2xl p-6 sm:p-8 shadow-xs space-y-4">
+            <h3 className="font-display text-xl font-bold text-[#1F3A5F]">
+              Detail Jawaban Lembar Kerja Saya (Bagian 1–{questions.length})
+            </h3>
+            <div className="space-y-3">
+              {questions.map((q, idx) => {
+                const myAns = myAnswers.find((a) => a.q === idx);
+                return (
+                  <div
+                    key={idx}
+                    className="p-4 rounded-xl border bg-white border-[#1F3A5F]/15"
+                  >
+                    <p className="text-xs font-bold text-[#1F3A5F]/65">{q.sectionTitle}</p>
+                    <p className="text-sm font-semibold text-[#1F3A5F] mt-0.5">{q.questionText}</p>
+                    {myAns ? (
+                      <div className="mt-2 pt-2 border-t border-[#1F3A5F]/10">
+                        <p className="text-base font-bold text-[#2A9D8F]">{myAns.text}</p>
+                        {myAns.subText && (
+                          <p className="text-xs text-[#1F3A5F]/75 mt-0.5">{myAns.subText}</p>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-xs italic text-[#1F3A5F]/45 mt-2">
+                        Belum diisi pada sesi ini.
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}

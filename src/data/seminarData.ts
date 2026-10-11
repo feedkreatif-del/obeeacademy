@@ -596,6 +596,57 @@ export const SEMINAR_SLIDES: SlideDefinition[] = [
   },
 ];
 
+export const FORBIDDEN_VAGUE_WORDS = [
+  {
+    vague: '"Enak & Lezat"',
+    reason: 'Semua penjual makanan bilang enak. Pembeli belum pernah mencicipi sebelum beli.',
+    better: '"Pakai 100% gula batu asli, bumbu rempah segar tanpa MSG"',
+  },
+  {
+    vague: '"Murah & Terjangkau"',
+    reason: 'Kata "murah" tanpa angka membuat pembeli curiga kualitasnya murahan.',
+    better: '"Mulai Rp12 ribu porsi kenyang / Paket hemat 3 pcs Rp30 ribu"',
+  },
+  {
+    vague: '"Berkualitas Tinggi"',
+    reason: 'Terlalu umum dan tidak bisa dibayangkan oleh pembeli.',
+    better: '"Jahitan ganda rapi, bahan katun dingin tidak menerawang, garansi tukar ukuran"',
+  },
+];
+
+export const RATIONAL_CONVERSION_DICTIONARY = [
+  {
+    category: 'Kecepatan & Waktu',
+    vagueWord: '"Cepat / Kilat"',
+    concreteProof: 'Selesai dalam 3 jam · Kirim di hari yang sama · Balas chat < 5 menit',
+    chipText: 'Selesai dalam 3 jam, tepat waktu',
+  },
+  {
+    category: 'Ukuran & Porsi',
+    vagueWord: '"Banyak / Puas"',
+    concreteProof: 'Berat bersih 150 gram · Isi 12 potong besar · Porsi makan 2–3 orang',
+    chipText: 'Isi 150 gram penuh, porsi puas',
+  },
+  {
+    category: 'Daya Tahan & Keawetan',
+    vagueWord: '"Awet / Tahan Lama"',
+    concreteProof: 'Tahan renyah 3 bulan · Simpan di suhu ruang 7 hari tanpa kulkas',
+    chipText: 'Tanpa pengawet, tahan 3 bulan',
+  },
+  {
+    category: 'Keaslian & Higienitas',
+    vagueWord: '"Asli / Bersih"',
+    concreteProof: '100% buah asli · Terdaftar PIRT & Halal · 1 pelanggan 1 mesin cuci terpisah',
+    chipText: '100% bahan asli, berizin PIRT & Halal',
+  },
+  {
+    category: 'Jaminan & Kemudahan',
+    vagueWord: '"Aman / Mudah"',
+    concreteProof: 'Gratis ongkir radius 3 km · Bisa COD · Garansi ganti baru jika rusak',
+    chipText: 'Gratis ongkir & garansi ganti baru',
+  },
+];
+
 export const INITIAL_SEED_ANSWERS = [
   {
     q: 0,

@@ -1,5 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { SlideDefinition, WorksheetQuestion, LivePollConfig } from '../data/seminarData';
+import {
+  SlideDefinition,
+  WorksheetQuestion,
+  LivePollConfig,
+  RATIONAL_CONVERSION_DICTIONARY,
+  FORBIDDEN_VAGUE_WORDS,
+} from '../data/seminarData';
 import { AnswerDoc, PollVoteDoc, InteractiveMode } from '../types';
 import { QRCodeSVG } from 'qrcode.react';
 import {
@@ -425,6 +431,54 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
               {slide.bottomBanner && (
                 <div className="rounded-xl bg-[#1F3A5F] text-white px-6 py-4 sm:py-5 text-center font-display text-lg sm:text-2xl font-bold">
                   {slide.bottomBanner}
+                </div>
+              )}
+
+              {/* Kamus Konversi Kata Sifat Jadi Angka (Khusus Slide Bagian 4 - Rational Value) */}
+              {slide.linkedQuestionIndex === 3 && (
+                <div className="rounded-xl bg-white border border-[#2A9D8F]/40 p-5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs sm:text-sm font-bold uppercase tracking-wider text-[#2A9D8F]">
+                      KAMUS TERJEMAHAN: UBAH KATA KOSONG JADI BUKTI ANGKA (SEMUA JENIS UMKM)
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
+                    {RATIONAL_CONVERSION_DICTIONARY.map((item, idx) => (
+                      <div
+                        key={idx}
+                        className="rounded-lg bg-[#FFF7EC] border border-[#1F3A5F]/10 p-3 flex flex-col justify-between"
+                      >
+                        <div>
+                          <span className="text-[11px] font-bold text-[#1F3A5F]/60">
+                            {item.category}
+                          </span>
+                          <p className="text-xs font-bold text-red-700 line-through mt-0.5">
+                            Jangan: {item.vagueWord}
+                          </p>
+                        </div>
+                        <p className="text-xs font-bold text-[#2A9D8F] mt-2 pt-2 border-t border-[#1F3A5F]/10">
+                          Pakai: {item.concreteProof}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Daftar 3 Kata Terlarang (Khusus Slide Bagian 3 - Value Proposition) */}
+              {slide.linkedQuestionIndex === 2 && (
+                <div className="rounded-xl bg-white border border-[#F28C28]/40 p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {FORBIDDEN_VAGUE_WORDS.map((fw, idx) => (
+                    <div key={idx} className="rounded-lg bg-[#FFF7EC] p-3 border border-[#1F3A5F]/10">
+                      <p className="text-xs font-bold text-red-700">
+                        Hindari Kata: {fw.vague}
+                      </p>
+                      <p className="text-[11px] text-[#1F3A5F]/75 mt-1">{fw.reason}</p>
+                      <p className="text-xs font-bold text-[#2A9D8F] mt-1.5">
+                        Ganti jadi: {fw.better}
+                      </p>
+                    </div>
+                  ))}
                 </div>
               )}
 
