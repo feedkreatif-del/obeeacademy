@@ -1160,25 +1160,25 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
                           <div
                             key={cIdx}
                             className={`rounded-xl p-4 border ${
-                              c.variant === 'navy'
+                              c.accent === 'navy'
                                 ? 'bg-[#1F3A5F] text-white border-[#1F3A5F]'
-                                : c.variant === 'teal'
+                                : c.accent === 'teal'
                                 ? 'bg-[#E3F5F2] text-[#1F3A5F] border-[#2A9D8F]/40'
-                                : c.variant === 'orange'
+                                : c.accent === 'orange'
                                 ? 'bg-[#FFF7EC] text-[#1F3A5F] border-2 border-[#F28C28]'
                                 : 'bg-white text-[#1F3A5F] border-[#1F3A5F]/15'
                             }`}
                           >
                             <p
                               className={`font-display font-bold text-base mb-1 ${
-                                c.variant === 'navy' ? 'text-[#F28C28]' : 'text-[#1F3A5F]'
+                                c.accent === 'navy' ? 'text-[#F28C28]' : 'text-[#1F3A5F]'
                               }`}
                             >
                               {c.title}
                             </p>
                             <p
                               className={`text-sm leading-relaxed whitespace-pre-line ${
-                                c.variant === 'navy' ? 'text-white/90' : 'text-[#1F3A5F]/85'
+                                c.accent === 'navy' ? 'text-white/90' : 'text-[#1F3A5F]/85'
                               }`}
                             >
                               {c.body}

@@ -32,12 +32,16 @@ import {
   Download,
   Upload,
   Palette,
+  Printer,
+  FileText,
 } from 'lucide-react';
+import { printSystemDocumentationGuide } from '../utils/handoutExport';
 
 interface ContentEditorViewProps {
   customContent: CustomContentDoc;
   onSaveCustomContent: (updated: CustomContentDoc) => Promise<void>;
   onResetToPartnerUpDefault: () => Promise<void>;
+  onOpenGuide?: () => void;
 }
 
 export const DEFAULT_QNA_TOPICS = [
@@ -52,8 +56,9 @@ export const ContentEditorView: React.FC<ContentEditorViewProps> = ({
   customContent,
   onSaveCustomContent,
   onResetToPartnerUpDefault,
+  onOpenGuide,
 }) => {
-  const [activeTab, setActiveTab] = useState<'questions' | 'slides' | 'polls' | 'qna' | 'theme'>('theme');
+  const [activeTab, setActiveTab] = useState<'questions' | 'slides' | 'polls' | 'qna' | 'theme' | 'guide'>('theme');
   const [seminarTitle, setSeminarTitle] = useState(customContent.seminarTitle);
   const [organizerName, setOrganizerName] = useState(customContent.organizerName);
   const [questions, setQuestions] = useState<WorksheetQuestion[]>(customContent.questions);
@@ -711,6 +716,25 @@ export const ContentEditorView: React.FC<ContentEditorViewProps> = ({
         >
           <MessageSquare className="w-4 h-4" />
           <span>4. Topik Kategori Q&A ({qnaTopics.length})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            if (onOpenGuide) {
+              onOpenGuide();
+            } else {
+              setActiveTab('guide');
+            }
+          }}
+          className={`px-4 py-2.5 rounded-lg text-xs sm:text-sm font-bold flex items-center gap-2 cursor-pointer transition-colors ${
+            activeTab === 'guide'
+              ? 'bg-[#1F3A5F] text-white shadow-xs'
+              : 'text-[#1F3A5F] bg-amber-50 hover:bg-amber-100 border border-amber-300'
+          }`}
+        >
+          <BookOpen className="w-4 h-4 text-[#F28C28]" />
+          <span>Buku Panduan & Duplikasi (PDF)</span>
         </button>
       </div>
 
@@ -1726,6 +1750,73 @@ export const ContentEditorView: React.FC<ContentEditorViewProps> = ({
                 </button>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* SUB-EDITOR 5: PANDUAN MENYELURUH & PROSEDUR DUPLIKASI */}
+      {activeTab === 'guide' && (
+        <div className="bg-white border border-[#1F3A5F]/15 rounded-2xl p-6 sm:p-8 space-y-6 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#1F3A5F]/15">
+            <div className="space-y-1">
+              <span className="text-xs font-bold text-[#F28C28] uppercase tracking-wider block">
+                Buku Manual Resmi & SOP Duplikasi
+              </span>
+              <h2 className="text-xl sm:text-2xl font-bold text-[#1F3A5F]">
+                Panduan Menyeluruh Web Apps & Duplikasi Sistem
+              </h2>
+              <p className="text-xs sm:text-sm text-[#1F3A5F]/75">
+                Pelajari latar belakang, arsitektur engine, istilah teknis UI, cara pakai 4-titik, dan cara duplikasi ke akun Google lain.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() =>
+                  printSystemDocumentationGuide({
+                    seminarTitle,
+                    organizerName,
+                    brandTheme,
+                  })
+                }
+                className="px-4 py-2.5 rounded-xl bg-[#F28C28] hover:bg-[#d97719] text-white text-xs sm:text-sm font-bold flex items-center gap-2 shadow-md cursor-pointer transition-all active:scale-95"
+              >
+                <Printer className="w-4 h-4" />
+                <span>Cetak / Simpan PDF Panduan (A4)</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-4 rounded-xl bg-[#FFF7EC] border border-[#F28C28]/30 space-y-2">
+              <h3 className="font-bold text-sm text-[#1F3A5F]">Metode 1: Duplikasi di Akun Google yang Sama</h3>
+              <p className="text-xs text-[#1F3A5F]/80">
+                Gunakan menu <strong>Copy App / Duplicate</strong> di dasbor Google AI Studio. Anda akan mendapatkan aplikasi baru dengan database Firestore terpisah yang siap diubah materinya tanpa mengganggu seminar saat ini.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-xl bg-[#FFF7EC] border border-[#F28C28]/30 space-y-2">
+              <h3 className="font-bold text-sm text-[#1F3A5F]">Metode 2: Pindah ke Akun Lain via GitHub</h3>
+              <p className="text-xs text-[#1F3A5F]/80">
+                Klik <strong>Export to GitHub</strong> di pojok kanan atas AI Studio. Di akun Google kedua, pilih <strong>Import from GitHub</strong> lalu minta AI di akun kedua untuk setup Firebase Firestore baru.
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="text-xs text-slate-700">
+              Dokumen PDF lengkap memuat 5 Bab resmi, cover standar institusi, daftar isi, diagram arsitektur, dan SOP panggung.
+            </div>
+            {onOpenGuide && (
+              <button
+                type="button"
+                onClick={onOpenGuide}
+                className="px-3.5 py-2 rounded-lg bg-[#1F3A5F] text-white text-xs font-bold hover:bg-[#152740] cursor-pointer whitespace-nowrap"
+              >
+                Buka Modal Pembaca Lengkap
+              </button>
+            )}
           </div>
         </div>
       )}

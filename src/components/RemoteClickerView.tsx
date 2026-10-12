@@ -77,6 +77,7 @@ interface RemoteClickerViewProps {
   onToggleStarAnswer: (ans: AnswerDoc) => Promise<void>;
   onApproveAnswer: (ans: AnswerDoc) => Promise<void>;
   onToggleStarQna: (qna: QnaDoc) => Promise<void>;
+  onOpenGuide?: () => void;
 }
 
 const DEFAULT_PIN = '2026';
@@ -102,6 +103,7 @@ export const RemoteClickerView: React.FC<RemoteClickerViewProps> = ({
   onToggleStarAnswer,
   onApproveAnswer,
   onToggleStarQna,
+  onOpenGuide,
 }) => {
   // Control Target Mode: 'slides' (17 Slides + PPT Points) vs 'interactive' (Direct 7 Questions / Polls / Q&A like Projector < >)
   const [remoteControlTab, setRemoteControlTab] = useState<'slides' | 'interactive'>('slides');
@@ -1300,6 +1302,23 @@ export const RemoteClickerView: React.FC<RemoteClickerViewProps> = ({
           })}
         </div>
       </div>
+
+      {/* 9. PANDUAN TEKNIS & MANUAL SISTEM */}
+      {onOpenGuide && (
+        <div className="pt-1">
+          <button
+            type="button"
+            onClick={() => {
+              triggerHaptic(20);
+              onOpenGuide();
+            }}
+            className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-slate-50 border border-[#1F3A5F]/20 text-[#1F3A5F] text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition-colors shadow-xs"
+          >
+            <BookOpen className="w-4 h-4 text-[#F28C28]" />
+            <span>Buku Panduan Teknis & SOP Panggung (PDF)</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 };

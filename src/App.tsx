@@ -46,7 +46,8 @@ import { RemoteClickerView } from './components/RemoteClickerView';
 import { ContentEditorView, DEFAULT_QNA_TOPICS } from './components/ContentEditorView';
 import { OfflineBanner, PWAInstallModalTrigger } from './components/PWAInstallButton';
 import { DEFAULT_BRAND_THEME, sanitizeBrandTheme, useApplyBrandTheme } from './brandTheme';
-import { Download } from 'lucide-react';
+import { Download, BookOpen } from 'lucide-react';
+import { SystemGuideModal } from './components/SystemGuideModal';
 
 const DEFAULT_SESSION_STATE: SessionStateDoc = {
   activeQuestion: 0,
@@ -87,11 +88,17 @@ export default function App() {
       v === 'projector' ||
       v === 'editor' ||
       v === 'extend' ||
-      v === 'remote'
+      v === 'remote' ||
+      v === 'guide'
     ) {
       return v;
     }
     return window.innerWidth < 768 ? 'participant' : 'projector';
+  });
+
+  const [isGuideModalOpen, setIsGuideModalOpen] = useState<boolean>(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('view') === 'guide';
   });
 
   const [participantId] = useState<string>(() => getOrCreateParticipantId());
@@ -631,101 +638,148 @@ export default function App() {
 
   return (
     <div className="min-h-screen w-full max-w-full overflow-x-hidden flex flex-col bg-[#FFF7EC] text-[#1F3A5F]">
-      {/* Strict 3-Zone Top Navigation Bar */}
-      <header className="w-full max-w-full flex items-center justify-between gap-2.5 sm:gap-6 px-3 sm:px-8 py-3.5 sm:py-4 bg-[#1F3A5F] text-white border-b border-white/10 sticky top-0 z-30">
-        {/* Zone 1: Brand Wordmark */}
-        <a
-          href="#top"
-          onClick={(e) => {
-            e.preventDefault();
-            setViewRole('projector');
-          }}
-          className="font-display text-base sm:text-xl font-extrabold tracking-tight text-white whitespace-nowrap shrink-0"
-        >
-          PartnerUp Live
-        </a>
+      {/* Conditional Header: Clean Participant Header vs Presenter/Organizer 3-Zone Navigation */}
+      {viewRole === 'participant' ? (
+        <header className="w-full max-w-full flex items-center justify-between gap-3 px-4 sm:px-6 py-3 bg-[#1F3A5F] text-white border-b border-white/10 sticky top-0 z-30 shadow-xs">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0" title="Terkoneksi Live" />
+            <div className="min-w-0">
+              <h1 className="font-display text-sm sm:text-base font-extrabold tracking-tight text-white truncate leading-tight">
+                {customContent.seminarTitle || 'PartnerUp Live'}
+              </h1>
+              <p className="text-[11px] text-white/70 truncate leading-none mt-0.5">
+                {customContent.organizerName || 'Portal Peserta UMKM'}
+              </p>
+            </div>
+          </div>
 
-        {/* Zone 2: 5 Concise Single-Line Navigation Links */}
-        <nav className="flex-1 min-w-0 flex items-center md:justify-center gap-3.5 sm:gap-6 text-xs sm:text-sm font-medium text-white/80 overflow-x-auto no-scrollbar py-0.5">
-          <button
-            onClick={() => setViewRole('projector')}
-            className={`hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer pb-0.5 ${
-              viewRole === 'projector'
-                ? 'text-[#F28C28] font-bold border-b-2 border-[#F28C28]'
-                : ''
-            }`}
+          <div className="flex items-center gap-2 shrink-0">
+            <PWAInstallModalTrigger variant="light" />
+            {/* Discreet switch to presenter mode for developer testing */}
+            <button
+              onClick={() => setViewRole('projector')}
+              className="text-[11px] font-semibold text-[#F28C28] hover:text-[#ff9d3b] bg-white/10 hover:bg-white/15 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
+              title="Beralih ke Panel Presenter / Proyektor"
+            >
+              Panel Presenter →
+            </button>
+          </div>
+        </header>
+      ) : (
+        /* Strict 3-Zone Top Navigation Bar for Presenter / Developer / Moderator */
+        <header className="w-full max-w-full flex items-center justify-between gap-2.5 sm:gap-6 px-3 sm:px-8 py-3.5 sm:py-4 bg-[#1F3A5F] text-white border-b border-white/10 sticky top-0 z-30">
+          {/* Zone 1: Brand Wordmark */}
+          <a
+            href="#top"
+            onClick={(e) => {
+              e.preventDefault();
+              setViewRole('projector');
+            }}
+            className="font-display text-base sm:text-xl font-extrabold tracking-tight text-white whitespace-nowrap shrink-0"
           >
-            Layar Proyektor
-          </button>
+            PartnerUp Live
+          </a>
 
-          <button
-            onClick={() => setViewRole('slides')}
-            className={`hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer pb-0.5 ${
-              viewRole === 'slides'
-                ? 'text-[#F28C28] font-bold border-b-2 border-[#F28C28]'
-                : ''
-            }`}
-          >
-            Materi Slide
-          </button>
+          {/* Zone 2: Concise Single-Line Navigation Links */}
+          <nav className="flex-1 min-w-0 flex items-center md:justify-center gap-3.5 sm:gap-6 text-xs sm:text-sm font-medium text-white/80 overflow-x-auto no-scrollbar py-0.5">
+            <button
+              onClick={() => setViewRole('projector')}
+              className={`hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer pb-0.5 ${
+                viewRole === 'projector'
+                  ? 'text-[#F28C28] font-bold border-b-2 border-[#F28C28]'
+                  : ''
+              }`}
+            >
+              Layar Proyektor
+            </button>
 
-          <button
-            onClick={() => setViewRole('remote')}
-            className={`hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer pb-0.5 ${
-              viewRole === 'remote'
-                ? 'text-[#F28C28] font-bold border-b-2 border-[#F28C28]'
-                : ''
-            }`}
-          >
-            Remote HP
-          </button>
+            <button
+              onClick={() => setViewRole('slides')}
+              className={`hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer pb-0.5 ${
+                viewRole === 'slides'
+                  ? 'text-[#F28C28] font-bold border-b-2 border-[#F28C28]'
+                  : ''
+              }`}
+            >
+              Materi Slide
+            </button>
 
-          <button
-            onClick={() => setViewRole('participant')}
-            className={`hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer pb-0.5 ${
-              viewRole === 'participant'
-                ? 'text-[#F28C28] font-bold border-b-2 border-[#F28C28]'
-                : ''
-            }`}
-          >
-            HP Peserta
-          </button>
+            <button
+              onClick={() => setViewRole('remote')}
+              className={`hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer pb-0.5 ${
+                viewRole === 'remote'
+                  ? 'text-[#F28C28] font-bold border-b-2 border-[#F28C28]'
+                  : ''
+              }`}
+            >
+              Remote HP
+            </button>
 
-          <button
-            onClick={() => setViewRole('moderation')}
-            className={`hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer pb-0.5 ${
-              viewRole === 'moderation'
-                ? 'text-[#F28C28] font-bold border-b-2 border-[#F28C28]'
-                : ''
-            }`}
-          >
-            Moderasi {pendingCount > 0 ? `(${pendingCount})` : ''}
-          </button>
+            <button
+              onClick={() => setViewRole('participant')}
+              className="hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer pb-0.5"
+            >
+              Simulasi HP Peserta
+            </button>
 
-          <button
-            onClick={() => setViewRole('editor')}
-            className={`hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer pb-0.5 ${
-              viewRole === 'editor'
-                ? 'text-[#F28C28] font-bold border-b-2 border-[#F28C28]'
-                : ''
-            }`}
-          >
-            Editor Materi
-          </button>
-        </nav>
+            <button
+              onClick={() => setViewRole('moderation')}
+              className={`hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer pb-0.5 ${
+                viewRole === 'moderation'
+                  ? 'text-[#F28C28] font-bold border-b-2 border-[#F28C28]'
+                  : ''
+              }`}
+            >
+              Moderasi {pendingCount > 0 ? `(${pendingCount})` : ''}
+            </button>
 
-        {/* Zone 3: 1 Primary Action Button */}
-        <div className="flex items-center shrink-0">
-          <button
-            onClick={handleDownloadCsv}
-            className="px-3.5 py-2 text-xs font-bold text-white bg-[#F28C28] rounded-lg hover:bg-[#d97719] transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Unduh Rekap CSV</span>
-            <span className="sm:hidden">CSV</span>
-          </button>
-        </div>
-      </header>
+            <button
+              onClick={() => setViewRole('editor')}
+              className={`hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer pb-0.5 ${
+                viewRole === 'editor'
+                  ? 'text-[#F28C28] font-bold border-b-2 border-[#F28C28]'
+                  : ''
+              }`}
+            >
+              Editor Materi
+            </button>
+
+            <button
+              onClick={() => setIsGuideModalOpen(true)}
+              className={`hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer pb-0.5 flex items-center gap-1.5 ${
+                isGuideModalOpen || viewRole === 'guide'
+                  ? 'text-[#F28C28] font-bold border-b-2 border-[#F28C28]'
+                  : 'text-white/80'
+              }`}
+            >
+              <BookOpen className="w-3.5 h-3.5 text-[#F28C28]" />
+              <span>Buku Panduan</span>
+            </button>
+          </nav>
+
+          {/* Zone 3: 2 Primary Action Buttons */}
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setIsGuideModalOpen(true)}
+              className="px-3 py-2 text-xs font-bold text-white bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer shadow-xs"
+              title="Buku Panduan Teknis, Glosarium & Duplikasi (PDF)"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-[#F28C28]" />
+              <span className="hidden sm:inline">Buku Panduan</span>
+              <span className="text-[10px] font-extrabold bg-[#F28C28] text-white px-1.5 py-0.5 rounded">PDF</span>
+            </button>
+
+            <button
+              onClick={handleDownloadCsv}
+              className="px-3.5 py-2 text-xs font-bold text-white bg-[#F28C28] rounded-lg hover:bg-[#d97719] transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Unduh Rekap CSV</span>
+              <span className="sm:hidden">CSV</span>
+            </button>
+          </div>
+        </header>
+      )}
 
       {/* Main Content Stage */}
       <main className="flex-1">
@@ -808,18 +862,19 @@ export default function App() {
 
         {viewRole === 'participant' && (
           <div>
-            <div className="bg-[#FFF7EC] border-b border-[#1F3A5F]/10 px-4 py-2 text-center text-xs text-[#1F3A5F]/75 flex flex-wrap items-center justify-center gap-3">
-              <span>
-                Anda sedang berada di tampilan <strong>HP Peserta UMKM</strong> ({customContent.seminarTitle}).
-              </span>
-              <PWAInstallModalTrigger variant="dark" />
-              <button
-                onClick={() => setViewRole('projector')}
-                className="font-bold text-[#F28C28] hover:underline cursor-pointer"
-              >
-                Kembali ke presenter →
-              </button>
-            </div>
+            {!window.location.search.includes('view=participant') && window.innerWidth >= 768 && (
+              <div className="bg-[#FFF7EC] border-b border-[#1F3A5F]/10 px-4 py-2 text-center text-xs text-[#1F3A5F]/75 flex flex-wrap items-center justify-center gap-3">
+                <span>
+                  Mode Simulasi: <strong>HP Peserta UMKM</strong> ({customContent.seminarTitle}).
+                </span>
+                <button
+                  onClick={() => setViewRole('projector')}
+                  className="font-bold text-[#F28C28] hover:underline cursor-pointer"
+                >
+                  Kembali ke presenter →
+                </button>
+              </div>
+            )}
             <ParticipantView
               questions={customContent.questions}
               polls={customContent.polls}
@@ -878,6 +933,7 @@ export default function App() {
             customContent={customContent}
             onSaveCustomContent={handleSaveCustomContent}
             onResetToPartnerUpDefault={handleResetToPartnerUpDefault}
+            onOpenGuide={() => setIsGuideModalOpen(true)}
           />
         )}
 
@@ -910,15 +966,42 @@ export default function App() {
             onToggleStarAnswer={handleToggleStarAnswer}
             onApproveAnswer={handleApproveAnswer}
             onToggleStarQna={handleToggleStarQna}
+            onOpenGuide={() => setIsGuideModalOpen(true)}
           />
         )}
       </main>
 
-      {/* Quiet Footer */}
-      <footer className="border-t border-[#1F3A5F]/10 py-4 px-6 text-center text-xs text-[#1F3A5F]/60 bg-[#FFF7EC]">
+      {/* Footer: Differentiated for Participant vs Developer/Presenter */}
+      <footer className="border-t border-[#1F3A5F]/10 py-4 px-6 text-center text-xs text-[#1F3A5F]/60 bg-[#FFF7EC] flex flex-col sm:flex-row items-center justify-between gap-2 max-w-7xl mx-auto w-full">
         <span>{customContent.seminarTitle} · {customContent.organizerName}</span>
+        {viewRole !== 'participant' ? (
+          <button
+            type="button"
+            onClick={() => setIsGuideModalOpen(true)}
+            className="text-xs text-[#F28C28] hover:underline font-bold flex items-center gap-1 cursor-pointer"
+          >
+            <BookOpen className="w-3.5 h-3.5" />
+            <span>Buku Panduan & Manual Duplikasi (PDF)</span>
+          </button>
+        ) : (
+          <span className="text-[11px] text-[#1F3A5F]/50">Portal Interaktif Peserta UMKM</span>
+        )}
       </footer>
       <OfflineBanner />
+
+      {/* Comprehensive System Guide & Duplication Manual Modal - Strict Developer Access */}
+      <SystemGuideModal
+        isOpen={(isGuideModalOpen || viewRole === 'guide') && viewRole !== 'participant'}
+        onClose={() => {
+          setIsGuideModalOpen(false);
+          if (viewRole === 'guide') {
+            setViewRole('projector');
+          }
+        }}
+        seminarTitle={customContent.seminarTitle}
+        organizerName={customContent.organizerName}
+        brandTheme={customContent.brandTheme}
+      />
     </div>
   );
 }

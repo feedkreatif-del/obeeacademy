@@ -27,6 +27,13 @@ export interface LivePollConfig {
   options: PollOption[];
 }
 
+export interface SlideCardItem {
+  title: string;
+  body: string;
+  extra?: string;
+  accent: 'orange' | 'teal' | 'navy';
+}
+
 export interface SlideDefinition {
   index: number;
   pageNumber: number;
@@ -37,12 +44,7 @@ export interface SlideDefinition {
   linkedQuestionIndex?: number;
   linkedPollId?: string;
   speakerNotes?: string;
-  cards?: {
-    title: string;
-    body: string;
-    extra?: string;
-    accent: 'orange' | 'teal' | 'navy';
-  }[];
+  cards?: SlideCardItem[];
   comparison?: {
     leftTitle: string;
     leftBody: string;
