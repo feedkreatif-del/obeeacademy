@@ -55,6 +55,7 @@ const DEFAULT_SESSION_STATE: SessionStateDoc = {
   stepByStepEnabled: true,
   transitionStyle: 'slide',
   activeSlideDrawer: 'none',
+  allowParticipantSlideAccess: false,
   activeMode: 'worksheet',
   activePollId: 'rational_4types',
   moderationEnabled: false,
@@ -123,6 +124,7 @@ export default function App() {
               typeof data.stepByStepEnabled === 'boolean' ? data.stepByStepEnabled : true,
             transitionStyle: data.transitionStyle || 'slide',
             activeSlideDrawer: data.activeSlideDrawer || 'none',
+            allowParticipantSlideAccess: Boolean(data.allowParticipantSlideAccess),
             activeMode: data.activeMode || 'worksheet',
             activePollId: data.activePollId || 'rational_4types',
             moderationEnabled: Boolean(data.moderationEnabled),
@@ -585,7 +587,9 @@ export default function App() {
         questions={customContent.questions}
         polls={customContent.polls}
         pollVotes={pollVotes}
+        seminarTitle={customContent.seminarTitle}
         organizerName={customContent.organizerName}
+        brandTheme={customContent.brandTheme}
         joinUrl={joinUrl}
         extendUrl={extendUrl}
         activeSlideIndex={sessionState.activeSlide}
@@ -593,6 +597,7 @@ export default function App() {
         stepByStepEnabled={sessionState.stepByStepEnabled ?? true}
         transitionStyle={sessionState.transitionStyle || 'slide'}
         activeSlideDrawer={sessionState.activeSlideDrawer || 'none'}
+        allowParticipantSlideAccess={Boolean(sessionState.allowParticipantSlideAccess)}
         activeQuestionIndex={sessionState.activeQuestion}
         activePollId={sessionState.activePollId}
         isAudienceExtendWindow={true}
@@ -759,7 +764,9 @@ export default function App() {
             questions={customContent.questions}
             polls={customContent.polls}
             pollVotes={pollVotes}
+            seminarTitle={customContent.seminarTitle}
             organizerName={customContent.organizerName}
+            brandTheme={customContent.brandTheme}
             joinUrl={joinUrl}
             extendUrl={extendUrl}
             activeSlideIndex={sessionState.activeSlide}
@@ -767,6 +774,7 @@ export default function App() {
             stepByStepEnabled={sessionState.stepByStepEnabled ?? true}
             transitionStyle={sessionState.transitionStyle || 'slide'}
             activeSlideDrawer={sessionState.activeSlideDrawer || 'none'}
+            allowParticipantSlideAccess={Boolean(sessionState.allowParticipantSlideAccess)}
             activeQuestionIndex={sessionState.activeQuestion}
             activePollId={sessionState.activePollId}
             onUpdateSlideState={(partial) => updateSessionState(partial)}
@@ -815,6 +823,10 @@ export default function App() {
             <ParticipantView
               questions={customContent.questions}
               polls={customContent.polls}
+              slides={customContent.slides}
+              seminarTitle={customContent.seminarTitle}
+              organizerName={customContent.organizerName}
+              brandTheme={customContent.brandTheme}
               qnaTopics={customContent.qnaTopics}
               sessionState={sessionState}
               participantId={participantId}
@@ -881,6 +893,7 @@ export default function App() {
             stepByStepEnabled={sessionState.stepByStepEnabled ?? true}
             transitionStyle={sessionState.transitionStyle || 'slide'}
             activeSlideDrawer={sessionState.activeSlideDrawer || 'none'}
+            allowParticipantSlideAccess={Boolean(sessionState.allowParticipantSlideAccess)}
             activeQuestionIndex={sessionState.activeQuestion}
             activePollId={sessionState.activePollId}
             activeMode={sessionState.activeMode}

@@ -31,6 +31,10 @@
           "enum": ["none", "answers", "poll", "qna", "qr"],
           "description": "Overlay drawer currently displayed on the extended projector slide screen"
         },
+        "allowParticipantSlideAccess": {
+          "type": "boolean",
+          "description": "Whether participants can browse and download slide materials directly on their phones"
+        },
         "activeMode": {
           "type": "string",
           "enum": ["worksheet", "poll", "qna", "external"],

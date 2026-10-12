@@ -12,6 +12,7 @@ export interface SessionStateDoc {
   stepByStepEnabled?: boolean;
   transitionStyle?: SlideTransitionStyle;
   activeSlideDrawer?: SlideDrawerMode;
+  allowParticipantSlideAccess?: boolean;
   activeMode: InteractiveMode;
   activePollId: string;
   moderationEnabled: boolean;

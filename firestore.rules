@@ -48,6 +48,7 @@ service cloud.firestore {
         'stepByStepEnabled',
         'transitionStyle',
         'activeSlideDrawer',
+        'allowParticipantSlideAccess',
         'activeMode',
         'activePollId',
         'moderationEnabled',
@@ -62,6 +63,7 @@ service cloud.firestore {
       (!('stepByStepEnabled' in data) || data.stepByStepEnabled is bool) &&
       (!('transitionStyle' in data) || (data.transitionStyle is string && data.transitionStyle in ['slide', 'zoom', 'fade'])) &&
       (!('activeSlideDrawer' in data) || (data.activeSlideDrawer is string && data.activeSlideDrawer in ['none', 'answers', 'poll', 'qna', 'qr'])) &&
+      (!('allowParticipantSlideAccess' in data) || data.allowParticipantSlideAccess is bool) &&
       data.activeMode is string && data.activeMode in ['worksheet', 'poll', 'qna', 'external'] &&
       data.activePollId is string && data.activePollId.size() <= 64 &&
       data.moderationEnabled is bool &&
@@ -217,6 +219,7 @@ service cloud.firestore {
           'stepByStepEnabled',
           'transitionStyle',
           'activeSlideDrawer',
+          'allowParticipantSlideAccess',
           'activeMode',
           'activePollId',
           'moderationEnabled',

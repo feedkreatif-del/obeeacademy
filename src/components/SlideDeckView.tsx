@@ -15,7 +15,9 @@ import {
   InteractiveMode,
   SlideTransitionStyle,
   SlideDrawerMode,
+  BrandThemeConfig,
 } from '../types';
+import { printSlideDeckHandout } from '../utils/handoutExport';
 import { QRCodeSVG } from 'qrcode.react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
@@ -43,6 +45,8 @@ import {
   FileText,
   Smartphone,
   ThumbsUp,
+  Printer,
+  Share2,
 } from 'lucide-react';
 
 interface SlideStepInfo {
@@ -56,7 +60,9 @@ interface SlideDeckViewProps {
   questions: WorksheetQuestion[];
   polls: LivePollConfig[];
   pollVotes: PollVoteDoc[];
+  seminarTitle: string;
   organizerName: string;
+  brandTheme?: BrandThemeConfig;
   joinUrl: string;
   extendUrl: string;
   activeSlideIndex: number;
@@ -64,6 +70,7 @@ interface SlideDeckViewProps {
   stepByStepEnabled: boolean;
   transitionStyle: SlideTransitionStyle;
   activeSlideDrawer: SlideDrawerMode;
+  allowParticipantSlideAccess?: boolean;
   activeQuestionIndex: number;
   activePollId: string;
   isAudienceExtendWindow?: boolean;
@@ -73,6 +80,7 @@ interface SlideDeckViewProps {
     stepByStepEnabled?: boolean;
     transitionStyle?: SlideTransitionStyle;
     activeSlideDrawer?: SlideDrawerMode;
+    allowParticipantSlideAccess?: boolean;
     activeQuestion?: number;
     activePollId?: string;
     activeMode?: InteractiveMode;
@@ -97,7 +105,9 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
   questions,
   polls,
   pollVotes,
+  seminarTitle,
   organizerName,
+  brandTheme,
   joinUrl,
   extendUrl,
   activeSlideIndex,
@@ -105,6 +115,7 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
   stepByStepEnabled,
   transitionStyle,
   activeSlideDrawer,
+  allowParticipantSlideAccess = false,
   activeQuestionIndex,
   activePollId,
   isAudienceExtendWindow = false,
@@ -1548,6 +1559,45 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
             >
               <Smartphone className="w-3.5 h-3.5" />
               <span>QR Remote HP</span>
+            </button>
+
+            {/* Cetak / Simpan PDF Seluruh Slide Materi */}
+            <button
+              type="button"
+              onClick={() =>
+                printSlideDeckHandout({
+                  slides,
+                  seminarTitle,
+                  organizerName,
+                  brandTheme,
+                })
+              }
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold bg-[#FFF7EC] text-[#1F3A5F] border border-[#1F3A5F]/20 hover:bg-[#1F3A5F] hover:text-white transition-colors cursor-pointer whitespace-nowrap"
+              title="Cetak atau Simpan Seluruh Slide Materi ke PDF (A4 Landscape)"
+            >
+              <Printer className="w-3.5 h-3.5 text-[#2A9D8F]" />
+              <span>PDF Slide</span>
+            </button>
+
+            {/* Saklar Bagikan Slide ke HP Peserta */}
+            <button
+              type="button"
+              onClick={() =>
+                onUpdateSlideState({
+                  allowParticipantSlideAccess: !allowParticipantSlideAccess,
+                })
+              }
+              className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer whitespace-nowrap ${
+                allowParticipantSlideAccess
+                  ? 'bg-[#2A9D8F] text-white'
+                  : 'bg-[#FFF7EC] text-[#1F3A5F] border border-[#2A9D8F]/40 hover:bg-[#2A9D8F]/10'
+              }`}
+              title="Izinkan peserta membaca & mengunduh PDF seluruh slide materi secara mandiri dari HP mereka"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+              <span>
+                {allowParticipantSlideAccess ? 'Slide di HP Peserta: BUKA' : 'Bagikan Slide ke HP'}
+              </span>
             </button>
 
             {!presenterDualMode && (

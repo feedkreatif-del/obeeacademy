@@ -34,6 +34,7 @@ import {
   BookOpen,
   Presentation,
   ThumbsUp,
+  Share2,
 } from 'lucide-react';
 
 interface RemoteStepDetail {
@@ -53,6 +54,7 @@ interface RemoteClickerViewProps {
   stepByStepEnabled: boolean;
   transitionStyle: SlideTransitionStyle;
   activeSlideDrawer: SlideDrawerMode;
+  allowParticipantSlideAccess?: boolean;
   activeQuestionIndex: number;
   activePollId: string;
   activeMode: InteractiveMode;
@@ -65,6 +67,7 @@ interface RemoteClickerViewProps {
     stepByStepEnabled?: boolean;
     transitionStyle?: SlideTransitionStyle;
     activeSlideDrawer?: SlideDrawerMode;
+    allowParticipantSlideAccess?: boolean;
     activeQuestion?: number;
     activePollId?: string;
     activeMode?: InteractiveMode;
@@ -88,6 +91,7 @@ export const RemoteClickerView: React.FC<RemoteClickerViewProps> = ({
   activeSlideStep,
   stepByStepEnabled,
   activeSlideDrawer,
+  allowParticipantSlideAccess = false,
   activeQuestionIndex,
   activePollId,
   activeMode,
@@ -1019,6 +1023,37 @@ export const RemoteClickerView: React.FC<RemoteClickerViewProps> = ({
           >
             <QrCode className="w-4 h-4 shrink-0" />
             <span>{activeSlideDrawer === 'qr' ? 'Tutup QR Proyektor' : 'Pop-up QR Peserta'}</span>
+          </button>
+        </div>
+
+        {/* Saklar Bagikan Slide Materi ke HP Peserta */}
+        <div className="pt-2 border-t border-[#1F3A5F]/10 flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs font-bold text-[#1F3A5F]">
+              Bagikan Slide Materi ke HP Peserta
+            </p>
+            <p className="text-[11px] text-[#1F3A5F]/70">
+              {allowParticipantSlideAccess
+                ? 'AKTIF: Peserta bisa baca & unduh PDF 10 slide di HP'
+                : 'NONAKTIF: Peserta fokus ke latihan aktif'}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              triggerHaptic([25, 40]);
+              onUpdateSlideState({
+                allowParticipantSlideAccess: !allowParticipantSlideAccess,
+              });
+            }}
+            className={`px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 cursor-pointer transition-colors ${
+              allowParticipantSlideAccess
+                ? 'bg-[#2A9D8F] text-white shadow-xs'
+                : 'bg-[#FFF7EC] text-[#1F3A5F] border border-[#1F3A5F]/20'
+            }`}
+          >
+            <Share2 className="w-3.5 h-3.5" />
+            <span>{allowParticipantSlideAccess ? 'Akses Slide: BUKA' : 'Buka Akses Slide'}</span>
           </button>
         </div>
       </div>

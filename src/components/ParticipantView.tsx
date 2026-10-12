@@ -2,13 +2,27 @@ import React, { useState, useEffect } from 'react';
 import {
   WorksheetQuestion,
   LivePollConfig,
+  SlideDefinition,
   RATIONAL_CONVERSION_DICTIONARY,
   FORBIDDEN_VAGUE_WORDS,
   VP_THREE_TESTS,
   ZERO_CERT_PROOFS,
 } from '../data/seminarData';
-import { AnswerDoc, QnaDoc, PollVoteDoc, SessionStateDoc, InteractiveMode } from '../types';
+import {
+  AnswerDoc,
+  QnaDoc,
+  PollVoteDoc,
+  SessionStateDoc,
+  InteractiveMode,
+  BrandThemeConfig,
+} from '../types';
 import { PWAInstallModalTrigger } from './PWAInstallButton';
+import {
+  printSlideDeckHandout,
+  printParticipantWorkbookHandout,
+  downloadParticipantTxtHandout,
+  buildWhatsAppShareUrl,
+} from '../utils/handoutExport';
 import {
   Send,
   CheckCircle2,
@@ -28,11 +42,21 @@ import {
   MessageCircle,
   Tag,
   HelpCircle,
+  Printer,
+  Share2,
+  Presentation,
+  ChevronLeft,
+  ChevronRight,
+  FileText,
 } from 'lucide-react';
 
 interface ParticipantViewProps {
   questions: WorksheetQuestion[];
   polls: LivePollConfig[];
+  slides: SlideDefinition[];
+  seminarTitle: string;
+  organizerName: string;
+  brandTheme?: BrandThemeConfig;
   qnaTopics: string[];
   sessionState: SessionStateDoc;
   participantId: string;
@@ -48,6 +72,10 @@ interface ParticipantViewProps {
 export const ParticipantView: React.FC<ParticipantViewProps> = ({
   questions,
   polls,
+  slides,
+  seminarTitle,
+  organizerName,
+  brandTheme,
   qnaTopics,
   sessionState,
   participantId,
@@ -59,7 +87,10 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
   onUpvoteQna,
   onSubmitPollVote,
 }) => {
-  const [localTab, setLocalTab] = useState<InteractiveMode | 'summary'>(sessionState.activeMode);
+  const [localTab, setLocalTab] = useState<InteractiveMode | 'summary' | 'slides_reader'>(
+    sessionState.activeMode
+  );
+  const [readerSlideIdx, setReaderSlideIdx] = useState<number>(0);
 
   useEffect(() => {
     setLocalTab(sessionState.activeMode);
@@ -274,8 +305,22 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
           }`}
         >
           <Download className="w-4 h-4" />
-          <span>Bio IG & Rekap</span>
+          <span>Bio IG & Materi</span>
         </button>
+
+        {sessionState.allowParticipantSlideAccess && (
+          <button
+            onClick={() => setLocalTab('slides_reader')}
+            className={`flex-1 min-h-[44px] px-3 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
+              localTab === 'slides_reader'
+                ? 'bg-[#2A9D8F] text-white'
+                : 'text-[#2A9D8F] bg-[#E3F5F2]/70 hover:bg-[#E3F5F2]'
+            }`}
+          >
+            <Presentation className="w-4 h-4" />
+            <span>Baca Slide ({slides.length})</span>
+          </button>
+        )}
       </div>
 
       {/* MODE 1: WORKSHEET */}
@@ -769,6 +814,154 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
       {/* MODE 4: GENERATOR BIO IG, CHAT WA, STIKER KEMASAN & REKAP USAHAKU */}
       {localTab === 'summary' && (
         <div className="space-y-6">
+          {/* Opsi Bagikan & Unduh Materi Seminar + Jawaban Pribadi */}
+          <div className="bg-[#1F3A5F] text-white rounded-2xl p-6 sm:p-7 shadow-sm space-y-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-[#F28C28]">
+                  Simpan & Bagikan Materi Seminar
+                </span>
+                <h2 className="font-display text-xl sm:text-2xl font-bold text-white mt-0.5">
+                  Unduh Buku Saku Materi & Hasil Lembar Kerjamu
+                </h2>
+                <p className="text-xs sm:text-sm text-white/80 mt-1">
+                  Simpan rangkuman seluruh materi seminar beserta jawaban usahamu dalam bentuk PDF siap cetak, kirim ke WhatsApp pribadi, atau unduh file teks.
+                </p>
+              </div>
+              {sessionState.allowParticipantSlideAccess && (
+                <button
+                  type="button"
+                  onClick={() => setLocalTab('slides_reader')}
+                  className="px-3.5 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shrink-0"
+                >
+                  <Presentation className="w-4 h-4 text-[#F28C28]" />
+                  <span>Baca {slides.length} Slide di HP</span>
+                </button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              {/* 1. Unduh / Cetak PDF Buku Saku (Materi + Jawaban Pribadi) */}
+              <button
+                type="button"
+                onClick={() =>
+                  printParticipantWorkbookHandout({
+                    seminarTitle,
+                    organizerName,
+                    businessName: umkmTitle,
+                    questions,
+                    slides,
+                    myAnswers,
+                    finalVpSentence,
+                    generatedInstagramBio,
+                    generatedWhatsappGreeting,
+                    generatedPackagingSticker,
+                    brandTheme,
+                  })
+                }
+                className="p-3.5 rounded-xl bg-[#F28C28] hover:bg-[#d97719] text-white text-left flex items-center gap-3 cursor-pointer transition-colors shadow-xs"
+              >
+                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                  <Printer className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <p className="font-display font-bold text-sm sm:text-base leading-tight">
+                    Simpan PDF Buku Saku & Jawaban
+                  </p>
+                  <p className="text-[11px] text-white/90 mt-0.5">
+                    Materi inti + Bio IG + 7 Jawaban Usahaku (A4)
+                  </p>
+                </div>
+              </button>
+
+              {/* 2. Kirim Ringkasan Materi & Jawaban ke WhatsApp */}
+              <a
+                href={buildWhatsAppShareUrl({
+                  seminarTitle,
+                  businessName: umkmTitle,
+                  questions,
+                  myAnswers,
+                  finalVpSentence,
+                  generatedInstagramBio,
+                  generatedWhatsappGreeting,
+                })}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-3.5 rounded-xl bg-[#2A9D8F] hover:bg-[#218276] text-white text-left flex items-center gap-3 cursor-pointer transition-colors shadow-xs"
+              >
+                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                  <Share2 className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <p className="font-display font-bold text-sm sm:text-base leading-tight">
+                    Kirim Ringkasan ke WhatsApp
+                  </p>
+                  <p className="text-[11px] text-white/90 mt-0.5">
+                    Simpan ke chat WA pribadi atau grup tim UMKM
+                  </p>
+                </div>
+              </a>
+
+              {/* 3. Simpan PDF Seluruh Slide Materi */}
+              <button
+                type="button"
+                onClick={() =>
+                  printSlideDeckHandout({
+                    slides,
+                    seminarTitle,
+                    organizerName,
+                    brandTheme,
+                  })
+                }
+                className="p-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-white text-left flex items-center gap-3 cursor-pointer transition-colors"
+              >
+                <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
+                  <Presentation className="w-5 h-5 text-[#F28C28]" />
+                </div>
+                <div>
+                  <p className="font-display font-bold text-sm leading-tight">
+                    Simpan PDF Slide Presentasi ({slides.length} Hal)
+                  </p>
+                  <p className="text-[11px] text-white/75 mt-0.5">
+                    Seluruh halaman slide pemateri ukuran Landscape
+                  </p>
+                </div>
+              </button>
+
+              {/* 4. Unduh File Teks (.txt) ke Perangkat */}
+              <button
+                type="button"
+                onClick={() =>
+                  downloadParticipantTxtHandout({
+                    seminarTitle,
+                    organizerName,
+                    businessName: umkmTitle,
+                    questions,
+                    slides,
+                    myAnswers,
+                    finalVpSentence,
+                    generatedInstagramBio,
+                    generatedWhatsappGreeting,
+                    generatedPackagingSticker,
+                  })
+                }
+                className="p-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-white text-left flex items-center gap-3 cursor-pointer transition-colors"
+              >
+                <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
+                  <FileText className="w-5 h-5 text-[#2A9D8F]" />
+                </div>
+                <div>
+                  <p className="font-display font-bold text-sm leading-tight">
+                    Unduh Hasil & Materi (.txt)
+                  </p>
+                  <p className="text-[11px] text-white/75 mt-0.5">
+                    File ringan langsung tersimpan di memori HP
+                  </p>
+                </div>
+              </button>
+            </div>
+          </div>
+
           {/* Instant Marketing Kit Generator */}
           <div className="bg-white border-2 border-[#F28C28] rounded-2xl p-6 sm:p-8 shadow-xs space-y-6">
             <div className="border-b border-[#1F3A5F]/10 pb-4 flex flex-wrap items-center justify-between gap-3">
@@ -908,6 +1101,169 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
               })}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* MODE 5: BACA MANDIRI SLIDE MATERI DI HP PESERTA */}
+      {localTab === 'slides_reader' && slides.length > 0 && (
+        <div className="space-y-5">
+          {(() => {
+            const safeIdx = Math.min(readerSlideIdx, Math.max(0, slides.length - 1));
+            const s = slides[safeIdx] || slides[0];
+            return (
+              <>
+                <div className="bg-white border border-[#1F3A5F]/15 rounded-2xl p-4 sm:p-5 flex flex-wrap items-center justify-between gap-3 shadow-xs">
+                  <div>
+                    <span className="text-xs font-bold uppercase tracking-wider text-[#2A9D8F]">
+                      Mode Baca Mandiri Peserta
+                    </span>
+                    <h2 className="font-display text-lg sm:text-xl font-bold text-[#1F3A5F]">
+                      Slide {safeIdx + 1} dari {slides.length} · {s.badge}
+                    </h2>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      printSlideDeckHandout({
+                        slides,
+                        seminarTitle,
+                        organizerName,
+                        brandTheme,
+                      })
+                    }
+                    className="px-3.5 py-2 rounded-xl bg-[#1F3A5F] hover:bg-[#162944] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Printer className="w-3.5 h-3.5 text-[#F28C28]" />
+                    <span>Simpan PDF Semua Slide</span>
+                  </button>
+                </div>
+
+                {/* Slide Card Content for Mobile Reading */}
+                <div className="bg-white border-2 border-[#1F3A5F]/20 rounded-2xl overflow-hidden shadow-xs">
+                  <div className="bg-[#1F3A5F] text-white p-5 sm:p-6">
+                    <span className="inline-block px-3 py-1 rounded-full bg-[#F28C28] text-white text-xs font-bold mb-2">
+                      {s.badge}
+                    </span>
+                    <h3 className="font-display text-xl sm:text-2xl font-bold leading-snug">
+                      {s.title}
+                    </h3>
+                    {s.subtitle && (
+                      <p className="text-sm text-white/85 mt-1.5 leading-relaxed">{s.subtitle}</p>
+                    )}
+                  </div>
+
+                  <div className="p-5 sm:p-6 space-y-4 bg-[#FFF7EC]/60">
+                    {s.cards && s.cards.length > 0 && (
+                      <div className="grid grid-cols-1 gap-3">
+                        {s.cards.map((c, cIdx) => (
+                          <div
+                            key={cIdx}
+                            className={`rounded-xl p-4 border ${
+                              c.variant === 'navy'
+                                ? 'bg-[#1F3A5F] text-white border-[#1F3A5F]'
+                                : c.variant === 'teal'
+                                ? 'bg-[#E3F5F2] text-[#1F3A5F] border-[#2A9D8F]/40'
+                                : c.variant === 'orange'
+                                ? 'bg-[#FFF7EC] text-[#1F3A5F] border-2 border-[#F28C28]'
+                                : 'bg-white text-[#1F3A5F] border-[#1F3A5F]/15'
+                            }`}
+                          >
+                            <p
+                              className={`font-display font-bold text-base mb-1 ${
+                                c.variant === 'navy' ? 'text-[#F28C28]' : 'text-[#1F3A5F]'
+                              }`}
+                            >
+                              {c.title}
+                            </p>
+                            <p
+                              className={`text-sm leading-relaxed whitespace-pre-line ${
+                                c.variant === 'navy' ? 'text-white/90' : 'text-[#1F3A5F]/85'
+                              }`}
+                            >
+                              {c.body}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {s.comparison && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="rounded-xl p-4 bg-white border border-[#1F3A5F]/20">
+                          <p className="text-xs font-bold uppercase text-red-700 mb-1">
+                            {s.comparison.leftTitle}
+                          </p>
+                          <p className="text-sm text-[#1F3A5F] whitespace-pre-line">
+                            {s.comparison.leftBody}
+                          </p>
+                        </div>
+                        <div className="rounded-xl p-4 bg-[#E3F5F2] border-2 border-[#2A9D8F]">
+                          <p className="text-xs font-bold uppercase text-[#1d6f65] mb-1">
+                            {s.comparison.rightTitle}
+                          </p>
+                          <p className="text-sm font-semibold text-[#1F3A5F] whitespace-pre-line">
+                            {s.comparison.rightBody}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {s.bottomBanner && (
+                      <div className="rounded-xl bg-[#1F3A5F] text-white p-4 text-sm font-bold text-center">
+                        {s.bottomBanner}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Mobile Slide Reader Navigation Footer */}
+                  <div className="bg-white border-t border-[#1F3A5F]/10 px-4 py-3.5 flex items-center justify-between gap-2">
+                    <button
+                      type="button"
+                      disabled={safeIdx === 0}
+                      onClick={() => setReaderSlideIdx(Math.max(0, safeIdx - 1))}
+                      className="px-4 py-2.5 rounded-xl border border-[#1F3A5F]/20 text-[#1F3A5F] disabled:opacity-40 text-xs font-bold flex items-center gap-1 cursor-pointer"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                      <span>Sebelumnya</span>
+                    </button>
+
+                    <span className="font-mono text-xs font-bold text-[#1F3A5F]">
+                      {safeIdx + 1} / {slides.length}
+                    </span>
+
+                    <button
+                      type="button"
+                      disabled={safeIdx === slides.length - 1}
+                      onClick={() => setReaderSlideIdx(Math.min(slides.length - 1, safeIdx + 1))}
+                      className="px-4 py-2.5 rounded-xl bg-[#F28C28] text-white disabled:opacity-40 text-xs font-bold flex items-center gap-1 cursor-pointer"
+                    >
+                      <span>Berikutnya</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Quick Slide Number Pills */}
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+                  {slides.map((sl, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setReaderSlideIdx(idx)}
+                      className={`px-3 py-1.5 rounded-xl font-mono text-xs font-bold shrink-0 cursor-pointer ${
+                        idx === safeIdx
+                          ? 'bg-[#1F3A5F] text-white'
+                          : 'bg-white text-[#1F3A5F] border border-[#1F3A5F]/15'
+                      }`}
+                    >
+                      #{idx + 1}
+                    </button>
+                  ))}
+                </div>
+              </>
+            );
+          })()}
         </div>
       )}
     </div>
