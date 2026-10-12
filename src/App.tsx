@@ -42,6 +42,7 @@ import { ProjectorView } from './components/ProjectorView';
 import { ParticipantView } from './components/ParticipantView';
 import { ModerationView } from './components/ModerationView';
 import { SlideDeckView } from './components/SlideDeckView';
+import { RemoteClickerView } from './components/RemoteClickerView';
 import { ContentEditorView, DEFAULT_QNA_TOPICS } from './components/ContentEditorView';
 import { OfflineBanner, PWAInstallModalTrigger } from './components/PWAInstallButton';
 import { Download } from 'lucide-react';
@@ -82,7 +83,8 @@ export default function App() {
       v === 'slides' ||
       v === 'projector' ||
       v === 'editor' ||
-      v === 'extend'
+      v === 'extend' ||
+      v === 'remote'
     ) {
       return v;
     }
@@ -639,6 +641,17 @@ export default function App() {
           </button>
 
           <button
+            onClick={() => setViewRole('remote')}
+            className={`hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer pb-0.5 ${
+              viewRole === 'remote'
+                ? 'text-[#F28C28] font-bold border-b-2 border-[#F28C28]'
+                : ''
+            }`}
+          >
+            Remote HP
+          </button>
+
+          <button
             onClick={() => setViewRole('participant')}
             className={`hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer pb-0.5 ${
               viewRole === 'participant'
@@ -825,6 +838,32 @@ export default function App() {
             customContent={customContent}
             onSaveCustomContent={handleSaveCustomContent}
             onResetToPartnerUpDefault={handleResetToPartnerUpDefault}
+          />
+        )}
+
+        {viewRole === 'remote' && (
+          <RemoteClickerView
+            slides={customContent.slides}
+            questions={customContent.questions}
+            polls={customContent.polls}
+            pollVotes={pollVotes}
+            seminarTitle={customContent.seminarTitle}
+            activeSlideIndex={sessionState.activeSlide}
+            activeSlideStep={sessionState.activeSlideStep ?? 0}
+            stepByStepEnabled={sessionState.stepByStepEnabled ?? true}
+            transitionStyle={sessionState.transitionStyle || 'slide'}
+            activeSlideDrawer={sessionState.activeSlideDrawer || 'none'}
+            approvedAnswers={approvedAnswers}
+            allAnswers={answers}
+            onUpdateSlideState={(partial) => updateSessionState(partial)}
+            onSyncQuestionOnly={(qIdx) => {
+              updateSessionState({ activeQuestion: qIdx, activeMode: 'worksheet' });
+            }}
+            onSyncPollOnly={(pollId) => {
+              updateSessionState({ activePollId: pollId, activeMode: 'poll' });
+            }}
+            onToggleStarAnswer={handleToggleStarAnswer}
+            onApproveAnswer={handleApproveAnswer}
           />
         )}
       </main>

@@ -1,7 +1,7 @@
 import { WorksheetQuestion, LivePollConfig, SlideDefinition } from './data/seminarData';
 
 export type InteractiveMode = 'worksheet' | 'poll' | 'qna' | 'external';
-export type ViewRole = 'projector' | 'participant' | 'moderation' | 'slides' | 'editor' | 'extend';
+export type ViewRole = 'projector' | 'participant' | 'moderation' | 'slides' | 'editor' | 'extend' | 'remote';
 export type SlideTransitionStyle = 'slide' | 'zoom' | 'fade';
 export type SlideDrawerMode = 'none' | 'answers' | 'poll' | 'qr';
 

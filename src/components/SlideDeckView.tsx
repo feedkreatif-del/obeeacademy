@@ -38,6 +38,7 @@ import {
   Pause,
   RotateCcw,
   FileText,
+  Smartphone,
 } from 'lucide-react';
 
 interface SlideStepInfo {
@@ -112,8 +113,11 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
   const stageRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [presenterDualMode, setPresenterDualMode] = useState(false);
+  const [showRemoteQrModal, setShowRemoteQrModal] = useState(false);
   const [slideDirection, setSlideDirection] = useState<1 | -1>(1);
   const prevSlideRef = useRef<number>(activeSlideIndex);
+
+  const remoteUrl = `${window.location.origin}${window.location.pathname}?view=remote`;
 
   // Presenter Stopwatch Timer State
   const [timerSeconds, setTimerSeconds] = useState(0);
@@ -1305,6 +1309,17 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
               <span>Layar ke-2 (Proyektor)</span>
             </a>
 
+            {/* Open QR Code for Presenter's Smartphone Remote Clicker */}
+            <button
+              type="button"
+              onClick={() => setShowRemoteQrModal(true)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold bg-[#FFF7EC] text-[#1F3A5F] border border-[#F28C28]/50 hover:bg-[#F28C28] hover:text-white transition-colors cursor-pointer whitespace-nowrap"
+              title="Scan QR untuk menjadikan HP Anda sebagai Pointer Panggung"
+            >
+              <Smartphone className="w-3.5 h-3.5" />
+              <span>QR Remote HP</span>
+            </button>
+
             {!presenterDualMode && (
               <button
                 onClick={toggleFullscreen}
@@ -1694,6 +1709,50 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
               </button>
             );
           })}
+        </div>
+      )}
+
+      {/* MODAL QR REMOTE HP PEMATERI */}
+      {showRemoteQrModal && (
+        <div
+          onClick={() => setShowRemoteQrModal(false)}
+          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-[#FFF7EC] border-4 border-[#2A9D8F] rounded-3xl max-w-md w-full p-6 sm:p-8 text-center shadow-2xl space-y-5"
+          >
+            <div className="space-y-1">
+              <span className="text-xs font-bold uppercase tracking-wider text-[#2A9D8F]">
+                POINTER PANGGUNG TANPA DONGLE USB
+              </span>
+              <h3 className="font-display text-2xl sm:text-3xl font-extrabold text-[#1F3A5F]">
+                Scan di HP Pemateri
+              </h3>
+              <p className="text-xs sm:text-sm text-[#1F3A5F]/75">
+                Scan QR ini menggunakan kamera HP Anda untuk membuka <strong>Layar Remote Pointer</strong> (PIN bawaan: <strong>2026</strong>).
+              </p>
+            </div>
+
+            <div className="bg-white p-5 rounded-2xl border-2 border-[#1F3A5F]/15 inline-block mx-auto shadow-xs">
+              <QRCodeSVG value={remoteUrl} size={220} fgColor="#1F3A5F" />
+            </div>
+
+            <div className="bg-white rounded-xl p-3 border border-[#1F3A5F]/15 text-left space-y-1">
+              <p className="text-[11px] font-bold text-[#1F3A5F]/60">Tautan Langsung Remote HP:</p>
+              <p className="font-mono text-xs font-bold text-[#1F3A5F] break-all select-all">
+                {remoteUrl}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowRemoteQrModal(false)}
+              className="w-full py-3 rounded-xl bg-[#1F3A5F] text-white font-display font-bold text-sm hover:bg-[#162944] cursor-pointer"
+            >
+              Tutup
+            </button>
+          </div>
         </div>
       )}
     </div>
