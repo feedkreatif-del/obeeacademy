@@ -374,7 +374,7 @@ export const ProjectorView: React.FC<ProjectorViewProps> = ({
             </div>
           )}
 
-          {/* REGULAR ANSWERS GRID */}
+          {/* REGULAR ANSWERS KANBAN GRID (Strictly Uniform Card Heights) */}
           {currentQuestionAnswers.length === 0 ? (
             <div className="bg-white border border-[#1F3A5F]/15 rounded-2xl p-12 text-center">
               <p className="font-display text-2xl sm:text-3xl font-bold text-[#1F3A5F]/60">
@@ -385,43 +385,52 @@ export const ProjectorView: React.FC<ProjectorViewProps> = ({
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 items-stretch">
               {regularAnswers.map((ans) => (
                 <div
                   key={ans.id}
-                  className="bg-white border border-[#1F3A5F]/15 rounded-2xl p-6 flex flex-col justify-between gap-4 shadow-xs hover:border-[#2A9D8F] transition-colors"
+                  className="h-full min-h-[220px] bg-white border border-[#1F3A5F]/15 rounded-2xl p-5 sm:p-6 flex flex-col justify-between gap-4 shadow-xs hover:border-[#2A9D8F] transition-colors"
                 >
-                  <div className="space-y-3">
-                    {ans.businessName && (
-                      <div className="flex items-center gap-2 text-base font-bold text-[#2A9D8F]">
-                        <Store className="w-4 h-4 shrink-0" />
-                        <span>{ans.businessName}</span>
-                      </div>
-                    )}
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between gap-2">
+                      {ans.businessName ? (
+                        <div className="flex items-center gap-1.5 text-sm sm:text-base font-bold text-[#2A9D8F] truncate">
+                          <Store className="w-4 h-4 shrink-0" />
+                          <span className="truncate">{ans.businessName}</span>
+                        </div>
+                      ) : (
+                        <span className="text-xs font-semibold text-[#1F3A5F]/45">
+                          Peserta UMKM
+                        </span>
+                      )}
+                      <span className="font-mono text-xs text-[#1F3A5F]/50 tabular-nums shrink-0">
+                        {new Date(ans.ts).toLocaleTimeString('id-ID', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </span>
+                    </div>
 
-                    <p className="text-xl sm:text-2xl font-bold text-[#1F3A5F] leading-snug">
+                    <p className="text-lg sm:text-xl font-bold text-[#1F3A5F] leading-snug line-clamp-3">
                       {ans.text}
                     </p>
 
                     {ans.subText && (
-                      <p className="text-base text-[#1F3A5F]/75 leading-relaxed">
+                      <p className="text-sm text-[#1F3A5F]/75 leading-relaxed line-clamp-2">
                         {ans.subText}
                       </p>
                     )}
 
                     {ans.mentorNote && (
-                      <p className="text-xs font-semibold text-[#2A9D8F] pt-2 border-t border-[#1F3A5F]/10">
+                      <p className="text-xs font-semibold text-[#2A9D8F] pt-2 border-t border-[#1F3A5F]/10 line-clamp-2">
                         Catatan: {ans.mentorNote}
                       </p>
                     )}
                   </div>
 
-                  <div className="pt-3 border-t border-[#1F3A5F]/10 flex items-center justify-between gap-2">
-                    <span className="font-mono text-xs text-[#1F3A5F]/50 tabular-nums">
-                      {new Date(ans.ts).toLocaleTimeString('id-ID', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
+                  <div className="pt-3 border-t border-[#1F3A5F]/10 flex items-center justify-between gap-2 shrink-0 mt-auto">
+                    <span className="text-xs font-semibold text-[#1F3A5F]/60">
+                      Bagian #{ans.q + 1}
                     </span>
                     <div className="flex items-center gap-2">
                       <button
@@ -680,6 +689,88 @@ export const ProjectorView: React.FC<ProjectorViewProps> = ({
           )}
         </div>
       )}
+
+      {/* LOCKED STICKY BOTTOM NAVIGATION FOOTER (Never disappears when scrolling Kanban cards) */}
+      <div className="sticky bottom-2 z-30 mt-6 bg-[#1F3A5F]/95 backdrop-blur-xs text-white border border-white/15 rounded-2xl px-4 py-2.5 shadow-lg flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
+          <button
+            onClick={() => onChangeQuestion(Math.max(0, activeQIndex - 1))}
+            disabled={activeQIndex === 0}
+            className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 disabled:opacity-40 text-white text-xs font-bold flex items-center gap-1 cursor-pointer shrink-0"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            <span>Sebelumnya</span>
+          </button>
+
+          {questions.map((_, idx) => {
+            const count = approvedAnswers.filter((a) => a.q === idx).length;
+            const isActive = idx === activeQIndex && sessionState.activeMode === 'worksheet';
+            return (
+              <button
+                key={idx}
+                onClick={() => onChangeQuestion(idx)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer shrink-0 flex items-center gap-1.5 ${
+                  isActive
+                    ? 'bg-[#F28C28] text-white'
+                    : 'bg-white/10 text-white/85 hover:bg-white/20'
+                }`}
+              >
+                <span>B{idx + 1}</span>
+                <span className="font-mono text-[11px] opacity-85">({count})</span>
+              </button>
+            );
+          })}
+
+          <button
+            onClick={() => onChangeQuestion(Math.min(totalQuestions - 1, activeQIndex + 1))}
+            disabled={activeQIndex === totalQuestions - 1}
+            className="px-3 py-1.5 rounded-xl bg-[#F28C28] hover:bg-[#d97719] disabled:opacity-40 text-white text-xs font-bold flex items-center gap-1 cursor-pointer shrink-0"
+          >
+            <span>Berikutnya</span>
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => onChangeMode('worksheet')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer ${
+              sessionState.activeMode === 'worksheet'
+                ? 'bg-[#F28C28] text-white'
+                : 'bg-white/10 text-white/85 hover:bg-white/20'
+            }`}
+          >
+            Pertanyaan
+          </button>
+          <button
+            onClick={() => onChangeMode('poll')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer ${
+              sessionState.activeMode === 'poll'
+                ? 'bg-[#2A9D8F] text-white'
+                : 'bg-white/10 text-white/85 hover:bg-white/20'
+            }`}
+          >
+            Polling ({totalPollVotes})
+          </button>
+          <button
+            onClick={() => onChangeMode('qna')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer ${
+              sessionState.activeMode === 'qna'
+                ? 'bg-[#2A9D8F] text-white'
+                : 'bg-white/10 text-white/85 hover:bg-white/20'
+            }`}
+          >
+            Q&A ({sortedQna.length})
+          </button>
+          <button
+            onClick={() => setShowQrModal(true)}
+            className="px-3 py-1.5 rounded-xl bg-white text-[#1F3A5F] text-xs font-bold flex items-center gap-1 cursor-pointer"
+          >
+            <QrCode className="w-3.5 h-3.5" />
+            <span>QR</span>
+          </button>
+        </div>
+      </div>
 
       {/* LARGE QR CODE MODAL FOR PROJECTOR */}
       {showQrModal && (
