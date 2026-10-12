@@ -374,7 +374,7 @@ export const ProjectorView: React.FC<ProjectorViewProps> = ({
             </div>
           )}
 
-          {/* REGULAR ANSWERS KANBAN GRID (Strictly Uniform Card Heights) */}
+          {/* REGULAR ANSWERS KANBAN GRID (Dynamic Sizing: Few Cards = Large, Many Cards = Proportional) */}
           {currentQuestionAnswers.length === 0 ? (
             <div className="bg-white border border-[#1F3A5F]/15 rounded-2xl p-12 text-center">
               <p className="font-display text-2xl sm:text-3xl font-bold text-[#1F3A5F]/60">
@@ -385,72 +385,106 @@ export const ProjectorView: React.FC<ProjectorViewProps> = ({
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 items-stretch">
-              {regularAnswers.map((ans) => (
-                <div
-                  key={ans.id}
-                  className="h-full min-h-[220px] bg-white border border-[#1F3A5F]/15 rounded-2xl p-5 sm:p-6 flex flex-col justify-between gap-4 shadow-xs hover:border-[#2A9D8F] transition-colors"
-                >
-                  <div className="space-y-2.5">
-                    <div className="flex items-center justify-between gap-2">
-                      {ans.businessName ? (
-                        <div className="flex items-center gap-1.5 text-sm sm:text-base font-bold text-[#2A9D8F] truncate">
-                          <Store className="w-4 h-4 shrink-0" />
-                          <span className="truncate">{ans.businessName}</span>
-                        </div>
-                      ) : (
-                        <span className="text-xs font-semibold text-[#1F3A5F]/45">
-                          Peserta UMKM
+            <div
+              className={`grid grid-cols-1 gap-5 items-stretch ${
+                regularAnswers.length === 1
+                  ? 'max-w-4xl'
+                  : regularAnswers.length <= 4
+                  ? 'md:grid-cols-2'
+                  : 'md:grid-cols-2 lg:grid-cols-3'
+              }`}
+            >
+              {regularAnswers.map((ans) => {
+                const isFewCards = regularAnswers.length <= 2;
+                const isMediumCards = regularAnswers.length >= 3 && regularAnswers.length <= 4;
+                return (
+                  <div
+                    key={ans.id}
+                    className={`h-full bg-white border-2 border-[#1F3A5F]/15 rounded-2xl ${
+                      isFewCards ? 'p-7 sm:p-8 min-h-[240px]' : 'p-6 min-h-[220px]'
+                    } flex flex-col justify-between gap-4 shadow-xs hover:border-[#2A9D8F] transition-colors`}
+                  >
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-2">
+                        {ans.businessName ? (
+                          <div
+                            className={`flex items-center gap-2 font-bold text-[#2A9D8F] truncate ${
+                              isFewCards ? 'text-lg sm:text-2xl' : 'text-base sm:text-lg'
+                            }`}
+                          >
+                            <Store className="w-5 h-5 shrink-0" />
+                            <span className="truncate">{ans.businessName}</span>
+                          </div>
+                        ) : (
+                          <span className="text-sm font-semibold text-[#1F3A5F]/50">
+                            Peserta UMKM
+                          </span>
+                        )}
+                        <span className="font-mono text-xs text-[#1F3A5F]/50 tabular-nums shrink-0">
+                          {new Date(ans.ts).toLocaleTimeString('id-ID', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
                         </span>
+                      </div>
+
+                      <p
+                        className={`font-display font-bold text-[#1F3A5F] leading-snug ${
+                          isFewCards
+                            ? 'text-2xl sm:text-4xl'
+                            : isMediumCards
+                            ? 'text-xl sm:text-3xl'
+                            : 'text-xl sm:text-2xl line-clamp-4'
+                        }`}
+                      >
+                        {ans.text}
+                      </p>
+
+                      {ans.subText && (
+                        <p
+                          className={`text-[#1F3A5F]/80 leading-relaxed font-medium ${
+                            isFewCards
+                              ? 'text-lg sm:text-2xl'
+                              : isMediumCards
+                              ? 'text-base sm:text-xl'
+                              : 'text-base sm:text-lg line-clamp-3'
+                          }`}
+                        >
+                          {ans.subText}
+                        </p>
                       )}
-                      <span className="font-mono text-xs text-[#1F3A5F]/50 tabular-nums shrink-0">
-                        {new Date(ans.ts).toLocaleTimeString('id-ID', {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
+
+                      {ans.mentorNote && (
+                        <p className="text-sm sm:text-base font-semibold text-[#2A9D8F] pt-2 border-t border-[#1F3A5F]/10">
+                          Catatan: {ans.mentorNote}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="pt-3 border-t border-[#1F3A5F]/10 flex items-center justify-between gap-2 shrink-0 mt-auto">
+                      <span className="text-xs sm:text-sm font-semibold text-[#1F3A5F]/60">
+                        Bagian #{ans.q + 1}
                       </span>
-                    </div>
-
-                    <p className="text-lg sm:text-xl font-bold text-[#1F3A5F] leading-snug line-clamp-3">
-                      {ans.text}
-                    </p>
-
-                    {ans.subText && (
-                      <p className="text-sm text-[#1F3A5F]/75 leading-relaxed line-clamp-2">
-                        {ans.subText}
-                      </p>
-                    )}
-
-                    {ans.mentorNote && (
-                      <p className="text-xs font-semibold text-[#2A9D8F] pt-2 border-t border-[#1F3A5F]/10 line-clamp-2">
-                        Catatan: {ans.mentorNote}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="pt-3 border-t border-[#1F3A5F]/10 flex items-center justify-between gap-2 shrink-0 mt-auto">
-                    <span className="text-xs font-semibold text-[#1F3A5F]/60">
-                      Bagian #{ans.q + 1}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => onToggleStarAnswer(ans)}
-                        className="px-3 py-1.5 rounded-lg bg-[#FFF7EC] hover:bg-[#F28C28] text-[#1F3A5F] hover:text-white border border-[#F28C28]/40 text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
-                      >
-                        <Star className="w-3.5 h-3.5" />
-                        <span>Sorot</span>
-                      </button>
-                      <button
-                        onClick={() => onHideAnswer(ans)}
-                        className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-red-100 text-slate-600 hover:text-red-700 text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
-                      >
-                        <EyeOff className="w-3.5 h-3.5" />
-                        <span>Sembunyikan</span>
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => onToggleStarAnswer(ans)}
+                          className="px-3.5 py-1.5 rounded-lg bg-[#FFF7EC] hover:bg-[#F28C28] text-[#1F3A5F] hover:text-white border border-[#F28C28]/40 text-xs sm:text-sm font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                        >
+                          <Star className="w-3.5 h-3.5" />
+                          <span>Sorot</span>
+                        </button>
+                        <button
+                          onClick={() => onHideAnswer(ans)}
+                          className="px-3.5 py-1.5 rounded-lg bg-slate-100 hover:bg-red-100 text-slate-600 hover:text-red-700 text-xs sm:text-sm font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                        >
+                          <EyeOff className="w-3.5 h-3.5" />
+                          <span>Sembunyikan</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
