@@ -4,6 +4,8 @@ import {
   LivePollConfig,
   RATIONAL_CONVERSION_DICTIONARY,
   FORBIDDEN_VAGUE_WORDS,
+  VP_THREE_TESTS,
+  ZERO_CERT_PROOFS,
 } from '../data/seminarData';
 import { AnswerDoc, QnaDoc, PollVoteDoc, SessionStateDoc, InteractiveMode } from '../types';
 import { PWAInstallModalTrigger } from './PWAInstallButton';
@@ -298,14 +300,47 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
             </p>
           )}
 
-          <div className="rounded-xl bg-[#FFF7EC] border border-[#F28C28]/40 p-4 mb-5">
-            <p className="text-xs font-bold text-[#F28C28] uppercase tracking-wider mb-1">
-              Contoh Jawaban Sederhana:
-            </p>
-            <p className="text-base sm:text-lg font-medium text-[#1F3A5F]">
-              "{currentQuestion.exampleAnswer}"
-            </p>
+          <div className="rounded-xl bg-[#FFF7EC] border border-[#F28C28]/40 p-4 mb-5 space-y-2.5">
+            <div>
+              <p className="text-xs font-bold text-[#F28C28] uppercase tracking-wider mb-1">
+                Contoh Jawaban Sederhana:
+              </p>
+              <p className="text-base sm:text-lg font-medium text-[#1F3A5F]">
+                "{currentQuestion.exampleAnswer}"
+              </p>
+            </div>
+            {currentQuestion.helperTips && currentQuestion.helperTips.length > 0 && (
+              <div className="pt-2.5 border-t border-[#F28C28]/25 space-y-1 text-xs sm:text-sm text-[#1F3A5F]/85">
+                <p className="font-bold text-[#1F3A5F]">Panduan & Studi Kasus Nyata:</p>
+                {currentQuestion.helperTips.map((tip, idx) => (
+                  <p key={idx} className="leading-relaxed">
+                    • {tip}
+                  </p>
+                ))}
+              </div>
+            )}
           </div>
+
+          {/* BUKTI TANPA SERTIFIKAT FORMAL (Khusus Bagian 4 - UMKM Pemula) */}
+          {activeQIndex === 3 && (
+            <div className="rounded-xl bg-[#FFF7EC] border border-[#1F3A5F]/15 p-4 mb-4 space-y-2">
+              <p className="text-xs font-bold text-[#1F3A5F] uppercase tracking-wider">
+                Belum Punya Sertifikat PIRT/Halal? Ketuk Bukti UMKM Pemula Ini:
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {ZERO_CERT_PROOFS.map((zp, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => handleInsertChip(zp.chipText)}
+                    className="px-3 py-1.5 rounded-lg bg-white border border-[#2A9D8F]/40 hover:border-[#F28C28] text-xs font-bold text-[#1F3A5F] cursor-pointer"
+                  >
+                    + {zp.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* KATA TERLARANG & KAMUS KONVERSI ANGKA INTERAKTIF (Khusus Bagian 3 & Bagian 4) */}
           {(activeQIndex === 2 || activeQIndex === 3) && (
@@ -353,35 +388,56 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
             </div>
           )}
 
-          {/* Smart Formula Builder on Question 6 (Index 5) */}
+          {/* Smart Formula Builder & 3 Alat Uji VP on Question 6 (Index 5) */}
           {activeQIndex === 5 && questions.length >= 6 && (
-            <div className="rounded-xl bg-[#E3F5F2] border border-[#2A9D8F]/40 p-4 mb-6 space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-sm font-bold text-[#1F3A5F] flex items-center gap-1.5">
-                  <Sparkles className="w-4 h-4 text-[#2A9D8F]" />
-                  Bantuan Gabungkan Kalimat dari Jawabanmu Sebelumnya
-                </p>
-                <button
-                  type="button"
-                  onClick={handleAutoFillPart6Formula}
-                  className="px-3 py-1.5 rounded-lg bg-[#2A9D8F] text-white text-xs font-bold hover:bg-[#218276] transition-colors cursor-pointer"
-                >
-                  Susun Otomatis ke Kolom
-                </button>
+            <div className="space-y-4 mb-6">
+              <div className="rounded-xl bg-[#E3F5F2] border border-[#2A9D8F]/40 p-4 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-bold text-[#1F3A5F] flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-[#2A9D8F]" />
+                    Bantuan Gabungkan Kalimat dari Jawabanmu Sebelumnya
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleAutoFillPart6Formula}
+                    className="px-3 py-1.5 rounded-lg bg-[#2A9D8F] text-white text-xs font-bold hover:bg-[#218276] transition-colors cursor-pointer"
+                  >
+                    Susun Otomatis ke Kolom
+                  </button>
+                </div>
+                <div className="text-xs text-[#1F3A5F]/80 space-y-1">
+                  <p>
+                    <strong>Bagian 1 (Produk):</strong> {getMyPreviousAnswer(0) || 'Belum diisi'}
+                  </p>
+                  <p>
+                    <strong>Bagian 2 (Pembeli):</strong> {getMyPreviousAnswer(1) || 'Belum diisi'}
+                  </p>
+                  <p>
+                    <strong>Bagian 4 (Bukti Angka):</strong> {getMyPreviousAnswer(3) || 'Belum diisi'}
+                  </p>
+                  <p>
+                    <strong>Bagian 5 (Perasaan):</strong> {getMyPreviousAnswer(4) || 'Belum diisi'}
+                  </p>
+                </div>
               </div>
-              <div className="text-xs text-[#1F3A5F]/80 space-y-1">
-                <p>
-                  <strong>Bagian 1 (Produk):</strong> {getMyPreviousAnswer(0) || 'Belum diisi'}
+
+              {/* 3 Alat Uji Kalimat Value Proposition */}
+              <div className="rounded-xl bg-[#FFF7EC] border border-[#F28C28]/40 p-4 space-y-2.5">
+                <p className="text-xs font-bold uppercase tracking-wider text-[#F28C28]">
+                  Uji Kalimatmu dengan 3 Pertanyaan Penguji Ini Sebelum Kirim:
                 </p>
-                <p>
-                  <strong>Bagian 2 (Pembeli):</strong> {getMyPreviousAnswer(1) || 'Belum diisi'}
-                </p>
-                <p>
-                  <strong>Bagian 4 (Bukti Angka):</strong> {getMyPreviousAnswer(3) || 'Belum diisi'}
-                </p>
-                <p>
-                  <strong>Bagian 5 (Perasaan):</strong> {getMyPreviousAnswer(4) || 'Belum diisi'}
-                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  {VP_THREE_TESTS.map((test, idx) => (
+                    <div
+                      key={idx}
+                      className="bg-white rounded-lg p-3 border border-[#1F3A5F]/10 space-y-1 text-xs"
+                    >
+                      <p className="font-bold text-[#1F3A5F]">{test.title}</p>
+                      <p className="text-[#1F3A5F]/80">{test.question}</p>
+                      <p className="font-semibold text-[#2A9D8F]">{test.passCriteria}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}

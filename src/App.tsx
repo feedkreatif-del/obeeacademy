@@ -224,6 +224,20 @@ export default function App() {
     const checkAndSeed = async () => {
       if (hasSeededInitial) return;
       const seededFlag = window.localStorage.getItem('partnerup_initial_seeded_v1');
+      const upgradedV2Flag = window.localStorage.getItem('partnerup_curriculum_v2_8page');
+
+      if (!upgradedV2Flag) {
+        window.localStorage.setItem('partnerup_curriculum_v2_8page', 'true');
+        try {
+          await setDoc(doc(db, 'custom_content', 'active'), {
+            ...DEFAULT_CUSTOM_CONTENT,
+            updatedAt: Date.now(),
+          });
+        } catch (e) {
+          console.warn('Curriculum v2 sync skipped:', e);
+        }
+      }
+
       if (seededFlag) {
         setHasSeededInitial(true);
         return;

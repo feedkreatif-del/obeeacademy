@@ -5,6 +5,8 @@ import {
   LivePollConfig,
   RATIONAL_CONVERSION_DICTIONARY,
   FORBIDDEN_VAGUE_WORDS,
+  SPEAKER_TOUGH_QUESTIONS,
+  SEMINAR_SLIDES,
 } from '../data/seminarData';
 import {
   AnswerDoc,
@@ -1680,19 +1682,28 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                 </div>
               </div>
 
-              {/* 2. SPEAKER NOTES (CATATAN PEMATERI) */}
+              {/* 2. SPEAKER NOTES (CATATAN PEMATERI & CONTEKAN 5 PERTANYAAN SULIT) */}
               <div className="bg-white border border-[#1F3A5F]/15 rounded-2xl p-5 space-y-3 shadow-xs">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold uppercase tracking-wider text-[#F28C28] flex items-center gap-1.5">
                     <FileText className="w-4 h-4" />
-                    <span>CATATAN PEMATERI (SPEAKER NOTES)</span>
+                    <span>CONTEKAN PEMATERI (SPEAKER NOTES)</span>
                   </span>
                 </div>
+
+                {(slide.speakerNotes || SEMINAR_SLIDES[safeSlideIndex]?.speakerNotes) && (
+                  <div className="rounded-xl bg-[#E3F5F2] border border-[#2A9D8F]/40 p-3.5 text-xs sm:text-sm text-[#1F3A5F] leading-relaxed">
+                    <span className="font-bold text-[#1d6f65] block mb-1 uppercase tracking-wider text-[11px]">
+                      Panduan Bicara Slide #{slide.pageNumber}:
+                    </span>
+                    {slide.speakerNotes || SEMINAR_SLIDES[safeSlideIndex]?.speakerNotes}
+                  </div>
+                )}
 
                 {linkedQuestion && (
                   <div className="rounded-xl bg-[#FFF7EC] border border-[#1F3A5F]/10 p-3.5 space-y-1.5 text-xs text-[#1F3A5F]">
                     <p className="font-bold text-[#1F3A5F]">
-                      Inti Materi: {linkedQuestion.coreLearning}
+                      Inti Latihan: {linkedQuestion.coreLearning}
                     </p>
                     {linkedQuestion.helperTips.map((tip, idx) => (
                       <p key={idx} className="text-[#1F3A5F]/80">
@@ -1703,12 +1714,30 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                 )}
 
                 <textarea
-                  rows={3}
+                  rows={2}
                   value={customNotesMap[safeSlideIndex] || ''}
                   onChange={(e) => handleSaveCustomNote(safeSlideIndex, e.target.value)}
                   placeholder="Ketik catatan pribadi / kalimat jembatan untuk Slide ini (tersimpan otomatis & tidak tampil di proyektor)..."
                   className="w-full rounded-xl border border-[#1F3A5F]/20 bg-[#FFF7EC]/50 p-3 text-xs sm:text-sm text-[#1F3A5F] focus:outline-none focus:border-[#F28C28]"
                 />
+
+                {/* Contekan 5 Pertanyaan Sulit Peserta (Halaman 8 Dokumen) */}
+                <details className="rounded-xl bg-[#FFF7EC] border border-[#F28C28]/40 p-3.5 text-xs text-[#1F3A5F]">
+                  <summary className="font-bold text-[#1F3A5F] cursor-pointer select-none flex items-center justify-between">
+                    <span>💡 Contekan 5 Pertanyaan Sulit Peserta (Panduan Taktis)</span>
+                    <span className="text-[#F28C28] text-[11px]">Buka / Tutup</span>
+                  </summary>
+                  <div className="mt-3 space-y-2.5 pt-2.5 border-t border-[#1F3A5F]/10 max-h-72 overflow-y-auto pr-1">
+                    {SPEAKER_TOUGH_QUESTIONS.map((tq) => (
+                      <div key={tq.id} className="bg-white rounded-lg p-3 border border-[#1F3A5F]/10 space-y-1">
+                        <p className="font-bold text-[#1F3A5F]">{tq.question}</p>
+                        <p className="font-semibold text-[#2A9D8F]">Prinsip: {tq.shortPrinciple}</p>
+                        <p className="text-[#1F3A5F]/85 leading-relaxed">{tq.tacticalAnswer}</p>
+                        <p className="text-[#F28C28] font-semibold italic">{tq.coachingQuestion}</p>
+                      </div>
+                    ))}
+                  </div>
+                </details>
               </div>
 
               {/* 3. INTIP JAWABAN PESERTA MASUK DI LAPTOP PEMATERI */}
