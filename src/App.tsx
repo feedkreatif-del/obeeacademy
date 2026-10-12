@@ -45,6 +45,7 @@ import { SlideDeckView } from './components/SlideDeckView';
 import { RemoteClickerView } from './components/RemoteClickerView';
 import { ContentEditorView, DEFAULT_QNA_TOPICS } from './components/ContentEditorView';
 import { OfflineBanner, PWAInstallModalTrigger } from './components/PWAInstallButton';
+import { DEFAULT_BRAND_THEME, sanitizeBrandTheme, useApplyBrandTheme } from './brandTheme';
 import { Download } from 'lucide-react';
 
 const DEFAULT_SESSION_STATE: SessionStateDoc = {
@@ -70,6 +71,7 @@ const DEFAULT_CUSTOM_CONTENT: CustomContentDoc = {
   polls: LIVE_POLLS,
   slides: SEMINAR_SLIDES,
   qnaTopics: DEFAULT_QNA_TOPICS,
+  brandTheme: DEFAULT_BRAND_THEME,
   updatedAt: Date.now(),
 };
 
@@ -98,6 +100,9 @@ export default function App() {
   const [qnaList, setQnaList] = useState<QnaDoc[]>([]);
   const [pollVotes, setPollVotes] = useState<PollVoteDoc[]>([]);
   const [hasSeededInitial, setHasSeededInitial] = useState<boolean>(false);
+
+  // Dynamically apply organization brand color theme across all views (default: PartnerUp | Obeecreatives)
+  useApplyBrandTheme(customContent.brandTheme);
 
   const joinUrl = `${window.location.origin}${window.location.pathname}?view=participant`;
   const extendUrl = `${window.location.origin}${window.location.pathname}?view=extend`;
@@ -156,6 +161,7 @@ export default function App() {
               Array.isArray(data.qnaTopics) && data.qnaTopics.length > 0
                 ? data.qnaTopics
                 : DEFAULT_QNA_TOPICS,
+            brandTheme: sanitizeBrandTheme(data.brandTheme),
             updatedAt: data.updatedAt || Date.now(),
           });
         }

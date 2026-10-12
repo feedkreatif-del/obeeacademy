@@ -6,9 +6,16 @@ import {
   WorksheetQuestion,
   LivePollConfig,
   SlideDefinition,
+  SlideCardItem,
   PollOption,
 } from '../data/seminarData';
-import { CustomContentDoc } from '../types';
+import { CustomContentDoc, BrandThemeConfig } from '../types';
+import {
+  DEFAULT_BRAND_THEME,
+  BRAND_THEME_PRESETS,
+  sanitizeBrandTheme,
+  useApplyBrandTheme,
+} from '../brandTheme';
 import {
   Save,
   RotateCcw,
@@ -24,6 +31,7 @@ import {
   ArrowDown,
   Download,
   Upload,
+  Palette,
 } from 'lucide-react';
 
 interface ContentEditorViewProps {
@@ -45,13 +53,19 @@ export const ContentEditorView: React.FC<ContentEditorViewProps> = ({
   onSaveCustomContent,
   onResetToPartnerUpDefault,
 }) => {
-  const [activeTab, setActiveTab] = useState<'questions' | 'slides' | 'polls' | 'qna'>('questions');
+  const [activeTab, setActiveTab] = useState<'questions' | 'slides' | 'polls' | 'qna' | 'theme'>('theme');
   const [seminarTitle, setSeminarTitle] = useState(customContent.seminarTitle);
   const [organizerName, setOrganizerName] = useState(customContent.organizerName);
   const [questions, setQuestions] = useState<WorksheetQuestion[]>(customContent.questions);
   const [slides, setSlides] = useState<SlideDefinition[]>(customContent.slides);
   const [polls, setPolls] = useState<LivePollConfig[]>(customContent.polls);
   const [qnaTopics, setQnaTopics] = useState<string[]>(customContent.qnaTopics);
+  const [brandTheme, setBrandTheme] = useState<BrandThemeConfig>(() =>
+    sanitizeBrandTheme(customContent.brandTheme)
+  );
+
+  // Live preview the edited brand theme immediately while inside Editor
+  useApplyBrandTheme(brandTheme);
 
   const [newTopicInput, setNewTopicInput] = useState('');
   const [saving, setSaving] = useState(false);
@@ -66,6 +80,7 @@ export const ContentEditorView: React.FC<ContentEditorViewProps> = ({
     setSlides(customContent.slides);
     setPolls(customContent.polls);
     setQnaTopics(customContent.qnaTopics);
+    setBrandTheme(sanitizeBrandTheme(customContent.brandTheme));
   }, [customContent]);
 
   const handleSaveAll = async () => {
@@ -91,6 +106,7 @@ export const ContentEditorView: React.FC<ContentEditorViewProps> = ({
         polls,
         slides: normalizedSlides,
         qnaTopics: qnaTopics.length > 0 ? qnaTopics : DEFAULT_QNA_TOPICS,
+        brandTheme: sanitizeBrandTheme(brandTheme),
         updatedAt: Date.now(),
       });
       setSaveSuccess(true);
@@ -231,7 +247,7 @@ export const ContentEditorView: React.FC<ContentEditorViewProps> = ({
     setQnaTopics(['Copywriting Caption', 'Bio Instagram', 'Foto Produk HP', 'Strategi WhatsApp']);
   };
 
-  // Export & Import JSON Backup
+  // Export & Import JSON Backup (includes brandTheme)
   const handleExportJson = () => {
     const dataStr = JSON.stringify(
       {
@@ -241,6 +257,7 @@ export const ContentEditorView: React.FC<ContentEditorViewProps> = ({
         polls,
         slides,
         qnaTopics,
+        brandTheme: sanitizeBrandTheme(brandTheme),
       },
       null,
       2
@@ -270,6 +287,7 @@ export const ContentEditorView: React.FC<ContentEditorViewProps> = ({
           if (Array.isArray(parsed.polls)) setPolls(parsed.polls);
           if (Array.isArray(parsed.slides)) setSlides(parsed.slides);
           if (Array.isArray(parsed.qnaTopics)) setQnaTopics(parsed.qnaTopics);
+          if (parsed.brandTheme) setBrandTheme(sanitizeBrandTheme(parsed.brandTheme));
         }
       } catch (err) {
         console.error('File JSON tidak valid:', err);
@@ -359,6 +377,58 @@ export const ContentEditorView: React.FC<ContentEditorViewProps> = ({
     copy[idx] = copy[target];
     copy[target] = temp;
     setSlides(copy);
+  };
+
+  // Slide Kanban Cards Helpers
+  const addSlideCard = (slideIdx: number) => {
+    setSlides((prev) =>
+      prev.map((s, i) => {
+        if (i !== slideIdx) return s;
+        const currentCards = s.cards || [];
+        if (currentCards.length >= 5) return s;
+        const nextNum = currentCards.length + 1;
+        return {
+          ...s,
+          cards: [
+            ...currentCards,
+            {
+              title: `${nextNum}. Judul Kartu Poin Baru`,
+              body: 'Penjelasan singkat atau contoh nyata pada kartu ini.',
+              accent: nextNum % 2 === 1 ? 'orange' : 'teal',
+            },
+          ],
+        };
+      })
+    );
+  };
+
+  const updateSlideCard = (
+    slideIdx: number,
+    cardIdx: number,
+    field: keyof SlideCardItem,
+    value: string
+  ) => {
+    setSlides((prev) =>
+      prev.map((s, i) => {
+        if (i !== slideIdx) return s;
+        const nextCards = (s.cards || []).map((c, ci) =>
+          ci === cardIdx ? { ...c, [field]: value } : c
+        );
+        return { ...s, cards: nextCards };
+      })
+    );
+  };
+
+  const removeSlideCard = (slideIdx: number, cardIdx: number) => {
+    setSlides((prev) =>
+      prev.map((s, i) => {
+        if (i !== slideIdx) return s;
+        return {
+          ...s,
+          cards: (s.cards || []).filter((_, ci) => ci !== cardIdx),
+        };
+      })
+    );
   };
 
   // Poll Helpers
@@ -576,8 +646,21 @@ export const ContentEditorView: React.FC<ContentEditorViewProps> = ({
         </div>
       </div>
 
-      {/* 4 Sub-Editors Navigation */}
+      {/* 5 Sub-Editors Navigation */}
       <div className="flex flex-wrap items-center gap-2 bg-white p-1.5 rounded-xl border border-[#1F3A5F]/15">
+        <button
+          type="button"
+          onClick={() => setActiveTab('theme')}
+          className={`px-4 py-2.5 rounded-lg text-xs sm:text-sm font-bold flex items-center gap-2 cursor-pointer transition-colors ${
+            activeTab === 'theme'
+              ? 'bg-[#F28C28] text-white shadow-xs'
+              : 'text-[#1F3A5F] bg-[#FFF7EC] hover:bg-[#F28C28]/15 border border-[#F28C28]/30'
+          }`}
+        >
+          <Palette className="w-4 h-4" />
+          <span>Tema Warna Organisasi ({brandTheme.name.split(' ')[0]})</span>
+        </button>
+
         <button
           type="button"
           onClick={() => setActiveTab('questions')}
@@ -630,6 +713,419 @@ export const ContentEditorView: React.FC<ContentEditorViewProps> = ({
           <span>4. Topik Kategori Q&A ({qnaTopics.length})</span>
         </button>
       </div>
+
+      {/* SUB-EDITOR TEMA WARNA ORGANISASI (CUSTOM BRAND COLOR PICKER) */}
+      {activeTab === 'theme' && (
+        <div className="space-y-6">
+          {/* Top Banner & Reset to Default PartnerUp */}
+          <div className="bg-white border border-[#1F3A5F]/15 rounded-2xl p-6 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-md bg-[#F28C28]/15 text-[#F28C28] font-bold text-xs uppercase tracking-wider">
+                  Identitas Visual & Branding
+                </span>
+                <span className="text-xs font-bold text-[#1F3A5F]/60">
+                  Tema Aktif: {brandTheme.name}
+                </span>
+              </div>
+              <h2 className="font-display text-xl sm:text-2xl font-bold text-[#1F3A5F]">
+                Pengaturan Tema Warna Organisasi (Custom Brand Color Picker)
+              </h2>
+              <p className="text-sm text-[#1F3A5F]/75 max-w-3xl">
+                Sesuaikan identitas warna untuk organisasi penyelenggara (BUMN, Dinas, Koperasi, Kampus, atau Komunitas). Warna default tetap menggunakan <strong>PartnerUp | Obeecreatives</strong>. Klik <strong>Simpan & Terapkan ke Seminar</strong> di kanan atas untuk menyinkronkan warna ke seluruh layar Proyektor & HP Peserta.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setBrandTheme(DEFAULT_BRAND_THEME)}
+              className="px-4 py-2.5 rounded-xl bg-[#FFF7EC] border-2 border-[#1F3A5F]/20 hover:border-[#F28C28] text-[#1F3A5F] text-xs font-bold flex items-center gap-2 cursor-pointer shrink-0 transition-colors"
+            >
+              <RotateCcw className="w-4 h-4 text-[#F28C28]" />
+              <span>Kembalikan Warna Default (PartnerUp | Obeecreatives)</span>
+            </button>
+          </div>
+
+          {/* 1. Preset Palet Organisasi Siap Pakai */}
+          <div className="bg-white border border-[#1F3A5F]/15 rounded-2xl p-6 space-y-4 shadow-xs">
+            <div>
+              <h3 className="font-display text-lg font-bold text-[#1F3A5F]">
+                1. Pilih Paket Tema Warna Organisasi Siap Pakai (1-Klik)
+              </h3>
+              <p className="text-xs sm:text-sm text-[#1F3A5F]/70">
+                Pilih salah satu paket warna di bawah ini sebagai titik awal, atau langsung racik warna kustom di bagian bawah.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {BRAND_THEME_PRESETS.map((preset) => {
+                const isSelected =
+                  brandTheme.primaryColor.toUpperCase() === preset.primaryColor.toUpperCase() &&
+                  brandTheme.accentColor.toUpperCase() === preset.accentColor.toUpperCase() &&
+                  brandTheme.secondaryColor.toUpperCase() === preset.secondaryColor.toUpperCase() &&
+                  brandTheme.bgColor.toUpperCase() === preset.bgColor.toUpperCase();
+
+                return (
+                  <button
+                    key={preset.presetId}
+                    type="button"
+                    onClick={() =>
+                      setBrandTheme({
+                        presetId: preset.presetId,
+                        name: preset.name,
+                        primaryColor: preset.primaryColor,
+                        accentColor: preset.accentColor,
+                        secondaryColor: preset.secondaryColor,
+                        bgColor: preset.bgColor,
+                      })
+                    }
+                    className={`text-left rounded-2xl p-4 border-2 transition-all cursor-pointer flex flex-col justify-between gap-3 ${
+                      isSelected
+                        ? 'border-[#F28C28] bg-[#FFF7EC]/70 shadow-sm'
+                        : 'border-slate-200 hover:border-[#1F3A5F]/40 bg-white'
+                    }`}
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-100 text-slate-700">
+                          {preset.organizationType}
+                        </span>
+                        {preset.presetId === 'partnerup_default' && (
+                          <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-900">
+                            DEFAULT UTAMA
+                          </span>
+                        )}
+                      </div>
+
+                      <p className="font-display font-bold text-base text-slate-900">
+                        {preset.name}
+                      </p>
+                      <p className="text-xs text-slate-600 leading-relaxed">
+                        {preset.description}
+                      </p>
+                    </div>
+
+                    {/* SVG Color Swatch Bar (True Colors of each preset) */}
+                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+                      <svg
+                        viewBox="0 0 180 28"
+                        className="w-40 h-7 rounded-lg overflow-hidden border border-slate-200 shrink-0"
+                        aria-label={`Palet warna ${preset.name}`}
+                      >
+                        <rect x="0" y="0" width="45" height="28" fill={preset.primaryColor} />
+                        <rect x="45" y="0" width="45" height="28" fill={preset.accentColor} />
+                        <rect x="90" y="0" width="45" height="28" fill={preset.secondaryColor} />
+                        <rect x="135" y="0" width="45" height="28" fill={preset.bgColor} />
+                      </svg>
+                      <span
+                        className={`text-xs font-bold ${
+                          isSelected ? 'text-[#F28C28]' : 'text-slate-500'
+                        }`}
+                      >
+                        {isSelected ? '✓ Aktif' : 'Gunakan'}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 2. Custom Color Picker per Elemen & Live Preview */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Left 7 Cols: 4 Custom Color Pickers */}
+            <div className="lg:col-span-7 bg-white border border-[#1F3A5F]/15 rounded-2xl p-6 space-y-5 shadow-xs">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#1F3A5F]/10 pb-3">
+                <div>
+                  <h3 className="font-display text-lg font-bold text-[#1F3A5F]">
+                    2. Kustomisasi Warna Bebas (Color Picker & Kode Hex)
+                  </h3>
+                  <p className="text-xs text-[#1F3A5F]/70">
+                    Klik kotak warna atau masukkan kode Hex (misal <code>#1F3A5F</code>) sesuai panduan logo organisasi Anda.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mb-2">
+                <label className="block text-xs font-bold uppercase text-[#1F3A5F]/70 mb-1">
+                  Nama Label Tema Organisasi
+                </label>
+                <input
+                  type="text"
+                  maxLength={60}
+                  value={brandTheme.name}
+                  onChange={(e) =>
+                    setBrandTheme({
+                      ...brandTheme,
+                      presetId: 'custom',
+                      name: e.target.value,
+                    })
+                  }
+                  placeholder="Contoh: Tema Bank Indonesia / Dinas Koperasi"
+                  className="w-full rounded-xl border border-[#1F3A5F]/25 px-3.5 py-2 text-sm font-bold text-[#1F3A5F]"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Primary Color */}
+                <div className="rounded-xl border border-[#1F3A5F]/15 p-4 bg-[#FFF7EC]/40 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold uppercase tracking-wider text-[#1F3A5F]">
+                      1. Warna Utama (Primary)
+                    </span>
+                    <span className="text-[11px] font-mono text-slate-500">
+                      Default: #1F3A5F
+                    </span>
+                  </div>
+                  <p className="text-xs text-[#1F3A5F]/75">
+                    Mengatur warna <strong>Header Atas, Slide Sampul, Judul Utama, & Teks</strong>.
+                  </p>
+                  <div className="flex items-center gap-2.5 pt-1">
+                    <input
+                      type="color"
+                      value={
+                        /^#[0-9A-Fa-f]{6}$/.test(brandTheme.primaryColor)
+                          ? brandTheme.primaryColor
+                          : '#1F3A5F'
+                      }
+                      onChange={(e) =>
+                        setBrandTheme({
+                          ...brandTheme,
+                          presetId: 'custom',
+                          primaryColor: e.target.value.toUpperCase(),
+                        })
+                      }
+                      className="w-12 h-10 rounded-lg border border-slate-300 cursor-pointer bg-white p-0.5 shrink-0"
+                    />
+                    <input
+                      type="text"
+                      maxLength={7}
+                      value={brandTheme.primaryColor}
+                      onChange={(e) =>
+                        setBrandTheme({
+                          ...brandTheme,
+                          presetId: 'custom',
+                          primaryColor: e.target.value.toUpperCase(),
+                        })
+                      }
+                      className="w-full rounded-lg border border-[#1F3A5F]/25 bg-white px-3 py-2 font-mono text-sm font-bold text-[#1F3A5F]"
+                    />
+                  </div>
+                </div>
+
+                {/* Accent Color */}
+                <div className="rounded-xl border border-[#1F3A5F]/15 p-4 bg-[#FFF7EC]/40 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold uppercase tracking-wider text-[#F28C28]">
+                      2. Warna Aksen (Footer & CTA)
+                    </span>
+                    <span className="text-[11px] font-mono text-slate-500">
+                      Default: #F28C28
+                    </span>
+                  </div>
+                  <p className="text-xs text-[#1F3A5F]/75">
+                    Mengatur warna <strong>Bilah Footer Slide, Tombol Utama, & Kartu Kanban 1</strong>.
+                  </p>
+                  <div className="flex items-center gap-2.5 pt-1">
+                    <input
+                      type="color"
+                      value={
+                        /^#[0-9A-Fa-f]{6}$/.test(brandTheme.accentColor)
+                          ? brandTheme.accentColor
+                          : '#F28C28'
+                      }
+                      onChange={(e) =>
+                        setBrandTheme({
+                          ...brandTheme,
+                          presetId: 'custom',
+                          accentColor: e.target.value.toUpperCase(),
+                        })
+                      }
+                      className="w-12 h-10 rounded-lg border border-slate-300 cursor-pointer bg-white p-0.5 shrink-0"
+                    />
+                    <input
+                      type="text"
+                      maxLength={7}
+                      value={brandTheme.accentColor}
+                      onChange={(e) =>
+                        setBrandTheme({
+                          ...brandTheme,
+                          presetId: 'custom',
+                          accentColor: e.target.value.toUpperCase(),
+                        })
+                      }
+                      className="w-full rounded-lg border border-[#1F3A5F]/25 bg-white px-3 py-2 font-mono text-sm font-bold text-[#1F3A5F]"
+                    />
+                  </div>
+                </div>
+
+                {/* Secondary Color */}
+                <div className="rounded-xl border border-[#1F3A5F]/15 p-4 bg-[#FFF7EC]/40 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold uppercase tracking-wider text-[#2A9D8F]">
+                      3. Warna Sekunder (Pendukung)
+                    </span>
+                    <span className="text-[11px] font-mono text-slate-500">
+                      Default: #2A9D8F
+                    </span>
+                  </div>
+                  <p className="text-xs text-[#1F3A5F]/75">
+                    Mengatur warna <strong>Kartu Kanban 2, Grafik Polling, & Tombol Simpan</strong>.
+                  </p>
+                  <div className="flex items-center gap-2.5 pt-1">
+                    <input
+                      type="color"
+                      value={
+                        /^#[0-9A-Fa-f]{6}$/.test(brandTheme.secondaryColor)
+                          ? brandTheme.secondaryColor
+                          : '#2A9D8F'
+                      }
+                      onChange={(e) =>
+                        setBrandTheme({
+                          ...brandTheme,
+                          presetId: 'custom',
+                          secondaryColor: e.target.value.toUpperCase(),
+                        })
+                      }
+                      className="w-12 h-10 rounded-lg border border-slate-300 cursor-pointer bg-white p-0.5 shrink-0"
+                    />
+                    <input
+                      type="text"
+                      maxLength={7}
+                      value={brandTheme.secondaryColor}
+                      onChange={(e) =>
+                        setBrandTheme({
+                          ...brandTheme,
+                          presetId: 'custom',
+                          secondaryColor: e.target.value.toUpperCase(),
+                        })
+                      }
+                      className="w-full rounded-lg border border-[#1F3A5F]/25 bg-white px-3 py-2 font-mono text-sm font-bold text-[#1F3A5F]"
+                    />
+                  </div>
+                </div>
+
+                {/* Background Canvas Color */}
+                <div className="rounded-xl border border-[#1F3A5F]/15 p-4 bg-[#FFF7EC]/40 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold uppercase tracking-wider text-[#1F3A5F]">
+                      4. Warna Latar Kanvas
+                    </span>
+                    <span className="text-[11px] font-mono text-slate-500">
+                      Default: #FFF7EC
+                    </span>
+                  </div>
+                  <p className="text-xs text-[#1F3A5F]/75">
+                    Mengatur warna <strong>Latar Belakang Kanvas Slide, Proyektor & HP Peserta</strong>.
+                  </p>
+                  <div className="flex items-center gap-2.5 pt-1">
+                    <input
+                      type="color"
+                      value={
+                        /^#[0-9A-Fa-f]{6}$/.test(brandTheme.bgColor)
+                          ? brandTheme.bgColor
+                          : '#FFF7EC'
+                      }
+                      onChange={(e) =>
+                        setBrandTheme({
+                          ...brandTheme,
+                          presetId: 'custom',
+                          bgColor: e.target.value.toUpperCase(),
+                        })
+                      }
+                      className="w-12 h-10 rounded-lg border border-slate-300 cursor-pointer bg-white p-0.5 shrink-0"
+                    />
+                    <input
+                      type="text"
+                      maxLength={7}
+                      value={brandTheme.bgColor}
+                      onChange={(e) =>
+                        setBrandTheme({
+                          ...brandTheme,
+                          presetId: 'custom',
+                          bgColor: e.target.value.toUpperCase(),
+                        })
+                      }
+                      className="w-full rounded-lg border border-[#1F3A5F]/25 bg-white px-3 py-2 font-mono text-sm font-bold text-[#1F3A5F]"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right 5 Cols: Real-Time Mini Slide & Participant Phone Preview */}
+            <div className="lg:col-span-5 bg-white border border-[#1F3A5F]/15 rounded-2xl p-6 space-y-4 shadow-xs flex flex-col justify-between">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-display text-lg font-bold text-[#1F3A5F]">
+                    Pratinjau Langsung (Live Preview)
+                  </h3>
+                  <span className="px-2.5 py-0.5 rounded-full bg-[#2A9D8F]/15 text-[#2A9D8F] text-xs font-bold">
+                    Real-Time
+                  </span>
+                </div>
+
+                {/* Mini Slide Stage Preview */}
+                <div className="rounded-xl overflow-hidden border-2 border-[#1F3A5F]/25 bg-[#FFF7EC] shadow-xs">
+                  {/* Slide Header Bar */}
+                  <div className="bg-[#1F3A5F] text-white px-4 py-3 flex items-center justify-between">
+                    <span className="font-display font-bold text-sm truncate">
+                      {seminarTitle || 'Judul Materi Slide'}
+                    </span>
+                    <span className="px-2 py-0.5 rounded bg-[#F28C28] text-white text-[10px] font-bold shrink-0">
+                      BAGIAN 1
+                    </span>
+                  </div>
+
+                  {/* Slide Body with 2 Dynamic Kanban Cards */}
+                  <div className="p-4 space-y-3">
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <div className="bg-white rounded-lg p-3 border border-[#1F3A5F]/10 border-t-4 border-t-[#F28C28] shadow-2xs">
+                        <p className="font-display font-bold text-xs text-[#F28C28] mb-1">
+                          1. Kartu Aksen Utama
+                        </p>
+                        <p className="text-[11px] text-[#1F3A5F]/85 leading-snug">
+                          Tampilan kartu Kanban dengan warna aksen pertama.
+                        </p>
+                      </div>
+                      <div className="bg-white rounded-lg p-3 border border-[#1F3A5F]/10 border-t-4 border-t-[#2A9D8F] shadow-2xs">
+                        <p className="font-display font-bold text-xs text-[#2A9D8F] mb-1">
+                          2. Kartu Bukti Sekunder
+                        </p>
+                        <p className="text-[11px] text-[#1F3A5F]/85 leading-snug">
+                          Tampilan kartu Kanban dengan warna sekunder.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="rounded-lg bg-[#1F3A5F] text-white px-3 py-2 text-[11px] font-semibold flex items-center justify-between">
+                      <span>Pita Pesan Kunci & Tombol HP Peserta</span>
+                      <span className="px-2 py-0.5 rounded bg-[#F28C28] text-white font-bold text-[10px]">
+                        Kirim Jawaban
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Slide Footer Brand Strip */}
+                  <div className="bg-[#F28C28] text-white px-4 py-2 flex items-center justify-between text-[11px] font-bold">
+                    <span className="truncate">{organizerName}</span>
+                    <span className="font-mono">Hal 1 / {slides.length}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl bg-[#FFF7EC] border border-[#1F3A5F]/15 p-3.5 text-xs text-[#1F3A5F]/80 space-y-1">
+                <p className="font-bold text-[#1F3A5F]">
+                  💡 Tips Duplikasi Materi Antar Organisasi:
+                </p>
+                <p>
+                  Saat Anda klik <strong>Ekspor JSON</strong> di atas, pengaturan warna tema ini ikut tersimpan di dalam file <code>.json</code> organisasi tersebut.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* SUB-EDITOR 1: PERTANYAAN LEMBAR KERJA */}
       {activeTab === 'questions' && (
@@ -936,6 +1432,99 @@ export const ContentEditorView: React.FC<ContentEditorViewProps> = ({
                       ))}
                     </select>
                   </div>
+                </div>
+
+                {/* Kanban Cards Editor inside Slide */}
+                <div className="border-t border-[#1F3A5F]/10 pt-4 space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <span className="text-xs font-bold uppercase tracking-wider text-[#1F3A5F]/75">
+                        Kartu Kanban pada Slide Ini ({(s.cards || []).length} / Maks 5 Kartu)
+                      </span>
+                      <p className="text-[11px] text-[#1F3A5F]/60">
+                        Ukuran kartu & huruf di layar otomatis menyesuaikan jumlah kartu (1–3 kartu = Jumbo, 4–5 kartu = Proporsional).
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => addSlideCard(idx)}
+                      disabled={(s.cards || []).length >= 5}
+                      className="px-3 py-1.5 rounded-lg bg-[#FFF7EC] border border-[#F28C28]/40 hover:bg-[#F28C28] text-[#1F3A5F] hover:text-white text-xs font-bold flex items-center gap-1 disabled:opacity-40 cursor-pointer transition-colors"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Tambah Kartu Kanban</span>
+                    </button>
+                  </div>
+
+                  {(s.cards || []).length > 0 && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {(s.cards || []).map((card, cIdx) => (
+                        <div
+                          key={cIdx}
+                          className="rounded-xl bg-[#FFF7EC]/60 border border-[#1F3A5F]/15 p-3 space-y-2"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-xs font-bold text-[#1F3A5F]">
+                              Kartu #{cIdx + 1}
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <select
+                                value={card.accent || 'orange'}
+                                onChange={(e) =>
+                                  updateSlideCard(idx, cIdx, 'accent', e.target.value)
+                                }
+                                className="rounded border border-[#1F3A5F]/20 bg-white px-2 py-1 text-xs font-semibold"
+                              >
+                                <option value="orange">Aksen Utama (Oranye/CTA)</option>
+                                <option value="teal">Aksen Sekunder (Teal)</option>
+                                <option value="navy">Aksen Utama Gelap (Navy)</option>
+                              </select>
+                              <button
+                                type="button"
+                                onClick={() => removeSlideCard(idx, cIdx)}
+                                className="p-1 text-red-600 hover:bg-red-50 rounded cursor-pointer"
+                                title="Hapus Kartu"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                          <input
+                            type="text"
+                            value={card.title}
+                            onChange={(e) =>
+                              updateSlideCard(idx, cIdx, 'title', e.target.value)
+                            }
+                            placeholder="Judul Kartu Kanban"
+                            className="w-full rounded-lg border border-[#1F3A5F]/20 bg-white px-2.5 py-1.5 text-xs font-bold"
+                          />
+                          <textarea
+                            rows={2}
+                            value={card.body}
+                            onChange={(e) =>
+                              updateSlideCard(idx, cIdx, 'body', e.target.value)
+                            }
+                            placeholder="Isi penjelasan kartu (pisahkan baris dengan Enter)"
+                            className="w-full rounded-lg border border-[#1F3A5F]/20 bg-white px-2.5 py-1.5 text-xs"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Speaker Notes (Contekan Pemateri) Editor */}
+                <div className="border-t border-[#1F3A5F]/10 pt-3">
+                  <label className="block text-xs font-bold text-[#1F3A5F]/80 mb-1">
+                    Contekan Narasi Pemateri (Tampil di Mode Presenter Laptop & Remote HP)
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={s.speakerNotes || ''}
+                    onChange={(e) => updateSlideField(idx, 'speakerNotes', e.target.value)}
+                    placeholder="Tuliskan poin panduan bicara atau studi kasus untuk slide ini..."
+                    className="w-full rounded-lg border border-[#1F3A5F]/25 bg-[#FFF7EC]/30 px-3 py-2 text-xs"
+                  />
                 </div>
               </div>
             ))}

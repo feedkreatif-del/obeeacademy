@@ -109,6 +109,10 @@
           "type": "array",
           "description": "Array of custom Q&A topic tags"
         },
+        "brandTheme": {
+          "type": "object",
+          "description": "Custom organization brand color theme configuration"
+        },
         "updatedAt": {
           "type": "integer",
           "description": "Last modified timestamp in ms"

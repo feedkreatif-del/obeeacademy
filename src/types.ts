@@ -21,6 +21,15 @@ export interface SessionStateDoc {
   updatedAt: number;
 }
 
+export interface BrandThemeConfig {
+  presetId: string;
+  name: string;
+  primaryColor: string;
+  accentColor: string;
+  secondaryColor: string;
+  bgColor: string;
+}
+
 export interface CustomContentDoc {
   seminarTitle: string;
   organizerName: string;
@@ -28,6 +37,7 @@ export interface CustomContentDoc {
   polls: LivePollConfig[];
   slides: SlideDefinition[];
   qnaTopics: string[];
+  brandTheme?: BrandThemeConfig;
   updatedAt: number;
 }
 

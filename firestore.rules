@@ -88,8 +88,10 @@ service cloud.firestore {
         'polls',
         'slides',
         'qnaTopics',
+        'brandTheme',
         'updatedAt'
       ]) &&
+      (!('brandTheme' in data) || data.brandTheme is map) &&
       data.seminarTitle is string && data.seminarTitle.size() >= 1 && data.seminarTitle.size() <= 120 &&
       data.organizerName is string && data.organizerName.size() >= 1 && data.organizerName.size() <= 100 &&
       data.questions is list && data.questions.size() >= 1 && data.questions.size() <= 25 &&
@@ -240,6 +242,7 @@ service cloud.firestore {
           'polls',
           'slides',
           'qnaTopics',
+          'brandTheme',
           'updatedAt'
         ])
       );
