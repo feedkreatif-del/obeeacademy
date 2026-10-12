@@ -44,6 +44,10 @@ service cloud.firestore {
       data.keys().hasOnly([
         'activeQuestion',
         'activeSlide',
+        'activeSlideStep',
+        'stepByStepEnabled',
+        'transitionStyle',
+        'activeSlideDrawer',
         'activeMode',
         'activePollId',
         'moderationEnabled',
@@ -54,6 +58,10 @@ service cloud.firestore {
       ]) &&
       data.activeQuestion is int && data.activeQuestion >= 0 && data.activeQuestion <= 30 &&
       data.activeSlide is int && data.activeSlide >= 0 && data.activeSlide <= 50 &&
+      (!('activeSlideStep' in data) || (data.activeSlideStep is int && data.activeSlideStep >= 0 && data.activeSlideStep <= 30)) &&
+      (!('stepByStepEnabled' in data) || data.stepByStepEnabled is bool) &&
+      (!('transitionStyle' in data) || (data.transitionStyle is string && data.transitionStyle in ['slide', 'zoom', 'fade'])) &&
+      (!('activeSlideDrawer' in data) || (data.activeSlideDrawer is string && data.activeSlideDrawer in ['none', 'answers', 'poll', 'qr'])) &&
       data.activeMode is string && data.activeMode in ['worksheet', 'poll', 'qna', 'external'] &&
       data.activePollId is string && data.activePollId.size() <= 64 &&
       data.moderationEnabled is bool &&
@@ -203,6 +211,10 @@ service cloud.firestore {
         incoming().diff(existing()).affectedKeys().hasOnly([
           'activeQuestion',
           'activeSlide',
+          'activeSlideStep',
+          'stepByStepEnabled',
+          'transitionStyle',
+          'activeSlideDrawer',
           'activeMode',
           'activePollId',
           'moderationEnabled',

@@ -49,6 +49,10 @@ import { Download } from 'lucide-react';
 const DEFAULT_SESSION_STATE: SessionStateDoc = {
   activeQuestion: 0,
   activeSlide: 0,
+  activeSlideStep: 0,
+  stepByStepEnabled: true,
+  transitionStyle: 'slide',
+  activeSlideDrawer: 'none',
   activeMode: 'worksheet',
   activePollId: 'rational_4types',
   moderationEnabled: false,
@@ -77,7 +81,8 @@ export default function App() {
       v === 'moderation' ||
       v === 'slides' ||
       v === 'projector' ||
-      v === 'editor'
+      v === 'editor' ||
+      v === 'extend'
     ) {
       return v;
     }
@@ -93,6 +98,7 @@ export default function App() {
   const [hasSeededInitial, setHasSeededInitial] = useState<boolean>(false);
 
   const joinUrl = `${window.location.origin}${window.location.pathname}?view=participant`;
+  const extendUrl = `${window.location.origin}${window.location.pathname}?view=extend`;
 
   // Subscribe once to Session State, Custom Content, Answers, Q&A, and Poll Votes
   useEffect(() => {
@@ -105,6 +111,11 @@ export default function App() {
           setSessionState({
             activeQuestion: typeof data.activeQuestion === 'number' ? data.activeQuestion : 0,
             activeSlide: typeof data.activeSlide === 'number' ? data.activeSlide : 0,
+            activeSlideStep: typeof data.activeSlideStep === 'number' ? data.activeSlideStep : 0,
+            stepByStepEnabled:
+              typeof data.stepByStepEnabled === 'boolean' ? data.stepByStepEnabled : true,
+            transitionStyle: data.transitionStyle || 'slide',
+            activeSlideDrawer: data.activeSlideDrawer || 'none',
             activeMode: data.activeMode || 'worksheet',
             activePollId: data.activePollId || 'rational_4types',
             moderationEnabled: Boolean(data.moderationEnabled),
@@ -545,6 +556,48 @@ export default function App() {
     answers.filter((a) => a.status === 'pending').length +
     qnaList.filter((q) => q.status === 'pending').length;
 
+  if (viewRole === 'extend') {
+    return (
+      <SlideDeckView
+        slides={customContent.slides}
+        questions={customContent.questions}
+        polls={customContent.polls}
+        pollVotes={pollVotes}
+        organizerName={customContent.organizerName}
+        joinUrl={joinUrl}
+        extendUrl={extendUrl}
+        activeSlideIndex={sessionState.activeSlide}
+        activeSlideStep={sessionState.activeSlideStep ?? 0}
+        stepByStepEnabled={sessionState.stepByStepEnabled ?? true}
+        transitionStyle={sessionState.transitionStyle || 'slide'}
+        activeSlideDrawer={sessionState.activeSlideDrawer || 'none'}
+        isAudienceExtendWindow={true}
+        onUpdateSlideState={(partial) => updateSessionState(partial)}
+        onLaunchWorksheetQuestion={(qIdx) => {
+          updateSessionState({ activeQuestion: qIdx, activeMode: 'worksheet' });
+        }}
+        onLaunchPoll={(pollId) => {
+          updateSessionState({ activePollId: pollId, activeMode: 'poll' });
+        }}
+        onLaunchQna={() => {
+          updateSessionState({ activeMode: 'qna' });
+        }}
+        onSyncQuestionOnly={(qIdx) => {
+          updateSessionState({ activeQuestion: qIdx, activeMode: 'worksheet' });
+        }}
+        onSyncPollOnly={(pollId) => {
+          updateSessionState({ activePollId: pollId, activeMode: 'poll' });
+        }}
+        onToggleStarAnswer={handleToggleStarAnswer}
+        onApproveAnswer={handleApproveAnswer}
+        onExitExtendWindow={() => setViewRole('slides')}
+        approvedAnswers={approvedAnswers}
+        allAnswers={answers}
+        activeMode={sessionState.activeMode}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen w-full max-w-full overflow-x-hidden flex flex-col bg-[#FFF7EC] text-[#1F3A5F]">
       {/* Strict 3-Zone Top Navigation Bar */}
@@ -671,8 +724,13 @@ export default function App() {
             pollVotes={pollVotes}
             organizerName={customContent.organizerName}
             joinUrl={joinUrl}
+            extendUrl={extendUrl}
             activeSlideIndex={sessionState.activeSlide}
-            onChangeSlide={(newSlide) => updateSessionState({ activeSlide: newSlide })}
+            activeSlideStep={sessionState.activeSlideStep ?? 0}
+            stepByStepEnabled={sessionState.stepByStepEnabled ?? true}
+            transitionStyle={sessionState.transitionStyle || 'slide'}
+            activeSlideDrawer={sessionState.activeSlideDrawer || 'none'}
+            onUpdateSlideState={(partial) => updateSessionState(partial)}
             onLaunchWorksheetQuestion={(qIdx) => {
               updateSessionState({ activeQuestion: qIdx, activeMode: 'worksheet' });
               setViewRole('projector');

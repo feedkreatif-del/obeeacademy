@@ -13,6 +13,24 @@
           "type": "integer",
           "description": "Current active presentation slide index (0 to 29)"
         },
+        "activeSlideStep": {
+          "type": "integer",
+          "description": "Current revealed PPT animation step index on the active slide (0 to 25)"
+        },
+        "stepByStepEnabled": {
+          "type": "boolean",
+          "description": "Whether step-by-step PPT point animation is enabled"
+        },
+        "transitionStyle": {
+          "type": "string",
+          "enum": ["slide", "zoom", "fade"],
+          "description": "Active slide transition animation style"
+        },
+        "activeSlideDrawer": {
+          "type": "string",
+          "enum": ["none", "answers", "poll", "qr"],
+          "description": "Overlay drawer currently displayed on the extended projector slide screen"
+        },
         "activeMode": {
           "type": "string",
           "enum": ["worksheet", "poll", "qna", "external"],
