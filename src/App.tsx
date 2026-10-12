@@ -573,6 +573,8 @@ export default function App() {
         stepByStepEnabled={sessionState.stepByStepEnabled ?? true}
         transitionStyle={sessionState.transitionStyle || 'slide'}
         activeSlideDrawer={sessionState.activeSlideDrawer || 'none'}
+        activeQuestionIndex={sessionState.activeQuestion}
+        activePollId={sessionState.activePollId}
         isAudienceExtendWindow={true}
         onUpdateSlideState={(partial) => updateSessionState(partial)}
         onLaunchWorksheetQuestion={(qIdx) => {
@@ -592,9 +594,11 @@ export default function App() {
         }}
         onToggleStarAnswer={handleToggleStarAnswer}
         onApproveAnswer={handleApproveAnswer}
+        onToggleStarQna={handleToggleStarQna}
         onExitExtendWindow={() => setViewRole('slides')}
         approvedAnswers={approvedAnswers}
         allAnswers={answers}
+        approvedQna={approvedQna}
         activeMode={sessionState.activeMode}
       />
     );
@@ -743,6 +747,8 @@ export default function App() {
             stepByStepEnabled={sessionState.stepByStepEnabled ?? true}
             transitionStyle={sessionState.transitionStyle || 'slide'}
             activeSlideDrawer={sessionState.activeSlideDrawer || 'none'}
+            activeQuestionIndex={sessionState.activeQuestion}
+            activePollId={sessionState.activePollId}
             onUpdateSlideState={(partial) => updateSessionState(partial)}
             onLaunchWorksheetQuestion={(qIdx) => {
               updateSessionState({ activeQuestion: qIdx, activeMode: 'worksheet' });
@@ -764,8 +770,10 @@ export default function App() {
             }}
             onToggleStarAnswer={handleToggleStarAnswer}
             onApproveAnswer={handleApproveAnswer}
+            onToggleStarQna={handleToggleStarQna}
             approvedAnswers={approvedAnswers}
             allAnswers={answers}
+            approvedQna={approvedQna}
             activeMode={sessionState.activeMode}
           />
         )}
@@ -853,8 +861,12 @@ export default function App() {
             stepByStepEnabled={sessionState.stepByStepEnabled ?? true}
             transitionStyle={sessionState.transitionStyle || 'slide'}
             activeSlideDrawer={sessionState.activeSlideDrawer || 'none'}
+            activeQuestionIndex={sessionState.activeQuestion}
+            activePollId={sessionState.activePollId}
+            activeMode={sessionState.activeMode}
             approvedAnswers={approvedAnswers}
             allAnswers={answers}
+            approvedQna={approvedQna}
             onUpdateSlideState={(partial) => updateSessionState(partial)}
             onSyncQuestionOnly={(qIdx) => {
               updateSessionState({ activeQuestion: qIdx, activeMode: 'worksheet' });
@@ -864,6 +876,7 @@ export default function App() {
             }}
             onToggleStarAnswer={handleToggleStarAnswer}
             onApproveAnswer={handleApproveAnswer}
+            onToggleStarQna={handleToggleStarQna}
           />
         )}
       </main>

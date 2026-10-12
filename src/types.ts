@@ -3,7 +3,7 @@ import { WorksheetQuestion, LivePollConfig, SlideDefinition } from './data/semin
 export type InteractiveMode = 'worksheet' | 'poll' | 'qna' | 'external';
 export type ViewRole = 'projector' | 'participant' | 'moderation' | 'slides' | 'editor' | 'extend' | 'remote';
 export type SlideTransitionStyle = 'slide' | 'zoom' | 'fade';
-export type SlideDrawerMode = 'none' | 'answers' | 'poll' | 'qr';
+export type SlideDrawerMode = 'none' | 'answers' | 'poll' | 'qna' | 'qr';
 
 export interface SessionStateDoc {
   activeQuestion: number;

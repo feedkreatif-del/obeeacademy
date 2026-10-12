@@ -28,7 +28,7 @@
         },
         "activeSlideDrawer": {
           "type": "string",
-          "enum": ["none", "answers", "poll", "qr"],
+          "enum": ["none", "answers", "poll", "qna", "qr"],
           "description": "Overlay drawer currently displayed on the extended projector slide screen"
         },
         "activeMode": {

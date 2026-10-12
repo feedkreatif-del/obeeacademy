@@ -8,6 +8,7 @@ import {
 } from '../data/seminarData';
 import {
   AnswerDoc,
+  QnaDoc,
   PollVoteDoc,
   InteractiveMode,
   SlideTransitionStyle,
@@ -39,6 +40,7 @@ import {
   RotateCcw,
   FileText,
   Smartphone,
+  ThumbsUp,
 } from 'lucide-react';
 
 interface SlideStepInfo {
@@ -60,6 +62,8 @@ interface SlideDeckViewProps {
   stepByStepEnabled: boolean;
   transitionStyle: SlideTransitionStyle;
   activeSlideDrawer: SlideDrawerMode;
+  activeQuestionIndex: number;
+  activePollId: string;
   isAudienceExtendWindow?: boolean;
   onUpdateSlideState: (partial: {
     activeSlide?: number;
@@ -78,9 +82,11 @@ interface SlideDeckViewProps {
   onSyncPollOnly: (pollId: string) => void;
   onToggleStarAnswer: (ans: AnswerDoc) => Promise<void>;
   onApproveAnswer: (ans: AnswerDoc) => Promise<void>;
+  onToggleStarQna: (qna: QnaDoc) => Promise<void>;
   onExitExtendWindow?: () => void;
   approvedAnswers: AnswerDoc[];
   allAnswers: AnswerDoc[];
+  approvedQna: QnaDoc[];
   activeMode: InteractiveMode;
 }
 
@@ -97,6 +103,8 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
   stepByStepEnabled,
   transitionStyle,
   activeSlideDrawer,
+  activeQuestionIndex,
+  activePollId,
   isAudienceExtendWindow = false,
   onUpdateSlideState,
   onLaunchWorksheetQuestion,
@@ -106,9 +114,11 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
   onSyncPollOnly,
   onToggleStarAnswer,
   onApproveAnswer,
+  onToggleStarQna,
   onExitExtendWindow,
   approvedAnswers,
   allAnswers,
+  approvedQna,
 }) => {
   const stageRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -173,25 +183,35 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
   const linkedQuestion =
     slide?.linkedQuestionIndex !== undefined ? questions[slide.linkedQuestionIndex] : null;
 
-  const questionAnswers =
+  // Fallback question & poll so the overlay drawer ALWAYS works on any slide (1-17)
+  const effectiveQuestionIndex =
     slide?.linkedQuestionIndex !== undefined
-      ? approvedAnswers
-          .filter((a) => a.q === slide.linkedQuestionIndex)
-          .sort((a, b) => (a.star !== b.star ? (a.star ? -1 : 1) : b.ts - a.ts))
-      : [];
+      ? slide.linkedQuestionIndex
+      : Math.min(activeQuestionIndex, Math.max(0, questions.length - 1));
+  const drawerQuestion = questions[effectiveQuestionIndex] || questions[0];
 
-  const pendingQuestionAnswers =
-    slide?.linkedQuestionIndex !== undefined
-      ? allAnswers.filter((a) => a.q === slide.linkedQuestionIndex && a.status === 'pending')
-      : [];
+  const questionAnswers = approvedAnswers
+    .filter((a) => a.q === effectiveQuestionIndex)
+    .sort((a, b) => (a.star !== b.star ? (a.star ? -1 : 1) : b.ts - a.ts));
+
+  const pendingQuestionAnswers = allAnswers.filter(
+    (a) => a.q === effectiveQuestionIndex && a.status === 'pending'
+  );
 
   const linkedPoll = slide?.linkedPollId
     ? polls.find((p) => p.id === slide.linkedPollId)
     : undefined;
 
-  const currentPollVotes = linkedPoll
-    ? pollVotes.filter((v) => v.pollId === linkedPoll.id)
+  const drawerPoll =
+    linkedPoll || polls.find((p) => p.id === activePollId) || polls[0];
+
+  const currentPollVotes = drawerPoll
+    ? pollVotes.filter((v) => v.pollId === drawerPoll.id)
     : [];
+
+  const sortedQna = [...approvedQna].sort((a, b) =>
+    a.star !== b.star ? (a.star ? -1 : 1) : b.upvotes - a.upvotes
+  );
 
   // Calculate all sequential animation steps and human-readable descriptions for Presenter View
   const slideStepAssignments = useMemo(() => {
@@ -299,6 +319,29 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
     ? Math.min(activeSlideStep ?? 0, maxSteps)
     : maxSteps;
 
+  const buildSlideSyncState = useCallback((targetSlideObj?: SlideDefinition) => {
+    if (!targetSlideObj) return {};
+    if (targetSlideObj.linkedQuestionIndex !== undefined) {
+      return {
+        activeQuestion: targetSlideObj.linkedQuestionIndex,
+        activeMode: 'worksheet' as InteractiveMode,
+        ...(targetSlideObj.linkedPollId ? { activePollId: targetSlideObj.linkedPollId } : {}),
+      };
+    }
+    if (targetSlideObj.linkedPollId) {
+      return {
+        activePollId: targetSlideObj.linkedPollId,
+        activeMode: 'poll' as InteractiveMode,
+      };
+    }
+    if (targetSlideObj.type === 'closing') {
+      return {
+        activeMode: 'qna' as InteractiveMode,
+      };
+    }
+    return {};
+  }, []);
+
   // Step-aware Next & Previous handlers synced in real-time to Firestore
   const handleStepNext = useCallback(() => {
     if (stepByStepEnabled && revealedStep < maxSteps) {
@@ -313,12 +356,10 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
         activeSlide: nextIdx,
         activeSlideStep: 0,
         activeSlideDrawer: 'none',
-        ...(nextSlideObj?.linkedQuestionIndex !== undefined
-          ? { activeQuestion: nextSlideObj.linkedQuestionIndex, activeMode: 'worksheet' }
-          : {}),
+        ...buildSlideSyncState(nextSlideObj),
       });
     }
-  }, [stepByStepEnabled, revealedStep, maxSteps, safeSlideIndex, totalSlides, slides, onUpdateSlideState]);
+  }, [stepByStepEnabled, revealedStep, maxSteps, safeSlideIndex, totalSlides, slides, onUpdateSlideState, buildSlideSyncState]);
 
   const handleStepPrev = useCallback(() => {
     if (stepByStepEnabled && revealedStep > 0) {
@@ -333,12 +374,10 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
         activeSlide: prevIdx,
         activeSlideStep: 0,
         activeSlideDrawer: 'none',
-        ...(prevSlideObj?.linkedQuestionIndex !== undefined
-          ? { activeQuestion: prevSlideObj.linkedQuestionIndex, activeMode: 'worksheet' }
-          : {}),
+        ...buildSlideSyncState(prevSlideObj),
       });
     }
-  }, [stepByStepEnabled, revealedStep, safeSlideIndex, slides, onUpdateSlideState]);
+  }, [stepByStepEnabled, revealedStep, safeSlideIndex, slides, onUpdateSlideState, buildSlideSyncState]);
 
   const handleJumpToSlide = (targetIdx: number) => {
     setSlideDirection(targetIdx >= safeSlideIndex ? 1 : -1);
@@ -347,9 +386,7 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
       activeSlide: targetIdx,
       activeSlideStep: 0,
       activeSlideDrawer: 'none',
-      ...(targetSlideObj?.linkedQuestionIndex !== undefined
-        ? { activeQuestion: targetSlideObj.linkedQuestionIndex, activeMode: 'worksheet' }
-        : {}),
+      ...buildSlideSyncState(targetSlideObj),
     });
   };
 
@@ -1076,8 +1113,9 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                 </span>
                 <h3 className="font-display text-2xl sm:text-3xl font-extrabold text-[#1F3A5F]">
                   {activeSlideDrawer === 'answers' &&
-                    (linkedQuestion?.questionText || 'Jawaban Peserta UMKM')}
-                  {activeSlideDrawer === 'poll' && (linkedPoll?.title || 'Hasil Live Polling')}
+                    `Pertanyaan ${effectiveQuestionIndex + 1}: ${drawerQuestion?.questionText || 'Jawaban Peserta UMKM'}`}
+                  {activeSlideDrawer === 'poll' && (drawerPoll?.title || 'Hasil Live Polling')}
+                  {activeSlideDrawer === 'qna' && 'Papan Tanya Jawab (Q&A Anonim) & Voting Peserta'}
                   {activeSlideDrawer === 'qr' && 'Scan QR Code di HP Anda'}
                 </h3>
               </div>
@@ -1173,12 +1211,12 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
               </div>
             )}
 
-            {activeSlideDrawer === 'poll' && linkedPoll && (
+            {activeSlideDrawer === 'poll' && drawerPoll && (
               <div className="bg-white rounded-2xl p-6 space-y-4">
                 <p className="font-mono text-sm font-bold text-[#2A9D8F] tabular-nums">
                   Total Suara Masuk: {currentPollVotes.length}
                 </p>
-                {linkedPoll.options.map((opt) => {
+                {drawerPoll.options.map((opt) => {
                   const count = currentPollVotes.filter((v) => v.optionId === opt.id).length;
                   const pct =
                     currentPollVotes.length > 0
@@ -1201,6 +1239,61 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                     </div>
                   );
                 })}
+              </div>
+            )}
+
+            {activeSlideDrawer === 'qna' && (
+              <div className="space-y-4">
+                {sortedQna.length === 0 ? (
+                  <div className="bg-white rounded-2xl p-10 text-center text-[#1F3A5F]/60 font-display text-xl font-bold">
+                    Belum ada pertanyaan Q&A masuk dari peserta...
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {sortedQna.map((qna) => (
+                      <div
+                        key={qna.id}
+                        className={`bg-white rounded-2xl p-5 border flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+                          qna.star ? 'border-3 border-[#F28C28]' : 'border-[#1F3A5F]/15'
+                        }`}
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 text-xs font-bold text-[#2A9D8F]">
+                            <span>{qna.authorName}</span>
+                            <span>·</span>
+                            <span>{qna.topicTag}</span>
+                            {qna.star && (
+                              <span className="text-[#F28C28] uppercase">· DISOROT PEMATERI</span>
+                            )}
+                          </div>
+                          <p className="font-display text-xl sm:text-2xl font-bold text-[#1F3A5F]">
+                            "{qna.text}"
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-3 shrink-0">
+                          <div className="px-4 py-2 rounded-xl bg-[#FFF7EC] border border-[#1F3A5F]/15 flex items-center gap-1.5 font-mono font-bold text-[#1F3A5F]">
+                            <ThumbsUp className="w-4 h-4 text-[#F28C28]" />
+                            <span>{qna.upvotes}</span>
+                          </div>
+                          {!isAudienceExtendWindow && (
+                            <button
+                              onClick={() => onToggleStarQna(qna)}
+                              className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer ${
+                                qna.star
+                                  ? 'bg-[#F28C28] text-white'
+                                  : 'bg-[#FFF7EC] text-[#1F3A5F] border border-[#F28C28]/40'
+                              }`}
+                            >
+                              <Star className="w-3.5 h-3.5" />
+                              <span>{qna.star ? 'Lepas Sorot' : 'Sorot'}</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
