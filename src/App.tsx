@@ -46,8 +46,9 @@ import { RemoteClickerView } from './components/RemoteClickerView';
 import { ContentEditorView, DEFAULT_QNA_TOPICS } from './components/ContentEditorView';
 import { OfflineBanner, PWAInstallModalTrigger } from './components/PWAInstallButton';
 import { DEFAULT_BRAND_THEME, sanitizeBrandTheme, useApplyBrandTheme } from './brandTheme';
-import { Download, BookOpen } from 'lucide-react';
+import { Download, BookOpen, Lock, Unlock, ShieldCheck, Settings } from 'lucide-react';
 import { SystemGuideModal } from './components/SystemGuideModal';
+import { PresenterAuthModal } from './components/PresenterAuthModal';
 
 const DEFAULT_SESSION_STATE: SessionStateDoc = {
   activeQuestion: 0,
@@ -78,9 +79,34 @@ const DEFAULT_CUSTOM_CONTENT: CustomContentDoc = {
 };
 
 export default function App() {
+  const [isPresenterUnlocked, setIsPresenterUnlocked] = useState<boolean>(() => {
+    try {
+      return window.sessionStorage.getItem('partnerup_presenter_unlocked_v1') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
+  const [tapCounter, setTapCounter] = useState<{ count: number; lastTime: number }>({ count: 0, lastTime: 0 });
+
   const [viewRole, setViewRole] = useState<ViewRole>(() => {
     const params = new URLSearchParams(window.location.search);
     const v = params.get('view');
+    const isMobile = window.innerWidth < 768;
+    const isUnlocked = (() => {
+      try {
+        return window.sessionStorage.getItem('partnerup_presenter_unlocked_v1') === 'true';
+      } catch {
+        return false;
+      }
+    })();
+
+    // On mobile devices, require unlock to access internal presenter tools
+    if (isMobile && !isUnlocked && (v === 'editor' || v === 'moderation' || v === 'projector' || v === 'slides')) {
+      return 'participant';
+    }
+
     if (
       v === 'participant' ||
       v === 'moderation' ||
@@ -93,13 +119,39 @@ export default function App() {
     ) {
       return v;
     }
-    return window.innerWidth < 768 ? 'participant' : 'projector';
+    return isMobile ? 'participant' : 'projector';
   });
 
   const [isGuideModalOpen, setIsGuideModalOpen] = useState<boolean>(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get('view') === 'guide';
   });
+
+  const handleSecretTrigger = () => {
+    const now = Date.now();
+    if (now - tapCounter.lastTime < 1500) {
+      const nextCount = tapCounter.count + 1;
+      if (nextCount >= 3) {
+        setTapCounter({ count: 0, lastTime: 0 });
+        setIsAuthModalOpen(true);
+        return;
+      }
+      setTapCounter({ count: nextCount, lastTime: now });
+    } else {
+      setTapCounter({ count: 1, lastTime: now });
+    }
+  };
+
+  const handleLockPresenter = () => {
+    try {
+      window.sessionStorage.removeItem('partnerup_presenter_unlocked_v1');
+      window.sessionStorage.removeItem('partnerup_remote_unlocked_v1');
+    } catch {
+      // ignore
+    }
+    setIsPresenterUnlocked(false);
+    setViewRole('participant');
+  };
 
   const [participantId] = useState<string>(() => getOrCreateParticipantId());
   const [sessionState, setSessionState] = useState<SessionStateDoc>(DEFAULT_SESSION_STATE);
@@ -641,7 +693,11 @@ export default function App() {
       {/* Conditional Header: Clean Participant Header vs Presenter/Organizer 3-Zone Navigation */}
       {viewRole === 'participant' ? (
         <header className="w-full max-w-full flex items-center justify-between gap-3 px-4 sm:px-6 py-3 bg-[#1F3A5F] text-white border-b border-white/10 sticky top-0 z-30 shadow-xs">
-          <div className="flex items-center gap-2.5 min-w-0">
+          <div
+            onClick={handleSecretTrigger}
+            className="flex items-center gap-2.5 min-w-0 cursor-pointer select-none active:opacity-85 transition-opacity"
+            title={isPresenterUnlocked ? "Klik untuk menu peran pemateri" : undefined}
+          >
             <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0" title="Terkoneksi Live" />
             <div className="min-w-0">
               <h1 className="font-display text-sm sm:text-base font-extrabold tracking-tight text-white truncate leading-tight">
@@ -655,14 +711,17 @@ export default function App() {
 
           <div className="flex items-center gap-2 shrink-0">
             <PWAInstallModalTrigger variant="light" />
-            {/* Discreet switch to presenter mode for developer testing */}
-            <button
-              onClick={() => setViewRole('projector')}
-              className="text-[11px] font-semibold text-[#F28C28] hover:text-[#ff9d3b] bg-white/10 hover:bg-white/15 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
-              title="Beralih ke Panel Presenter / Proyektor"
-            >
-              Panel Presenter →
-            </button>
+            {/* If Presenter is unlocked, show developer role switcher pill */}
+            {isPresenterUnlocked && (
+              <button
+                onClick={() => setIsAuthModalOpen(true)}
+                className="text-[11px] font-bold text-[#F28C28] hover:text-[#ff9d3b] bg-white/10 hover:bg-white/15 border border-[#F28C28]/40 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 shadow-xs"
+                title="Panel Pengembang & Pemateri (Terbuka)"
+              >
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Panel Presenter</span>
+              </button>
+            )}
           </div>
         </header>
       ) : (
@@ -757,7 +816,7 @@ export default function App() {
             </button>
           </nav>
 
-          {/* Zone 3: 2 Primary Action Buttons */}
+          {/* Zone 3: 2 Primary Action Buttons + Presenter Lock */}
           <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={() => setIsGuideModalOpen(true)}
@@ -776,6 +835,14 @@ export default function App() {
               <Download className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Unduh Rekap CSV</span>
               <span className="sm:hidden">CSV</span>
+            </button>
+
+            <button
+              onClick={handleLockPresenter}
+              className="p-2 text-white/70 hover:text-white bg-white/5 hover:bg-white/15 border border-white/15 rounded-lg transition-colors cursor-pointer"
+              title="Kunci Akses Presenter & Kembali ke Tampilan Peserta"
+            >
+              <Lock className="w-3.5 h-3.5" />
             </button>
           </div>
         </header>
@@ -971,6 +1038,20 @@ export default function App() {
         )}
       </main>
 
+      {/* Floating Developer Quick Switcher for Presenter when simulating participant */}
+      {isPresenterUnlocked && viewRole === 'participant' && (
+        <div className="fixed bottom-4 right-4 z-40 animate-fade-in">
+          <button
+            onClick={() => setIsAuthModalOpen(true)}
+            className="flex items-center gap-2 bg-[#1F3A5F] text-white hover:bg-[#162a45] shadow-xl border border-white/20 px-3.5 py-2 rounded-full text-xs font-bold cursor-pointer transition-all hover:scale-105 active:scale-95"
+            title="Buka Menu Navigasi Pemateri & Developer"
+          >
+            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <span>Panel Presenter</span>
+          </button>
+        </div>
+      )}
+
       {/* Footer: Differentiated for Participant vs Developer/Presenter */}
       <footer className="border-t border-[#1F3A5F]/10 py-4 px-6 text-center text-xs text-[#1F3A5F]/60 bg-[#FFF7EC] flex flex-col sm:flex-row items-center justify-between gap-2 max-w-7xl mx-auto w-full">
         <span>{customContent.seminarTitle} · {customContent.organizerName}</span>
@@ -984,10 +1065,38 @@ export default function App() {
             <span>Buku Panduan & Manual Duplikasi (PDF)</span>
           </button>
         ) : (
-          <span className="text-[11px] text-[#1F3A5F]/50">Portal Interaktif Peserta UMKM</span>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-[#1F3A5F]/50">Portal Interaktif Peserta UMKM</span>
+            {/* Subtle discreet lock for developer login */}
+            <button
+              onClick={() => setIsAuthModalOpen(true)}
+              className="text-[#1F3A5F]/20 hover:text-[#1F3A5F]/70 p-1 rounded transition-colors cursor-pointer"
+              title="Akses Pemateri & Developer"
+            >
+              <Lock className="w-3 h-3" />
+            </button>
+          </div>
         )}
       </footer>
       <OfflineBanner />
+
+      {/* Presenter & Developer Authentication & Role Navigation Modal */}
+      <PresenterAuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        currentRole={viewRole}
+        onSelectRole={(r) => {
+          setViewRole(r);
+        }}
+        isUnlocked={isPresenterUnlocked}
+        onUnlockSuccess={() => {
+          setIsPresenterUnlocked(true);
+        }}
+        onLock={handleLockPresenter}
+        onOpenGuide={() => {
+          setIsGuideModalOpen(true);
+        }}
+      />
 
       {/* Comprehensive System Guide & Duplication Manual Modal - Strict Developer Access */}
       <SystemGuideModal
