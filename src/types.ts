@@ -1,4 +1,5 @@
-import { WorksheetQuestion, LivePollConfig, SlideDefinition } from './data/seminarData';
+import { WorksheetQuestion, LivePollConfig, SlideDefinition, SlideImagePosition } from './data/seminarData';
+export type { SlideImagePosition };
 
 export type InteractiveMode = 'worksheet' | 'poll' | 'qna' | 'external';
 export type ViewRole = 'projector' | 'participant' | 'moderation' | 'slides' | 'editor' | 'extend' | 'remote' | 'guide';

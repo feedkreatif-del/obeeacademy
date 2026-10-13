@@ -34,8 +34,77 @@ import {
   Palette,
   Printer,
   FileText,
+  Image as ImageIcon,
+  Link as LinkIcon,
+  UploadCloud,
+  XCircle,
+  Info,
 } from 'lucide-react';
 import { printSystemDocumentationGuide } from '../utils/handoutExport';
+
+/**
+ * Kompresi gambar client-side otomatis via HTML5 Canvas
+ * Mengurangi ukuran foto kamera HP (5-10MB) menjadi web-ready (<180KB JPEG)
+ */
+async function compressImageFile(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        const maxDimension = 1200;
+
+        if (width > maxDimension || height > maxDimension) {
+          if (width > height) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          } else {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(e.target?.result as string);
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+        // JPEG quality 0.82 menghasilkan rasio kompresi optimal & jernih
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+        resolve(compressedDataUrl);
+      };
+      img.onerror = () => reject(new Error('Gagal memuat file gambar'));
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => reject(new Error('Gagal membaca file dari perangkat'));
+    reader.readAsDataURL(file);
+  });
+}
+
+export const SAMPLE_SLIDE_IMAGES = [
+  {
+    label: 'Kemasan Produk UMKM',
+    url: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1000&q=80',
+    caption: 'Studi Kasus: Display & Kemasan Produk Makanan UMKM',
+  },
+  {
+    label: 'Etalase Toko Rapi',
+    url: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1000&q=80',
+    caption: 'Studi Kasus: Kebersihan & Standar Pelayanan Toko Fisik',
+  },
+  {
+    label: 'Diskusi & Tim Bisnis',
+    url: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&w=1000&q=80',
+    caption: 'Ilustrasi: Merumuskan Value Proposition Bersama Tim',
+  },
+];
 
 interface ContentEditorViewProps {
   customContent: CustomContentDoc;
@@ -1533,6 +1602,205 @@ export const ContentEditorView: React.FC<ContentEditorViewProps> = ({
                           />
                         </div>
                       ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Foto / Gambar Visual Slide (Opsional) */}
+                <div className="border-t border-[#1F3A5F]/10 pt-4 space-y-3 bg-[#FFF7EC]/40 p-3.5 sm:p-4 rounded-xl border border-[#1F3A5F]/15">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg bg-[#2A9D8F]/15 text-[#2A9D8F] flex items-center justify-center shrink-0">
+                        <ImageIcon className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold uppercase tracking-wider text-[#1F3A5F]">
+                          Foto / Gambar Visual Slide (Opsional)
+                        </span>
+                        <span className="ml-2 text-[10px] px-2 py-0.5 rounded-full font-bold bg-[#2A9D8F]/15 text-[#2A9D8F]">
+                          {s.imageUrl ? '✓ Foto Terpasang' : 'Opsional (Bisa Dikosongkan)'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {s.imageUrl && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          updateSlideField(idx, 'imageUrl', undefined);
+                          updateSlideField(idx, 'imageCaption', undefined);
+                          updateSlideField(idx, 'imagePosition', undefined);
+                        }}
+                        className="px-2.5 py-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                        title="Hapus foto dan kembalikan ke layout teks asli"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Hapus Foto (Kembalikan Asli)</span>
+                      </button>
+                    )}
+                  </div>
+
+                  <p className="text-xs text-[#1F3A5F]/75">
+                    Tambahkan foto produk, etalase toko, bagan, atau dokumentasi nyata untuk membuat slide lebih hidup. Slide tanpa foto tetap tampil normal 100% seperti semula.
+                  </p>
+
+                  {s.imageUrl ? (
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center bg-white p-3.5 rounded-xl border border-[#1F3A5F]/20">
+                      <div className="md:col-span-4 relative group">
+                        <img
+                          src={s.imageUrl}
+                          alt={s.imageCaption || s.title}
+                          className="w-full h-36 object-cover rounded-lg border border-[#1F3A5F]/15 shadow-xs"
+                        />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center text-white text-xs font-bold pointer-events-none">
+                          Foto Aktif
+                        </div>
+                      </div>
+
+                      <div className="md:col-span-8 space-y-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-bold text-[#1F3A5F] mb-1">
+                              Tata Letak / Posisi Foto
+                            </label>
+                            <select
+                              value={s.imagePosition || 'right'}
+                              onChange={(e) => updateSlideField(idx, 'imagePosition', e.target.value)}
+                              className="w-full rounded-lg border border-[#1F3A5F]/25 px-2.5 py-1.5 text-xs font-semibold bg-white"
+                            >
+                              <option value="right">Samping Kanan (Split 50:50)</option>
+                              <option value="left">Samping Kiri (Split 50:50)</option>
+                              <option value="top">Banner Atas (Foto Lebar di Atas Poin)</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-bold text-[#1F3A5F] mb-1">
+                              Ganti File / Unggah Ulang
+                            </label>
+                            <label className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#1F3A5F] text-xs font-bold border border-[#1F3A5F]/20 cursor-pointer">
+                              <UploadCloud className="w-3.5 h-3.5 text-[#2A9D8F]" />
+                              <span>Pilih Foto Baru</span>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={async (e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) {
+                                    try {
+                                      const compressed = await compressImageFile(file);
+                                      updateSlideField(idx, 'imageUrl', compressed);
+                                    } catch (err) {
+                                      console.error('Failed to compress image:', err);
+                                    }
+                                  }
+                                }}
+                              />
+                            </label>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-bold text-[#1F3A5F] mb-1">
+                            Keterangan Foto / Sumber (Opsional Caption)
+                          </label>
+                          <input
+                            type="text"
+                            value={s.imageCaption || ''}
+                            onChange={(e) => updateSlideField(idx, 'imageCaption', e.target.value)}
+                            placeholder="Contoh: Studi Kasus: Kemasan Vakum UMKM Keripik Tempe dengan Label Kedaluwarsa Jelas"
+                            className="w-full rounded-lg border border-[#1F3A5F]/25 px-3 py-1.5 text-xs font-medium"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <label className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-[#2A9D8F]/50 hover:border-[#2A9D8F] bg-white rounded-xl cursor-pointer transition-all hover:bg-[#E3F5F2]/30 text-center">
+                          <UploadCloud className="w-6 h-6 text-[#2A9D8F] mb-1.5" />
+                          <span className="text-xs font-bold text-[#1F3A5F]">
+                            Unggah Foto dari Galeri HP / Laptop
+                          </span>
+                          <span className="text-[11px] text-[#1F3A5F]/60 mt-0.5">
+                            Otomatis dikompres aman & cepat untuk web (JPG, PNG, WebP)
+                          </span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                try {
+                                  const compressed = await compressImageFile(file);
+                                  updateSlideField(idx, 'imageUrl', compressed);
+                                  if (!s.imagePosition) updateSlideField(idx, 'imagePosition', 'right');
+                                } catch (err) {
+                                  console.error('Failed to compress image:', err);
+                                }
+                              }
+                            }}
+                          />
+                        </label>
+
+                        <div className="p-3.5 bg-white rounded-xl border border-[#1F3A5F]/15 flex flex-col justify-between space-y-2">
+                          <div>
+                            <div className="flex items-center gap-1.5 text-xs font-bold text-[#1F3A5F]">
+                              <LinkIcon className="w-3.5 h-3.5 text-[#F28C28]" />
+                              <span>Atau Tempel Tautan Gambar (Link URL)</span>
+                            </div>
+                            <p className="text-[11px] text-[#1F3A5F]/65 mt-0.5">
+                              Masukkan link gambar dari internet atau cloud storage.
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="url"
+                              placeholder="https://images.unsplash.com/... atau URL foto"
+                              className="flex-1 rounded-lg border border-[#1F3A5F]/25 px-2.5 py-1.5 text-xs"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  const val = (e.currentTarget.value || '').trim();
+                                  if (val) {
+                                    updateSlideField(idx, 'imageUrl', val);
+                                    if (!s.imagePosition) updateSlideField(idx, 'imagePosition', 'right');
+                                  }
+                                }
+                              }}
+                              onBlur={(e) => {
+                                const val = (e.target.value || '').trim();
+                                if (val) {
+                                  updateSlideField(idx, 'imageUrl', val);
+                                  if (!s.imagePosition) updateSlideField(idx, 'imagePosition', 'right');
+                                }
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="pt-1 flex flex-wrap items-center gap-2 text-xs">
+                        <span className="text-[11px] font-bold text-[#1F3A5F]/65 flex items-center gap-1">
+                          <Sparkles className="w-3 h-3 text-[#F28C28]" />
+                          Coba Foto Contoh:
+                        </span>
+                        {SAMPLE_SLIDE_IMAGES.map((sample, sIdx) => (
+                          <button
+                            key={sIdx}
+                            type="button"
+                            onClick={() => {
+                              updateSlideField(idx, 'imageUrl', sample.url);
+                              updateSlideField(idx, 'imageCaption', sample.caption);
+                              updateSlideField(idx, 'imagePosition', 'right');
+                            }}
+                            className="px-2.5 py-1 rounded-lg bg-white border border-[#1F3A5F]/20 hover:border-[#2A9D8F] hover:bg-[#E3F5F2]/40 text-[#1F3A5F] text-[11px] font-semibold cursor-pointer transition-colors"
+                          >
+                            + {sample.label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>

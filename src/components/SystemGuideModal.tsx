@@ -428,6 +428,20 @@ export const SystemGuideModal: React.FC<SystemGuideModalProps> = ({
                         Mesin perakit profil Instagram bisnis 4 baris otomatis di HP peserta berdasarkan penggabungan jawaban lembar kerja (Hook, Solusi, Bukti Rasional, Ajakan Beli WhatsApp).
                       </p>
                     </div>
+
+                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                      <div className="font-bold text-[#1F3A5F] text-xs">Role-Based Stealth Auth & Triple-Tap Trigger</div>
+                      <p className="text-xs text-slate-600 mt-1">
+                        Arsitektur antarmuka tanpa tombol mencolok. Tombol panel presenter disembunyikan sepenuhnya dari HP peserta agar tidak timbul rasa penasaran. Pemateri mengaktifkan panel via gestur ketuk 3x di header atau ikon gembok samar di footer, dilindungi verifikasi PIN keamanan modal.
+                      </p>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                      <div className="font-bold text-[#1F3A5F] text-xs">Floating Developer & Presenter Switcher Pill</div>
+                      <p className="text-xs text-slate-600 mt-1">
+                        Tombol navigasi mengambang khusus yang hanya muncul di layar pemateri setelah PIN terbuka. Memungkinkan pemateri beralih instan antara mode simulasi HP peserta dan layar presenter tanpa harus mengetik ulang PIN.
+                      </p>
+                    </div>
                   </div>
                 </div>
 
@@ -453,16 +467,23 @@ export const SystemGuideModal: React.FC<SystemGuideModalProps> = ({
                     </div>
 
                     <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
-                      <div className="font-bold text-[#1F3A5F] text-xs">Content Hydration & Fallback Schema</div>
+                      <div className="font-bold text-[#1F3A5F] text-xs">PIN Session Guard & Storage Persistence</div>
                       <p className="text-xs text-slate-600 mt-1">
-                        Logika ketahanan aplikasi yang membaca konten kustom di Firestore, dan jika ada kolom yang kosong, sistem secara aman menggunakan data cadangan PartnerUp tanpa mengalami error crash.
+                        Sistem otentikasi lokal terisolasi yang mengamankan status buka-kunci pemateri selama tab browser aktif (<code>sessionStorage</code>), serta menyimpan PIN kustom pengguna secara persisten di <code>localStorage</code> dengan proteksi fallback standar (default: <code>2026</code>).
                       </p>
                     </div>
 
                     <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
-                      <div className="font-bold text-[#1F3A5F] text-xs">Brand Theme Color Injection</div>
+                      <div className="font-bold text-[#1F3A5F] text-xs">Brand Theme Sanitizer & CSS Variable Injection</div>
                       <p className="text-xs text-slate-600 mt-1">
-                        Sistem tema yang mengonversi 4 warna brand (Primary, Accent, Secondary, Background) menjadi variabel CSS kustom secara dinamis ke seluruh DOM dan dokumen cetak PDF.
+                        Mesin tema cerdas yang memvalidasi format warna heksadesimal sebelum diinjeksikan ke root DOM. Menjaga warna default PartnerUp | Obeecreatives tetap utuh jika terjadi masukan warna tidak valid, sekaligus menyinkronkan tema ke seluruh komponen cetak dokumen PDF.
+                      </p>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                      <div className="font-bold text-[#1F3A5F] text-xs">Content Hydration & Fallback Schema</div>
+                      <p className="text-xs text-slate-600 mt-1">
+                        Logika ketahanan aplikasi yang membaca konten kustom di Firestore, dan jika ada kolom yang kosong, sistem secara aman menggunakan data cadangan PartnerUp tanpa mengalami error crash.
                       </p>
                     </div>
 
@@ -544,6 +565,124 @@ export const SystemGuideModal: React.FC<SystemGuideModalProps> = ({
                   <p className="text-xs text-slate-600">
                     Buka menu <strong>Moderasi</strong> di laptop operator. Pantau jawaban yang masuk. Beri tanda <strong>Bintang (*Star*)</strong> pada jawaban yang paling menarik dan inspiratif agar segera diproyeksikan ke layar panggung depan untuk dibahas oleh pemateri.
                   </p>
+                </div>
+
+                {/* D. Presenter Security & PIN System */}
+                <div className="space-y-2 pt-3 border-t border-slate-200">
+                  <h4 className="font-bold text-xs uppercase tracking-wider text-rose-700 flex items-center gap-1.5">
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>D. Prosedur Keamanan & Akses Rahasia Panel Presenter (PIN Security)</span>
+                  </h4>
+                  <div className="p-3.5 rounded-xl bg-rose-50/60 border border-rose-200/80 space-y-2 text-xs">
+                    <p className="text-rose-950">
+                      <strong>Mengapa Disembunyikan?</strong> Tombol panel pemateri sengaja dihilangkan 100% dari layar ponsel peserta agar peserta tidak penasaran atau sengaja mengklik kendali panggung saat scan QR code.
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-slate-700 pt-1">
+                      <div className="bg-white p-2.5 rounded-lg border border-rose-100">
+                        <strong className="text-rose-800 block mb-1">Cara Buka 1: Ketuk 3x di Header</strong>
+                        Ketuk 3 kali berturut-turut pada logo PartnerUp atau judul seminar di bilah header atas HP peserta.
+                      </div>
+                      <div className="bg-white p-2.5 rounded-lg border border-rose-100">
+                        <strong className="text-rose-800 block mb-1">Cara Buka 2: Ikon Gembok di Footer</strong>
+                        Klik ikon gembok kecil tersamar di pojok kanan bawah footer aplikasi.
+                      </div>
+                    </div>
+                    <div className="bg-white p-2.5 rounded-lg border border-rose-100 text-slate-700">
+                      <strong className="text-rose-800 block mb-1">Verifikasi PIN & Navigasi Cepat</strong>
+                      Masukkan PIN keamanan (PIN default awal: <code>2026</code>). Setelah terbuka, Anda dapat mengganti PIN sendiri kapan saja. Begitu PIN terverifikasi, tombol mengambang <strong>[🛡️ Panel Presenter]</strong> akan muncul otomatis di layar HP Anda untuk beralih instan antar role. Saat selesai, klik tombol <strong>[🔒 Kunci]</strong> di kanan atas.
+                    </div>
+                  </div>
+                </div>
+
+                {/* E. Custom Brand Color Picker */}
+                <div className="space-y-2 pt-3 border-t border-slate-200">
+                  <h4 className="font-bold text-xs uppercase tracking-wider text-[#1F3A5F] flex items-center gap-1.5">
+                    <Sliders className="w-4 h-4 text-[#F28C28]" />
+                    <span>E. Panduan Kustomisasi Tema Warna Brand Organisasi</span>
+                  </h4>
+                  <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5 text-xs text-slate-700">
+                    <p>
+                      Aplikasi mendukung penyesuaian identitas visual (*brand identity*) secara instan tanpa mengganggu arsitektur antarmuka:
+                    </p>
+                    <ol className="list-decimal pl-5 space-y-1">
+                      <li>Buka menu <strong>Editor Materi</strong>, lalu klik tab <strong>"Tema Warna Organisasi"</strong>.</li>
+                      <li>Pilih salah satu dari <strong>5 Preset Siap Pakai</strong> (Default PartnerUp | Obeecreatives, Royal Blue BUMN, Emerald Syariah, Crimson Executive, Tech Indigo) atau gunakan palet pemilih warna hex bebas.</li>
+                      <li>Warna Utama (Primary), Aksen (Accent), Sekunder (Secondary), dan Background akan langsung berubah secara <em>live preview</em> di seluruh layar dan template cetak dokumen PDF.</li>
+                      <li>Tersedia tombol <strong>"Kembalikan ke Default"</strong> jika Anda ingin mengembalikan warna standar PartnerUp kapan saja.</li>
+                    </ol>
+                  </div>
+                </div>
+
+                {/* F. Material Sharing SOP */}
+                <div className="space-y-2 pt-3 border-t border-slate-200">
+                  <h4 className="font-bold text-xs uppercase tracking-wider text-[#1F3A5F] flex items-center gap-1.5">
+                    <Share2 className="w-4 h-4 text-[#F28C28]" />
+                    <span>F. Standar Operasional & 5 Opsi Pembagian Materi ke Peserta</span>
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                    <div className="p-3 rounded-xl bg-white border border-slate-200">
+                      <strong className="text-[#1F3A5F] block mb-1">1. Slide Reader Mandiri di HP</strong>
+                      Diaktifkan oleh pemateri lewat saklar <em>"Akses Slide HP Peserta: AKTIF"</em> di Remote HP. Peserta dapat membolak-balik halaman slide tanpa mengganggu slide di proyektor panggung.
+                    </div>
+                    <div className="p-3 rounded-xl bg-white border border-slate-200">
+                      <strong className="text-[#1F3A5F] block mb-1">2. Unduh PDF Buku Saku & Jawaban (A4)</strong>
+                      Peserta masuk ke tab <em>"Bio IG & Materi"</em> dan mengeklik tombol unduh PDF resmi berformat dokumen A4 yang merangkum hasil kerja dan intisari materi.
+                    </div>
+                    <div className="p-3 rounded-xl bg-white border border-slate-200">
+                      <strong className="text-[#1F3A5F] block mb-1">3. Kirim Ringkasan ke WhatsApp</strong>
+                      Format teks rapi langsung dikirim ke nomor pribadi peserta atau grup bisnis melalui integrasi tautan WhatsApp otomatis.
+                    </div>
+                    <div className="p-3 rounded-xl bg-white border border-slate-200">
+                      <strong className="text-[#1F3A5F] block mb-1">4. Unduh Berkas Teks (.TXT)</strong>
+                      Opsi hemat kuota untuk peserta yang ingin menyimpan catatan dalam berkas teks murni untuk diedit di catatan HP mereka.
+                    </div>
+                    <div className="p-3 rounded-xl bg-white border border-slate-200 md:col-span-2">
+                      <strong className="text-[#1F3A5F] block mb-1">5. Ekspor Rekapitulasi Data Jawaban Peserta (CSV untuk Panitia)</strong>
+                      Di navigasi atas pemateri, klik tombol <strong>"Unduh Rekap CSV"</strong> untuk mengekspor seluruh nama usaha dan respon jawaban ke file spreadsheet Excel/Google Sheets.
+                    </div>
+                  </div>
+                </div>
+
+                {/* G. Visual Media & Slide Image Integration */}
+                <div className="space-y-2 pt-3 border-t border-slate-200">
+                  <h4 className="font-bold text-xs uppercase tracking-wider text-[#2A9D8F] flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-[#2A9D8F]" />
+                    <span>G. Panduan Penggunaan Gambar & Media Foto pada Slide Materi (Non-Breaking)</span>
+                  </h4>
+                  <div className="p-3.5 rounded-xl bg-[#E3F5F2]/40 border border-[#2A9D8F]/30 space-y-2.5 text-xs text-slate-700">
+                    <p>
+                      Materi slide kini mendukung penambahan foto atau gambar visual untuk membuat materi presentasi terlihat lebih hidup, variatif, dan mudah dipahami audiens:
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 pt-1">
+                      <div className="bg-white p-3 rounded-lg border border-[#2A9D8F]/25 space-y-1">
+                        <strong className="text-[#1F3A5F] block">1. Dua Cara Input Gambar</strong>
+                        <p className="text-[#1F3A5F]/80">
+                          • <strong>Upload dari HP/Laptop:</strong> Pilih file foto dari galeri/memori perangkat. Sistem secara otomatis mengompres foto berukuran besar (5–10MB) menjadi format web-ready yang sangat ringan (&lt;180KB) tanpa mengurangi ketajaman.<br />
+                          • <strong>Link URL Gambar:</strong> Tempel tautan gambar dari internet atau cloud storage (misal: Unsplash, CDN).
+                        </p>
+                      </div>
+                      <div className="bg-white p-3 rounded-lg border border-[#2A9D8F]/25 space-y-1">
+                        <strong className="text-[#1F3A5F] block">2. Tiga Opsi Posisi Tata Letak</strong>
+                        <p className="text-[#1F3A5F]/80">
+                          • <strong>Samping Kanan (Split 50:50):</strong> Poin kartu di kiri, foto visual di kanan (standar terbaik).<br />
+                          • <strong>Samping Kiri (Split 50:50):</strong> Foto visual di kiri, poin kartu di kanan.<br />
+                          • <strong>Banner Atas:</strong> Foto horizontal lebar membentang di atas poin kartu.
+                        </p>
+                      </div>
+                      <div className="bg-white p-3 rounded-lg border border-[#2A9D8F]/25 space-y-1">
+                        <strong className="text-[#1F3A5F] block">3. Jaminan Keutuhan Data (Non-Breaking)</strong>
+                        <p className="text-[#1F3A5F]/80">
+                          Fitur ini bersifat opsional murni. Slide yang tidak ditambahkan foto tetap mempertahankan 100% tata letak teks, kartu, dan rumus aslinya. Foto dapat dihapus kapan saja dengan tombol <em>Hapus Foto</em> dan slide langsung kembali ke tampilan semula.
+                        </p>
+                      </div>
+                      <div className="bg-white p-3 rounded-lg border border-[#2A9D8F]/25 space-y-1">
+                        <strong className="text-[#1F3A5F] block">4. Sinkronisasi di Semua Peran</strong>
+                        <p className="text-[#1F3A5F]/80">
+                          Foto yang terpasang otomatis tampil di <strong>Layar Proyektor</strong>, <strong>Layar Presenter Dual Mode</strong>, indikator thumbnail di <strong>Remote HP Pemateri</strong>, <strong>Mode Baca Mandiri HP Peserta</strong>, dan cetak dokumen <strong>Handout PDF A4</strong>.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </section>

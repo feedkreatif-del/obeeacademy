@@ -1154,6 +1154,23 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
                   </div>
 
                   <div className="p-5 sm:p-6 space-y-4 bg-[#FFF7EC]/60">
+                    {/* Visual Slide Image on Mobile Reader */}
+                    {s.imageUrl && (
+                      <div className="rounded-xl overflow-hidden border-2 border-[#1F3A5F]/20 bg-white shadow-xs">
+                        <img
+                          src={s.imageUrl}
+                          alt={s.imageCaption || s.title}
+                          className="w-full max-h-64 object-cover"
+                        />
+                        {s.imageCaption && (
+                          <div className="p-3 bg-white border-t border-[#1F3A5F]/15 flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-[#F28C28] shrink-0" />
+                            <span className="text-xs font-bold text-[#1F3A5F]">{s.imageCaption}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     {s.cards && s.cards.length > 0 && (
                       <div className="grid grid-cols-1 gap-3">
                         {s.cards.map((c, cIdx) => (

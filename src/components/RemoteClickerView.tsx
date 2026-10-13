@@ -671,6 +671,24 @@ export const RemoteClickerView: React.FC<RemoteClickerViewProps> = ({
               )}
             </div>
 
+            {slide.imageUrl && (
+              <div className="flex items-center gap-2.5 p-2 rounded-xl bg-[#2A9D8F]/10 border border-[#2A9D8F]/25 text-[#1F3A5F]">
+                <img
+                  src={slide.imageUrl}
+                  alt="Thumbnail"
+                  className="w-10 h-10 rounded-lg object-cover border border-[#2A9D8F]/30 shrink-0"
+                />
+                <div className="min-w-0 flex-1">
+                  <span className="text-[11px] font-bold text-[#2A9D8F] block">📷 Slide dengan Media Foto</span>
+                  {slide.imageCaption ? (
+                    <span className="text-[10px] text-[#1F3A5F]/80 line-clamp-1">{slide.imageCaption}</span>
+                  ) : (
+                    <span className="text-[10px] text-[#1F3A5F]/60">Tata letak: {slide.imagePosition === 'top' ? 'Banner Atas' : 'Split Samping'}</span>
+                  )}
+                </div>
+              </div>
+            )}
+
             {currentRevealedStepInfo && (
               <div className="rounded-xl bg-[#FFF7EC] border border-[#F28C28]/40 p-3 space-y-0.5">
                 <span className="text-[11px] font-bold text-[#F28C28] uppercase">

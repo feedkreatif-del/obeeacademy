@@ -34,6 +34,8 @@ export interface SlideCardItem {
   accent: 'orange' | 'teal' | 'navy';
 }
 
+export type SlideImagePosition = 'right' | 'left' | 'top' | 'card';
+
 export interface SlideDefinition {
   index: number;
   pageNumber: number;
@@ -53,6 +55,9 @@ export interface SlideDefinition {
   };
   bottomBanner?: string;
   promptLines?: string[];
+  imageUrl?: string;
+  imageCaption?: string;
+  imagePosition?: SlideImagePosition;
 }
 
 export interface ToughQuestionGuide {

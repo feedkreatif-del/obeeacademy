@@ -106,6 +106,13 @@ export function printSlideDeckHandout(params: {
             </div>`
           : '';
 
+      const imageHtml = slide.imageUrl
+        ? `<div class="slide-image-box">
+            <img src="${escapeHtml(slide.imageUrl)}" alt="${escapeHtml(slide.imageCaption || slide.title)}" />
+            ${slide.imageCaption ? `<div class="slide-image-caption">${escapeHtml(slide.imageCaption)}</div>` : ''}
+          </div>`
+        : '';
+
       const isCoverOrClosing = slide.type === 'cover' || slide.type === 'closing';
 
       return `
@@ -120,6 +127,7 @@ export function printSlideDeckHandout(params: {
           </header>
 
           <div class="slide-body">
+            ${imageHtml}
             ${cardsHtml}
             ${comparisonHtml}
             ${bannerHtml}
@@ -226,6 +234,30 @@ export function printSlideDeckHandout(params: {
       flex-direction: column;
       justify-content: center;
       gap: 10px;
+    }
+    .slide-image-box {
+      width: 100%;
+      max-height: 60mm;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid rgba(0, 0, 0, 0.15);
+      margin-bottom: 6px;
+      background: #ffffff;
+      display: flex;
+      flex-direction: column;
+    }
+    .slide-image-box img {
+      width: 100%;
+      max-height: 52mm;
+      object-fit: cover;
+    }
+    .slide-image-caption {
+      font-size: 8pt;
+      padding: 3px 8px;
+      background: #f8fafc;
+      border-top: 1px solid #e2e8f0;
+      color: #334155;
+      font-weight: 600;
     }
     .cards-grid {
       display: grid;
@@ -1316,6 +1348,18 @@ export function printSystemDocumentationGuide(params?: {
             Mesin perakit profil Instagram bisnis 4 baris otomatis di HP peserta yang menyusun kalimat pancingan (Hook), solusi masalah, bukti rasional, dan ajakan bertindak (CTA) berdasarkan jawaban lembar kerja.
           </td>
         </tr>
+        <tr>
+          <td><strong>Role-Based Stealth Auth & Triple-Tap Trigger</strong></td>
+          <td>
+            Arsitektur antarmuka tanpa tombol mencolok. Tombol panel presenter disembunyikan sepenuhnya dari HP peserta agar tidak timbul rasa penasaran. Pemateri mengaktifkan panel via gestur ketuk 3x di header atau ikon gembok samar di footer, dilindungi verifikasi PIN keamanan modal.
+          </td>
+        </tr>
+        <tr>
+          <td><strong>Floating Presenter Switcher Pill</strong></td>
+          <td>
+            Tombol navigasi mengambang khusus yang hanya muncul di layar pemateri setelah PIN terbuka. Memungkinkan pemateri beralih instan antara mode simulasi HP peserta dan layar presenter tanpa harus mengetik ulang PIN.
+          </td>
+        </tr>
       </tbody>
     </table>
 
@@ -1341,15 +1385,21 @@ export function printSystemDocumentationGuide(params?: {
           </td>
         </tr>
         <tr>
-          <td><strong>Content Hydration & Fallback Schema</strong></td>
+          <td><strong>PIN Session Guard & Storage Persistence</strong></td>
           <td>
-            Logika ketahanan aplikasi yang membaca konfigurasi kustom di Firestore (<code>custom_content/active</code>), dan jika ada parameter yang kosong atau rusak, sistem secara mulus menggunakan data cadangan default bawaan (*default fallback*) tanpa mengalami crash.
+            Sistem otentikasi lokal terisolasi yang mengamankan status sesi pemateri selama tab browser aktif (<code>sessionStorage</code>), serta menyimpan PIN kustom pengguna secara persisten di <code>localStorage</code> dengan proteksi fallback standar (default: <code>2026</code>).
           </td>
         </tr>
         <tr>
-          <td><strong>Brand Theme Color Injection</strong></td>
+          <td><strong>Brand Theme Sanitizer & Dynamic CSS Variables</strong></td>
           <td>
-            Sistem tema yang mengonversi 4 warna brand organisasi (Primary, Accent, Secondary, Background) menjadi variabel CSS kustom secara dinamis ke seluruh DOM dan dokumen cetak PDF.
+            Mesin tema cerdas yang memvalidasi format warna heksadesimal sebelum diinjeksikan ke root DOM. Menjaga warna default PartnerUp | Obeecreatives tetap utuh jika terjadi masukan warna tidak valid, sekaligus menyinkronkan tema ke seluruh komponen cetak dokumen PDF.
+          </td>
+        </tr>
+        <tr>
+          <td><strong>Content Hydration & Fallback Schema</strong></td>
+          <td>
+            Logika ketahanan aplikasi yang membaca konfigurasi kustom di Firestore (<code>custom_content/active</code>), dan jika ada parameter yang kosong atau rusak, sistem secara mulus menggunakan data cadangan default bawaan (*default fallback*) tanpa mengalami crash.
           </td>
         </tr>
         <tr>
@@ -1403,17 +1453,69 @@ export function printSystemDocumentationGuide(params?: {
       Tim pendamping membuka menu <strong>Moderasi</strong> di laptop mereka. Setiap jawaban yang masuk dari peserta dapat ditinjau. Jika jawaban berkualitas tinggi dan menginspirasi, klik ikon <strong>Bintang (*Star*)</strong> agar langsung diprioritaskan tampil di layar proyektor panggung.
     </p>
 
-    <h2 class="sub-title">4.4 Kustomisasi Materi & Tema Warna Organisasi (Editor Studio)</h2>
+    <h2 class="sub-title">4.4 Prosedur Keamanan Panel Pemateri & PIN Rahasia</h2>
+    <div class="callout callout-blue">
+      <div class="callout-title">SOP PENGAMANAN & AKSES RAHASIA PEMATERI</div>
+      <p style="margin: 0; font-size: 8.5pt;">
+        <strong>1. Disembunyikan Total:</strong> Tombol panel presenter dihilangkan dari layar peserta agar tidak dapat diakses atau diuji coba oleh audiens umum.<br/>
+        <strong>2. Cara Membuka:</strong> Ketuk 3x judul seminar di header atas HP atau klik ikon gembok kecil di footer bawah.<br/>
+        <strong>3. Verifikasi PIN:</strong> Masukkan PIN (bawaan: <code>2026</code>). Tersedia fitur ganti PIN kustom yang tersimpan di browser.<br/>
+        <strong>4. Floating Switcher:</strong> Tombol <code>[🛡️ Panel Presenter]</code> mengambang akan aktif untuk berpindah peran seketika. Klik <code>[🔒 Kunci]</code> di kanan atas jika ingin mengunci kembali.
+      </p>
+    </div>
+
+    <h2 class="sub-title">4.5 Kustomisasi Tema Warna Organisasi (Brand Theme Picker)</h2>
     <p>
-      Penyelenggara seminar dapat masuk ke menu <strong>Editor Materi</strong> untuk menyesuaikan:
+      Penyelenggara seminar dapat masuk ke menu <strong>Editor Materi</strong> &rarr; tab <strong>Tema Warna Organisasi</strong> untuk menyesuaikan identitas visual:
     </p>
     <ul>
-      <li><strong>Judul & Penyelenggara:</strong> Mengubah nama seminar dan footer slide.</li>
-      <li><strong>Tema Warna Organisasi:</strong> Memilih preset warna siap pakai (PartnerUp Default, Obeecreatives, Royal Blue BUMN, Emerald Syariah, Crimson Executive, Tech Indigo) atau memilih warna hex kustom sendiri.</li>
-      <li><strong>Soal Lembar Kerja & Slide:</strong> Menambah, mengurangi, memindahkan urutan, atau merombak teks soal dan slide presentasi.</li>
-      <li><strong>Ekspor/Impor JSON:</strong> Mengunduh berkas cadangan materi seminar ke laptop untuk diarsipkan atau dipindahkan ke acara berikutnya.</li>
+      <li><strong>5 Preset Siap Pakai:</strong> Default PartnerUp | Obeecreatives, Royal Blue BUMN, Emerald Syariah, Crimson Executive, Tech Indigo.</li>
+      <li><strong>Pemilih Warna Hex Kustom:</strong> Ubah Warna Utama, Aksen, Sekunder, dan Background sesuai pedoman visual organisasi Anda.</li>
+      <li><strong>Penyimpanan Persisten & Reset:</strong> Warna otomatis tersimpan di browser dan dapat dikembalikan ke tema default hanya dengan 1 kali klik.</li>
     </ul>
-  </div>
+
+    <h2 class="sub-title">4.6 Standar Operasional 5 Opsi Pembagian Materi ke Peserta</h2>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th style="width: 25%;">Metode</th>
+          <th style="width: 75%;">Mekanisme & Kegunaan</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>1. Slide Reader Mandiri</strong></td>
+          <td>Peserta membuka tab "Baca Slide" di HP mereka setelah pemateri mengaktifkan saklar slide di remote HP. Peserta bebas membaca ulang slide tanpa mengganggu proyektor panggung.</td>
+        </tr>
+        <tr>
+          <td><strong>2. Unduh PDF Buku Saku (A4)</strong></td>
+          <td>Peserta mengunduh berkas PDF A4 portrait resmi berisi ringkasan nilai jual, kalimat penawaran, bio IG, salam WA, dan seluruh jawaban lembar kerja.</td>
+        </tr>
+        <tr>
+          <td><strong>3. Kirim ke WhatsApp</strong></td>
+          <td>Mengirimkan ringkasan hasil latihan ke nomor pribadi peserta atau ke grup WhatsApp tim melalui tautan otomatis.</td>
+        </tr>
+        <tr>
+          <td><strong>4. Unduh Berkas Teks (.TXT)</strong></td>
+          <td>Format teks ringan tanpa format grafis, cocok untuk peserta yang ingin menyalin teks ke catatan ponsel atau aplikasi pengolah kata.</td>
+        </tr>
+        <tr>
+          <td><strong>5. Ekspor CSV (Panitia)</strong></td>
+          <td>Panitia mengunduh seluruh data jawaban peserta dalam format tabel CSV untuk dianalisis di Microsoft Excel atau Google Sheets.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 class="sub-title">4.7 Panduan Penggunaan Gambar & Media Foto pada Slide Materi (Non-Breaking)</h2>
+    <p>
+      Slide materi kini mendukung penambahan foto/gambar visual opsional untuk memperkaya presentasi tanpa merusak teks asli:
+    </p>
+    <ul>
+      <li><strong>2 Cara Input Gambar:</strong> Upload langsung dari galeri HP/Laptop (otomatis dikompres web-ready &lt;180KB via Canvas) atau tempel link URL gambar web/cloud.</li>
+      <li><strong>3 Pilihan Tata Letak:</strong> Samping Kanan (Split 50:50), Samping Kiri (Split 50:50), dan Banner Atas (Foto Lebar di Atas Poin).</li>
+      <li><strong>Jaminan Non-Breaking:</strong> Bersifat opsional murni. Slide tanpa foto tetap 100% utuh layout teks aslinya, dan foto dapat dihapus kapan saja dengan tombol Hapus Foto.</li>
+      <li><strong>Sinkronisasi Seluruh Peran:</strong> Foto otomatis tayang di Layar Proyektor, Layar Presenter Laptop, Remote HP Pemateri, Mode Baca Mandiri Peserta, dan Handout PDF A4.</li>
+    </ul>
 
   <!-- BAB 5 -->
   <div class="page-break">

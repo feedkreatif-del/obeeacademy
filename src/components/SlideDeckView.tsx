@@ -595,38 +595,61 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
         >
           {slide.type === 'cover' ? (
             <div className="flex-1 min-h-0 bg-[#1F3A5F] text-white p-8 sm:p-14 lg:p-16 flex flex-col justify-center overflow-y-auto">
-              <motion.p
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-                className="text-[#F28C28] font-bold tracking-wider text-sm sm:text-xl mb-3"
-              >
-                {slide.badge}
-              </motion.p>
-              <motion.h1
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35, delay: 0.06 }}
-                className={`font-display font-bold tracking-tight leading-tight max-w-5xl mb-4 ${
-                  isCompactPreview
-                    ? 'text-2xl sm:text-4xl'
-                    : 'text-3xl sm:text-5xl lg:text-6xl'
-                }`}
-              >
-                {slide.title}
-              </motion.h1>
-              {slide.subtitle && (
-                <motion.p
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.35, delay: 0.12 }}
-                  className={`text-white/85 max-w-4xl font-normal ${
-                    isCompactPreview ? 'text-sm sm:text-lg' : 'text-base sm:text-2xl'
-                  }`}
-                >
-                  {slide.subtitle}
-                </motion.p>
-              )}
+              <div className={slide.imageUrl ? 'grid grid-cols-1 lg:grid-cols-12 gap-8 items-center max-w-7xl' : ''}>
+                <div className={slide.imageUrl ? 'lg:col-span-7' : ''}>
+                  <motion.p
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="text-[#F28C28] font-bold tracking-wider text-sm sm:text-xl mb-3"
+                  >
+                    {slide.badge}
+                  </motion.p>
+                  <motion.h1
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.35, delay: 0.06 }}
+                    className={`font-display font-bold tracking-tight leading-tight max-w-5xl mb-4 ${
+                      isCompactPreview
+                        ? 'text-2xl sm:text-4xl'
+                        : 'text-3xl sm:text-5xl lg:text-6xl'
+                    }`}
+                  >
+                    {slide.title}
+                  </motion.h1>
+                  {slide.subtitle && (
+                    <motion.p
+                      initial={{ opacity: 0, y: 16 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.35, delay: 0.12 }}
+                      className={`text-white/85 max-w-4xl font-normal ${
+                        isCompactPreview ? 'text-sm sm:text-lg' : 'text-base sm:text-2xl'
+                      }`}
+                    >
+                      {slide.subtitle}
+                    </motion.p>
+                  )}
+                </div>
+                {slide.imageUrl && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.4, delay: 0.15 }}
+                    className="lg:col-span-5 rounded-2xl overflow-hidden border-2 border-white/20 shadow-2xl bg-white/5"
+                  >
+                    <img
+                      src={slide.imageUrl}
+                      alt={slide.imageCaption || slide.title}
+                      className="w-full h-64 sm:h-80 lg:h-96 object-cover"
+                    />
+                    {slide.imageCaption && (
+                      <p className="p-3 bg-black/40 text-xs sm:text-sm text-white/90 border-t border-white/10 font-medium">
+                        {slide.imageCaption}
+                      </p>
+                    )}
+                  </motion.div>
+                )}
+              </div>
             </div>
           ) : slide.type === 'closing' ? (
             <div className="flex-1 min-h-0 bg-[#1F3A5F] text-white p-6 sm:p-10 flex flex-col justify-between overflow-y-auto">
@@ -740,229 +763,301 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                     )}
                 </div>
 
-                {/* Agenda Steps Layout (Uniform & Large) */}
-                {slide.type === 'agenda' && slide.cards && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 my-auto items-stretch">
-                    {slide.cards.map((item, idx) => {
-                      const stepNum = slideStepAssignments.cardSteps[idx];
-                      if (!isStepVisible(stepNum)) return null;
-                      return (
-                        <motion.div
-                          key={idx}
-                          {...itemRevealProps}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (idx < questions.length) {
-                              if (isFullscreen || isAudienceExtendWindow || presenterDualMode) {
-                                onSyncQuestionOnly(idx);
-                                handleToggleDrawer('answers');
-                              } else {
-                                onLaunchWorksheetQuestion(idx);
-                              }
-                            }
-                          }}
-                          className="h-full min-h-[76px] flex items-center gap-4 p-3.5 sm:p-4 rounded-xl bg-white border-2 border-[#1F3A5F]/15 hover:border-[#F28C28] transition-colors cursor-pointer group"
-                        >
-                          <div
-                            className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full text-white font-display font-bold text-base sm:text-xl flex items-center justify-center shrink-0 tabular-nums ${
-                              item.accent === 'orange' ? 'bg-[#F28C28]' : 'bg-[#2A9D8F]'
-                            }`}
-                          >
-                            {idx + 1}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-bold text-base sm:text-xl text-[#1F3A5F] group-hover:text-[#F28C28] transition-colors">
-                              {item.title.replace(/^\d+\.\s*/, '')}
-                            </p>
-                            <p className="text-sm sm:text-base text-[#1F3A5F]/80">
-                              {item.body}
-                            </p>
-                          </div>
-                        </motion.div>
-                      );
-                    })}
-                  </div>
-                )}
+                {/* Visual Image Support for Slide (Top Banner or Split-Side Layout) */}
+                {(() => {
+                  const hasImage = Boolean(slide.imageUrl);
+                  const isTopImage = hasImage && slide.imagePosition === 'top';
+                  const isSideImage = hasImage && slide.imagePosition !== 'top';
+                  const isLeftImage = isSideImage && slide.imagePosition === 'left';
 
-                {/* Concept horizontal rows (Large & Easy to Read) */}
-                {slide.type === 'concept' &&
-                  slide.cards &&
-                  slide.cards[0]?.title === 'ARTINYA' && (
-                    <div className="space-y-4 my-auto">
-                      {slide.cards.map((card, i) => {
-                        const stepNum = slideStepAssignments.cardSteps[i];
-                        if (!isStepVisible(stepNum)) return null;
-                        return (
-                          <motion.div
-                            key={i}
-                            {...itemRevealProps}
-                            className="grid grid-cols-1 md:grid-cols-12 gap-4 items-stretch"
-                          >
-                            <div
-                              className={`md:col-span-3 rounded-xl p-4 sm:p-5 flex items-center justify-center text-white font-display font-bold text-base sm:text-2xl text-center ${
-                                card.accent === 'orange' ? 'bg-[#F28C28]' : 'bg-[#2A9D8F]'
-                              }`}
-                            >
-                              {card.title}
-                            </div>
-                            <div
-                              className={`md:col-span-9 rounded-xl bg-white p-4 sm:p-6 flex items-center text-base sm:text-2xl text-[#1F3A5F] font-medium border-2 ${
-                                card.accent === 'orange' ? 'border-[#F28C28]' : 'border-[#2A9D8F]'
-                              }`}
-                            >
-                              {card.body}
-                            </div>
-                          </motion.div>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                {/* Dynamic Multi-Column Kanban Cards (Large when few items, proportional when many) */}
-                {slide.cards &&
-                  slide.type !== 'agenda' &&
-                  slide.cards[0]?.title !== 'ARTINYA' && (
-                    <div
-                      className={`grid grid-cols-1 gap-4 items-stretch ${
-                        dynamicDensity === 'jumbo' ? 'my-auto' : ''
-                      } ${
-                        slide.cards.length === 5
-                          ? 'sm:grid-cols-2 lg:grid-cols-5'
-                          : slide.cards.length === 4
-                          ? 'sm:grid-cols-2 lg:grid-cols-4'
-                          : 'md:grid-cols-3'
+                  const slideImageBlock = hasImage ? (
+                    <motion.div
+                      {...itemRevealProps}
+                      className={`rounded-2xl bg-white border-2 border-[#1F3A5F]/20 overflow-hidden shadow-md flex flex-col justify-between ${
+                        isTopImage
+                          ? 'w-full max-h-[220px] sm:max-h-[300px] mb-3 shrink-0'
+                          : 'h-full min-h-[240px] max-h-[520px]'
                       }`}
                     >
-                      {slide.cards.map((card, i) => {
-                        const stepNum = slideStepAssignments.cardSteps[i];
-                        if (!isStepVisible(stepNum)) return null;
-                        return (
-                          <motion.div
-                            key={i}
-                            {...itemRevealProps}
-                            className={`h-full rounded-2xl bg-white ${
-                              dynamicDensity === 'jumbo'
-                                ? 'p-6 sm:p-7 min-h-[220px]'
-                                : dynamicDensity === 'medium'
-                                ? 'p-5 sm:p-6'
-                                : 'p-4 sm:p-5'
-                            } border-2 flex flex-col justify-between shadow-xs ${
-                              card.accent === 'orange' ? 'border-[#F28C28]' : 'border-[#2A9D8F]'
+                      <div
+                        className={`relative overflow-hidden bg-slate-900/5 flex items-center justify-center ${
+                          isTopImage ? 'h-full min-h-[140px]' : 'flex-1 min-h-[180px]'
+                        }`}
+                      >
+                        <img
+                          src={slide.imageUrl}
+                          alt={slide.imageCaption || slide.title}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      {slide.imageCaption && (
+                        <div className="px-4 py-2.5 bg-white border-t border-[#1F3A5F]/15 flex items-center gap-2 shrink-0">
+                          <span className="w-2.5 h-2.5 rounded-full bg-[#F28C28] shrink-0" />
+                          <span className="text-xs sm:text-sm font-bold text-[#1F3A5F] leading-snug line-clamp-2">
+                            {slide.imageCaption}
+                          </span>
+                        </div>
+                      )}
+                    </motion.div>
+                  ) : null;
+
+                  const mainContentCards = (
+                    <>
+                      {/* Agenda Steps Layout (Uniform & Large) */}
+                      {slide.type === 'agenda' && slide.cards && (
+                        <div className={`grid grid-cols-1 ${isSideImage ? 'sm:grid-cols-1' : 'md:grid-cols-2'} gap-3.5 my-auto items-stretch`}>
+                          {slide.cards.map((item, idx) => {
+                            const stepNum = slideStepAssignments.cardSteps[idx];
+                            if (!isStepVisible(stepNum)) return null;
+                            return (
+                              <motion.div
+                                key={idx}
+                                {...itemRevealProps}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (idx < questions.length) {
+                                    if (isFullscreen || isAudienceExtendWindow || presenterDualMode) {
+                                      onSyncQuestionOnly(idx);
+                                      handleToggleDrawer('answers');
+                                    } else {
+                                      onLaunchWorksheetQuestion(idx);
+                                    }
+                                  }
+                                }}
+                                className="h-full min-h-[76px] flex items-center gap-4 p-3.5 sm:p-4 rounded-xl bg-white border-2 border-[#1F3A5F]/15 hover:border-[#F28C28] transition-colors cursor-pointer group"
+                              >
+                                <div
+                                  className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full text-white font-display font-bold text-base sm:text-xl flex items-center justify-center shrink-0 tabular-nums ${
+                                    item.accent === 'orange' ? 'bg-[#F28C28]' : 'bg-[#2A9D8F]'
+                                  }`}
+                                >
+                                  {idx + 1}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-bold text-base sm:text-xl text-[#1F3A5F] group-hover:text-[#F28C28] transition-colors">
+                                    {item.title.replace(/^\d+\.\s*/, '')}
+                                  </p>
+                                  <p className="text-sm sm:text-base text-[#1F3A5F]/80">
+                                    {item.body}
+                                  </p>
+                                </div>
+                              </motion.div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* Concept horizontal rows (Large & Easy to Read) */}
+                      {slide.type === 'concept' &&
+                        slide.cards &&
+                        slide.cards[0]?.title === 'ARTINYA' && (
+                          <div className="space-y-4 my-auto">
+                            {slide.cards.map((card, i) => {
+                              const stepNum = slideStepAssignments.cardSteps[i];
+                              if (!isStepVisible(stepNum)) return null;
+                              return (
+                                <motion.div
+                                  key={i}
+                                  {...itemRevealProps}
+                                  className="grid grid-cols-1 md:grid-cols-12 gap-4 items-stretch"
+                                >
+                                  <div
+                                    className={`md:col-span-3 rounded-xl p-4 sm:p-5 flex items-center justify-center text-white font-display font-bold text-base sm:text-2xl text-center ${
+                                      card.accent === 'orange' ? 'bg-[#F28C28]' : 'bg-[#2A9D8F]'
+                                    }`}
+                                  >
+                                    {card.title}
+                                  </div>
+                                  <div
+                                    className={`md:col-span-9 rounded-xl bg-white p-4 sm:p-6 flex items-center text-base sm:text-2xl text-[#1F3A5F] font-medium border-2 ${
+                                      card.accent === 'orange' ? 'border-[#F28C28]' : 'border-[#2A9D8F]'
+                                    }`}
+                                  >
+                                    {card.body}
+                                  </div>
+                                </motion.div>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                      {/* Dynamic Multi-Column Kanban Cards (Large when few items, proportional when many) */}
+                      {slide.cards &&
+                        slide.type !== 'agenda' &&
+                        slide.cards[0]?.title !== 'ARTINYA' && (
+                          <div
+                            className={`grid grid-cols-1 gap-4 items-stretch ${
+                              dynamicDensity === 'jumbo' ? 'my-auto' : ''
+                            } ${
+                              isSideImage
+                                ? slide.cards.length >= 4
+                                  ? 'sm:grid-cols-2'
+                                  : 'grid-cols-1'
+                                : slide.cards.length === 5
+                                ? 'sm:grid-cols-2 lg:grid-cols-5'
+                                : slide.cards.length === 4
+                                ? 'sm:grid-cols-2 lg:grid-cols-4'
+                                : 'md:grid-cols-3'
                             }`}
                           >
-                            <div>
-                              <div
-                                className={`w-10 h-2 rounded-full mb-3 ${
-                                  card.accent === 'orange' ? 'bg-[#F28C28]' : 'bg-[#2A9D8F]'
-                                }`}
-                              />
-                              <h3
-                                className={`font-display font-bold text-[#1F3A5F] mb-2 leading-snug ${
-                                  isCompactPreview
-                                    ? 'text-base sm:text-lg'
-                                    : dynamicDensity === 'jumbo'
-                                    ? 'text-xl sm:text-2xl lg:text-3xl'
-                                    : dynamicDensity === 'medium'
-                                    ? 'text-lg sm:text-xl lg:text-2xl'
-                                    : 'text-base sm:text-lg lg:text-xl'
-                                }`}
-                              >
-                                {card.title}
-                              </h3>
-                              <p
-                                className={`text-[#1F3A5F]/90 leading-relaxed font-medium ${
-                                  isCompactPreview
-                                    ? 'text-xs sm:text-sm'
-                                    : dynamicDensity === 'jumbo'
-                                    ? 'text-base sm:text-xl lg:text-2xl'
-                                    : dynamicDensity === 'medium'
-                                    ? 'text-sm sm:text-lg lg:text-xl'
-                                    : 'text-sm sm:text-base lg:text-lg'
-                                }`}
-                              >
-                                {card.body}
-                              </p>
-                            </div>
-                            {card.extra && (
-                              <p
-                                className={`font-semibold text-[#1F3A5F]/80 mt-3 pt-2.5 border-t border-[#1F3A5F]/15 leading-snug ${
-                                  dynamicDensity === 'jumbo'
-                                    ? 'text-sm sm:text-lg'
-                                    : 'text-xs sm:text-base'
-                                }`}
-                              >
-                                {card.extra}
-                              </p>
-                            )}
-                          </motion.div>
-                        );
-                      })}
-                    </div>
-                  )}
+                            {slide.cards.map((card, i) => {
+                              const stepNum = slideStepAssignments.cardSteps[i];
+                              if (!isStepVisible(stepNum)) return null;
+                              return (
+                                <motion.div
+                                  key={i}
+                                  {...itemRevealProps}
+                                  className={`h-full rounded-2xl bg-white ${
+                                    dynamicDensity === 'jumbo'
+                                      ? 'p-6 sm:p-7 min-h-[220px]'
+                                      : dynamicDensity === 'medium'
+                                      ? 'p-5 sm:p-6'
+                                      : 'p-4 sm:p-5'
+                                  } border-2 flex flex-col justify-between shadow-xs ${
+                                    card.accent === 'orange' ? 'border-[#F28C28]' : 'border-[#2A9D8F]'
+                                  }`}
+                                >
+                                  <div>
+                                    <div
+                                      className={`w-10 h-2 rounded-full mb-3 ${
+                                        card.accent === 'orange' ? 'bg-[#F28C28]' : 'bg-[#2A9D8F]'
+                                      }`}
+                                    />
+                                    <h3
+                                      className={`font-display font-bold text-[#1F3A5F] mb-2 leading-snug ${
+                                        isCompactPreview
+                                          ? 'text-base sm:text-lg'
+                                          : dynamicDensity === 'jumbo'
+                                          ? 'text-xl sm:text-2xl lg:text-3xl'
+                                          : dynamicDensity === 'medium'
+                                          ? 'text-lg sm:text-xl lg:text-2xl'
+                                          : 'text-base sm:text-lg lg:text-xl'
+                                      }`}
+                                    >
+                                      {card.title}
+                                    </h3>
+                                    <p
+                                      className={`text-[#1F3A5F]/90 leading-relaxed font-medium ${
+                                        isCompactPreview
+                                          ? 'text-xs sm:text-sm'
+                                          : dynamicDensity === 'jumbo'
+                                          ? 'text-base sm:text-xl lg:text-2xl'
+                                          : dynamicDensity === 'medium'
+                                          ? 'text-sm sm:text-lg lg:text-xl'
+                                          : 'text-sm sm:text-base lg:text-lg'
+                                      }`}
+                                    >
+                                      {card.body}
+                                    </p>
+                                  </div>
+                                  {card.extra && (
+                                    <p
+                                      className={`font-semibold text-[#1F3A5F]/80 mt-3 pt-2.5 border-t border-[#1F3A5F]/15 leading-snug ${
+                                        dynamicDensity === 'jumbo'
+                                          ? 'text-sm sm:text-lg'
+                                          : 'text-xs sm:text-base'
+                                      }`}
+                                    >
+                                      {card.extra}
+                                    </p>
+                                  )}
+                                </motion.div>
+                              );
+                            })}
+                          </div>
+                        )}
 
-                {/* Comparison boxes (Dynamic Large / Proportional Height) */}
-                {slide.comparison && (
-                  <div
-                    className={`grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch ${
-                      !slide.cards || slide.cards.length === 0 ? 'my-auto' : ''
-                    }`}
-                  >
-                    {isStepVisible(slideStepAssignments.comparisonLeftStep) && (
-                      <motion.div
-                        {...itemRevealProps}
-                        className={`h-full rounded-2xl ${
-                          !slide.cards || slide.cards.length === 0
-                            ? 'p-6 sm:p-8 min-h-[220px]'
-                            : dynamicDensity === 'medium'
-                            ? 'p-4 sm:p-6'
-                            : 'p-4 sm:p-5'
-                        } bg-[#FDE8E8] border-2 border-red-200 flex flex-col justify-between`}
-                      >
-                        <p className="text-sm sm:text-lg font-bold text-red-800 mb-1.5">
-                          {slide.comparison.leftTitle}
-                        </p>
-                        <p
-                          className={`${
-                            !slide.cards || slide.cards.length === 0
-                              ? 'text-lg sm:text-2xl lg:text-3xl'
-                              : dynamicDensity === 'medium'
-                              ? 'text-base sm:text-xl lg:text-2xl'
-                              : 'text-sm sm:text-lg lg:text-xl'
-                          } font-semibold text-[#1F3A5F] whitespace-pre-line leading-snug`}
+                      {/* Comparison boxes (Dynamic Large / Proportional Height) */}
+                      {slide.comparison && (
+                        <div
+                          className={`grid grid-cols-1 ${isSideImage ? 'gap-3.5' : 'md:grid-cols-2 gap-4'} items-stretch ${
+                            !slide.cards || slide.cards.length === 0 ? 'my-auto' : ''
+                          }`}
                         >
-                          {slide.comparison.leftBody}
-                        </p>
-                      </motion.div>
-                    )}
-                    {isStepVisible(slideStepAssignments.comparisonRightStep) && (
-                      <motion.div
-                        {...itemRevealProps}
-                        className={`h-full rounded-2xl ${
-                          !slide.cards || slide.cards.length === 0
-                            ? 'p-6 sm:p-8 min-h-[220px]'
-                            : dynamicDensity === 'medium'
-                            ? 'p-4 sm:p-6'
-                            : 'p-4 sm:p-5'
-                        } bg-[#E3F5F2] border-2 border-[#2A9D8F]/40 flex flex-col justify-between`}
-                      >
-                        <p className="text-sm sm:text-lg font-bold text-[#1d6f65] mb-1.5">
-                          {slide.comparison.rightTitle}
-                        </p>
-                        <p
-                          className={`${
-                            !slide.cards || slide.cards.length === 0
-                              ? 'text-lg sm:text-2xl lg:text-3xl'
-                              : dynamicDensity === 'medium'
-                              ? 'text-base sm:text-xl lg:text-2xl'
-                              : 'text-sm sm:text-lg lg:text-xl'
-                          } font-semibold text-[#1F3A5F] whitespace-pre-line leading-snug`}
-                        >
-                          {slide.comparison.rightBody}
-                        </p>
-                      </motion.div>
-                    )}
-                  </div>
-                )}
+                          {isStepVisible(slideStepAssignments.comparisonLeftStep) && (
+                            <motion.div
+                              {...itemRevealProps}
+                              className={`h-full rounded-2xl ${
+                                !slide.cards || slide.cards.length === 0
+                                  ? 'p-6 sm:p-8 min-h-[220px]'
+                                  : dynamicDensity === 'medium'
+                                  ? 'p-4 sm:p-6'
+                                  : 'p-4 sm:p-5'
+                              } bg-[#FDE8E8] border-2 border-red-200 flex flex-col justify-between`}
+                            >
+                              <p className="text-sm sm:text-lg font-bold text-red-800 mb-1.5">
+                                {slide.comparison.leftTitle}
+                              </p>
+                              <p
+                                className={`${
+                                  !slide.cards || slide.cards.length === 0
+                                    ? 'text-lg sm:text-2xl lg:text-3xl'
+                                    : dynamicDensity === 'medium'
+                                    ? 'text-base sm:text-xl lg:text-2xl'
+                                    : 'text-sm sm:text-lg lg:text-xl'
+                                } font-semibold text-[#1F3A5F] whitespace-pre-line leading-snug`}
+                              >
+                                {slide.comparison.leftBody}
+                              </p>
+                            </motion.div>
+                          )}
+                          {isStepVisible(slideStepAssignments.comparisonRightStep) && (
+                            <motion.div
+                              {...itemRevealProps}
+                              className={`h-full rounded-2xl ${
+                                !slide.cards || slide.cards.length === 0
+                                  ? 'p-6 sm:p-8 min-h-[220px]'
+                                  : dynamicDensity === 'medium'
+                                  ? 'p-4 sm:p-6'
+                                  : 'p-4 sm:p-5'
+                              } bg-[#E3F5F2] border-2 border-[#2A9D8F]/40 flex flex-col justify-between`}
+                            >
+                              <p className="text-sm sm:text-lg font-bold text-[#1d6f65] mb-1.5">
+                                {slide.comparison.rightTitle}
+                              </p>
+                              <p
+                                className={`${
+                                  !slide.cards || slide.cards.length === 0
+                                    ? 'text-lg sm:text-2xl lg:text-3xl'
+                                    : dynamicDensity === 'medium'
+                                    ? 'text-base sm:text-xl lg:text-2xl'
+                                    : 'text-sm sm:text-lg lg:text-xl'
+                                } font-semibold text-[#1F3A5F] whitespace-pre-line leading-snug`}
+                              >
+                                {slide.comparison.rightBody}
+                              </p>
+                            </motion.div>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  );
+
+                  return (
+                    <>
+                      {isTopImage && slideImageBlock}
+                      {isSideImage ? (
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch my-auto">
+                          {isLeftImage && (
+                            <div className="lg:col-span-5 flex flex-col justify-center">
+                              {slideImageBlock}
+                            </div>
+                          )}
+                          <div className="lg:col-span-7 flex flex-col justify-center space-y-4">
+                            {mainContentCards}
+                          </div>
+                          {!isLeftImage && (
+                            <div className="lg:col-span-5 flex flex-col justify-center">
+                              {slideImageBlock}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        mainContentCards
+                      )}
+                    </>
+                  );
+                })()}
 
                 {/* Bottom Banner Callout */}
                 {slide.bottomBanner && isStepVisible(slideStepAssignments.bannerStep) && (
