@@ -18,6 +18,7 @@ import {
   BrandThemeConfig,
 } from '../types';
 import { printSlideDeckHandout } from '../utils/handoutExport';
+import { downloadQrCodeAsPng, downloadQrCodeAsSvg, buildQrWhatsAppShareUrl } from '../utils/qrExport';
 import { QRCodeSVG } from 'qrcode.react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
@@ -47,6 +48,9 @@ import {
   ThumbsUp,
   Printer,
   Share2,
+  Download,
+  Copy,
+  Check,
 } from 'lucide-react';
 
 interface SlideStepInfo {
@@ -145,6 +149,7 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
   // Presenter Stopwatch Timer State
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [timerRunning, setTimerRunning] = useState(false);
+  const [copiedDrawerLink, setCopiedDrawerLink] = useState(false);
 
   // Custom Speaker Notes per slide (persisted in localStorage)
   const [customNotesMap, setCustomNotesMap] = useState<Record<number, string>>(() => {
@@ -1371,11 +1376,101 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
             </div>
 
             {activeSlideDrawer === 'qr' && (
-              <div className="text-center py-6 space-y-4">
-                <div className="bg-white p-6 rounded-2xl border-2 border-[#1F3A5F]/15 inline-block mx-auto">
-                  <QRCodeSVG value={joinUrl} size={260} fgColor="#1F3A5F" />
+              <div className="text-center py-6 space-y-4 max-w-lg mx-auto">
+                <div className="bg-white p-6 rounded-2xl border-2 border-[#1F3A5F]/15 inline-block mx-auto shadow-md">
+                  <QRCodeSVG id="slide-drawer-qr-svg" value={joinUrl} size={250} fgColor="#1F3A5F" />
                 </div>
-                <p className="font-mono text-base font-bold text-[#1F3A5F]">{joinUrl}</p>
+                <div className="bg-white rounded-xl p-3 border border-[#1F3A5F]/15 text-left">
+                  <p className="text-xs text-[#1F3A5F]/60 mb-0.5 font-semibold">Tautan Langsung Peserta:</p>
+                  <p className="font-mono text-xs sm:text-sm font-bold text-[#1F3A5F] break-all select-all">{joinUrl}</p>
+                </div>
+
+                {!isAudienceExtendWindow && (
+                  <div className="space-y-2 pt-1 text-left">
+                    <span className="text-xs font-bold text-[#1F3A5F] uppercase tracking-wider block">
+                      Opsi Download & Bagikan ke Peserta:
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await downloadQrCodeAsPng('slide-drawer-qr-svg', {
+                            joinUrl,
+                            seminarTitle,
+                            organizerName,
+                            variant: 'poster',
+                            filename: 'QR-Poster-Scan-HP-Menjawab.png',
+                          });
+                        }}
+                        className="px-3 py-2 rounded-xl bg-[#2A9D8F] hover:bg-[#218276] text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs cursor-pointer transition-colors"
+                        title="Download poster gambar PNG siap share ke WhatsApp"
+                      >
+                        <Download className="w-3.5 h-3.5 shrink-0" />
+                        <span>Download Poster (PNG)</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await downloadQrCodeAsPng('slide-drawer-qr-svg', {
+                            joinUrl,
+                            variant: 'qr-only',
+                            filename: 'QR-Code-Peserta.png',
+                          });
+                        }}
+                        className="px-3 py-2 rounded-xl bg-white hover:bg-slate-100 text-[#1F3A5F] border border-[#1F3A5F]/20 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                        title="Download gambar QR kotak bersih (800x800)"
+                      >
+                        <Download className="w-3.5 h-3.5 text-[#F28C28] shrink-0" />
+                        <span>Download QR Saja</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard?.writeText(joinUrl);
+                          setCopiedDrawerLink(true);
+                          setTimeout(() => setCopiedDrawerLink(false), 2500);
+                        }}
+                        className="px-3 py-2 rounded-xl bg-white hover:bg-slate-100 text-[#1F3A5F] border border-[#1F3A5F]/20 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                      >
+                        {copiedDrawerLink ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                            <span className="text-emerald-700 font-bold">Link Tersalin!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3.5 h-3.5 text-[#1F3A5F]/70 shrink-0" />
+                            <span>Salin Link</span>
+                          </>
+                        )}
+                      </button>
+
+                      <a
+                        href={buildQrWhatsAppShareUrl(joinUrl, seminarTitle)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3 py-2 rounded-xl bg-[#25D366] hover:bg-[#1EBE5D] text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs cursor-pointer transition-colors"
+                        title="Buka WhatsApp untuk share tautan peserta"
+                      >
+                        <Share2 className="w-3.5 h-3.5 shrink-0" />
+                        <span>Share ke WhatsApp</span>
+                      </a>
+                    </div>
+
+                    <div className="flex justify-end pt-1">
+                      <button
+                        type="button"
+                        onClick={() => downloadQrCodeAsSvg('slide-drawer-qr-svg', 'QR-Peserta-Vektor.svg')}
+                        className="text-[11px] text-[#F28C28] hover:underline font-semibold cursor-pointer"
+                        title="Download file format vektor SVG"
+                      >
+                        Download Format Vektor (SVG)
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

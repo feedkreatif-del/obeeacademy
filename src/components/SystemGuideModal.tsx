@@ -533,6 +533,9 @@ export const SystemGuideModal: React.FC<SystemGuideModalProps> = ({
                     <li>
                       <strong>Buka Akses Slide ke HP Peserta:</strong> Jika peserta meminta materi dibagikan, geser saklar <strong>"Buka Akses Slide di HP: AKTIF"</strong> di Remote HP Anda.
                     </li>
+                    <li>
+                      <strong>Bagikan & Download Poster QR Peserta:</strong> Pada box <em>"Scan HP untuk Menjawab"</em> di layar proyektor atau laci QR materi slide, klik tombol <strong>"Download"</strong> untuk mengunduh poster gambar siap cetak (PNG) atau klik <strong>"Share ke WhatsApp"</strong> untuk langsung membagikan tautan interaktif ke grup WhatsApp peserta.
+                    </li>
                   </ol>
                 </div>
 

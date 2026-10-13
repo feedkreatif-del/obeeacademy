@@ -10,7 +10,7 @@ Platform tanya-jawab *real-time*, lembar kerja *Value Proposition* 7 tahap, *liv
    - Menampilkan 7 pertanyaan inti seminar dengan huruf besar yang terbaca dari belakang ruangan.
    - Tombol **Sebelumnya** & **Berikutnya** yang mengganti pertanyaan aktif di seluruh HP peserta secara *real-time*.
    - Fitur **Sorot Besar** (mengangkat jawaban ke banner utama panggung berukuran ekstra besar untuk dibedah mendalam) & **Sorot Kecil** (menyorot jawaban dalam kartu kompak berbingkai emas berkilau untuk membandingkan 2–4 jawaban sekaligus), serta tombol **Sembunyikan**.
-   - **QR Code Peserta Otomatis** yang langsung menyesuaikan dengan domain tempat aplikasi di-*deploy* (termasuk domain `.vercel.app`).
+   - **QR Code Peserta Otomatis & Fitur Download Lengkap**: Box *"Scan HP untuk Menjawab"* dilengkapi tombol **Download** instan untuk menyimpan poster grafis resolusi tinggi (PNG 900x1200), unduh QR bersih, unduh vektor SVG, salin tautan, serta tombol langsung *Share ke WhatsApp* peserta.
 
 2. **Materi 17 Slide Terintegrasi (`?view=slides`)**
    - Berisi seluruh 17 halaman materi *"Kenapa Pembeli Harus Pilih Kamu? (Value Proposition & Rational Value untuk UMKM Pemula)"*.
