@@ -64,6 +64,8 @@ const DEFAULT_SESSION_STATE: SessionStateDoc = {
   externalEmbedUrl: '',
   externalPlatform: 'slido',
   sessionName: 'Seminar Value Proposition PartnerUp | Obeecreatives',
+  spotlightAnswerId: '',
+  spotlightSize: 'none',
   updatedAt: Date.now(),
 };
 

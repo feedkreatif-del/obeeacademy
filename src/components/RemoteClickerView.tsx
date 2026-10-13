@@ -36,6 +36,7 @@ import {
   ThumbsUp,
   Share2,
   Download,
+  Maximize2,
 } from 'lucide-react';
 
 interface RemoteStepDetail {
@@ -80,6 +81,8 @@ interface RemoteClickerViewProps {
   onToggleStarQna: (qna: QnaDoc) => Promise<void>;
   onOpenGuide?: () => void;
   onDownloadCsv?: () => void;
+  activeSpotlightAnswerId?: string;
+  onToggleLargeSpotlight?: (ans: AnswerDoc) => void;
 }
 
 const DEFAULT_PIN = '2026';
@@ -107,6 +110,8 @@ export const RemoteClickerView: React.FC<RemoteClickerViewProps> = ({
   onToggleStarQna,
   onOpenGuide,
   onDownloadCsv,
+  activeSpotlightAnswerId,
+  onToggleLargeSpotlight,
 }) => {
   // Control Target Mode: 'slides' (17 Slides + PPT Points) vs 'interactive' (Direct 7 Questions / Polls / Q&A like Projector < >)
   const [remoteControlTab, setRemoteControlTab] = useState<'slides' | 'interactive'>('slides');
@@ -1175,28 +1180,57 @@ export const RemoteClickerView: React.FC<RemoteClickerViewProps> = ({
                   <p className="font-bold text-[#1F3A5F] text-sm">"{ans.text}"</p>
                   {ans.subText && <p className="text-[#1F3A5F]/75">{ans.subText}</p>}
                 </div>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    triggerHaptic(35);
-                    await onToggleStarAnswer(ans);
-                    if (activeSlideDrawer !== 'answers') {
-                      onUpdateSlideState({
-                        activeSlideDrawer: 'answers',
-                        activeQuestion: effectiveQuestionIndex,
-                        activeMode: 'worksheet',
-                      });
-                    }
-                  }}
-                  className={`px-3 py-2 rounded-xl font-bold shrink-0 flex items-center gap-1 cursor-pointer ${
-                    ans.star
-                      ? 'bg-[#F28C28] text-white'
-                      : 'bg-[#FFF7EC] text-[#1F3A5F] border border-[#F28C28]/40'
-                  }`}
-                >
-                  <Star className="w-3.5 h-3.5" />
-                  <span>{ans.star ? 'Disorot' : 'Sorot'}</span>
-                </button>
+                <div className="flex flex-col sm:flex-row items-end sm:items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      triggerHaptic(35);
+                      await onToggleStarAnswer(ans);
+                      if (activeSlideDrawer !== 'answers') {
+                        onUpdateSlideState({
+                          activeSlideDrawer: 'answers',
+                          activeQuestion: effectiveQuestionIndex,
+                          activeMode: 'worksheet',
+                        });
+                      }
+                    }}
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors ${
+                      ans.star
+                        ? 'bg-[#F28C28] text-white shadow-xs'
+                        : 'bg-[#FFF7EC] text-[#1F3A5F] border border-[#F28C28]/40 hover:bg-[#F28C28] hover:text-white'
+                    }`}
+                    title="Sorot Kecil: Beri Bintang"
+                  >
+                    <Star className={`w-3.5 h-3.5 ${ans.star ? 'fill-white' : ''}`} />
+                    <span>{ans.star ? 'Lepas Kecil' : 'Sorot Kecil'}</span>
+                  </button>
+
+                  {onToggleLargeSpotlight && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic([30, 50]);
+                        onToggleLargeSpotlight(ans);
+                        if (activeSlideDrawer !== 'answers') {
+                          onUpdateSlideState({
+                            activeSlideDrawer: 'answers',
+                            activeQuestion: effectiveQuestionIndex,
+                            activeMode: 'worksheet',
+                          });
+                        }
+                      }}
+                      className={`px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors ${
+                        activeSpotlightAnswerId === ans.id
+                          ? 'bg-[#1F3A5F] text-white shadow-xs'
+                          : 'bg-white text-[#1F3A5F] border border-[#1F3A5F]/20 hover:bg-[#1F3A5F] hover:text-white'
+                      }`}
+                      title="Sorot Besar: Fokuskan Jawaban ini secara Jumbo di Panggung"
+                    >
+                      <Maximize2 className="w-3.5 h-3.5" />
+                      <span>{activeSpotlightAnswerId === ans.id ? 'Tutup Besar' : 'Sorot Besar'}</span>
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>

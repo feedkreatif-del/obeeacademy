@@ -98,6 +98,8 @@ interface SlideDeckViewProps {
   allAnswers: AnswerDoc[];
   approvedQna: QnaDoc[];
   activeMode: InteractiveMode;
+  activeSpotlightAnswerId?: string;
+  onToggleLargeSpotlight?: (ans: AnswerDoc) => void;
 }
 
 export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
@@ -132,12 +134,25 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
   approvedAnswers,
   allAnswers,
   approvedQna,
+  activeSpotlightAnswerId,
+  onToggleLargeSpotlight,
 }) => {
   const stageRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [presenterDualMode, setPresenterDualMode] = useState(false);
   const [showRemoteQrModal, setShowRemoteQrModal] = useState(false);
   const [slideDirection, setSlideDirection] = useState<1 | -1>(1);
+  const [localSpotlightId, setLocalSpotlightId] = useState<string>('');
+
+  const effectiveSpotlightId = activeSpotlightAnswerId || localSpotlightId;
+
+  const handleToggleLargeSpotlight = (ans: AnswerDoc) => {
+    if (onToggleLargeSpotlight) {
+      onToggleLargeSpotlight(ans);
+    } else {
+      setLocalSpotlightId(localSpotlightId === ans.id ? '' : ans.id);
+    }
+  };
   const prevSlideRef = useRef<number>(activeSlideIndex);
 
   const remoteUrl = `${window.location.origin}${window.location.pathname}?view=remote`;
@@ -1433,18 +1448,37 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                           )}
                         </div>
                         {!isAudienceExtendWindow && (
-                          <div className="flex justify-end pt-2 border-t border-[#1F3A5F]/10">
-                            <button
-                              onClick={() => onToggleStarAnswer(ans)}
-                              className={`px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer ${
-                                ans.star
-                                  ? 'bg-[#F28C28] text-white'
-                                  : 'bg-[#FFF7EC] text-[#1F3A5F] border border-[#F28C28]/40'
-                              }`}
-                            >
-                              <Star className="w-3.5 h-3.5" />
-                              <span>{ans.star ? 'Lepas Sorot' : 'Sorot Besar'}</span>
-                            </button>
+                          <div className="flex flex-wrap items-center justify-between pt-2 border-t border-[#1F3A5F]/10 gap-2">
+                            <span className="text-[11px] text-[#1F3A5F]/50 font-medium">
+                              {effectiveSpotlightId === ans.id ? 'Sedang Sorot Besar di Layar' : ans.star ? 'Disorot Kecil' : 'Jawaban Masuk'}
+                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                onClick={() => onToggleStarAnswer(ans)}
+                                className={`px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors ${
+                                  ans.star
+                                    ? 'bg-[#F28C28] text-white'
+                                    : 'bg-[#FFF7EC] text-[#1F3A5F] border border-[#F28C28]/40 hover:bg-[#F28C28] hover:text-white'
+                                }`}
+                                title="Sorot Kecil: Beri Bintang & Aksen Sorot di Grid"
+                              >
+                                <Star className={`w-3.5 h-3.5 ${ans.star ? 'fill-white' : ''}`} />
+                                <span>{ans.star ? 'Lepas Sorot Kecil' : 'Sorot Kecil'}</span>
+                              </button>
+
+                              <button
+                                onClick={() => handleToggleLargeSpotlight(ans)}
+                                className={`px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors ${
+                                  effectiveSpotlightId === ans.id
+                                    ? 'bg-[#1F3A5F] text-white shadow-xs'
+                                    : 'bg-white text-[#1F3A5F] border border-[#1F3A5F]/20 hover:bg-[#1F3A5F] hover:text-white'
+                                }`}
+                                title="Sorot Besar: Fokuskan Jawaban ini dalam Ukuran Jumbo di Layar"
+                              >
+                                <Maximize2 className="w-3.5 h-3.5" />
+                                <span>{effectiveSpotlightId === ans.id ? 'Tutup Sorot Besar' : 'Sorot Besar'}</span>
+                              </button>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -2062,16 +2096,32 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                             )}
                             <p className="font-semibold text-[#1F3A5F]">"{ans.text}"</p>
                           </div>
-                          <button
-                            onClick={() => onToggleStarAnswer(ans)}
-                            className={`px-2.5 py-1 rounded-lg font-bold shrink-0 cursor-pointer ${
-                              ans.star
-                                ? 'bg-[#F28C28] text-white'
-                                : 'bg-[#FFF7EC] text-[#1F3A5F] border border-[#F28C28]/40'
-                            }`}
-                          >
-                            {ans.star ? 'Disorot' : 'Sorot'}
-                          </button>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              onClick={() => onToggleStarAnswer(ans)}
+                              className={`px-2 py-1 rounded-lg font-bold text-[11px] flex items-center gap-1 cursor-pointer transition-colors ${
+                                ans.star
+                                  ? 'bg-[#F28C28] text-white'
+                                  : 'bg-[#FFF7EC] text-[#1F3A5F] border border-[#F28C28]/40 hover:bg-[#F28C28] hover:text-white'
+                              }`}
+                              title="Sorot Kecil: Beri Bintang & Aksen Sorot"
+                            >
+                              <Star className={`w-3 h-3 ${ans.star ? 'fill-white' : ''}`} />
+                              <span>{ans.star ? 'Lepas Kecil' : 'Sorot Kecil'}</span>
+                            </button>
+                            <button
+                              onClick={() => handleToggleLargeSpotlight(ans)}
+                              className={`px-2 py-1 rounded-lg font-bold text-[11px] flex items-center gap-1 cursor-pointer transition-colors ${
+                                effectiveSpotlightId === ans.id
+                                  ? 'bg-[#1F3A5F] text-white shadow-xs'
+                                  : 'bg-white text-[#1F3A5F] border border-[#1F3A5F]/20 hover:bg-[#1F3A5F] hover:text-white'
+                              }`}
+                              title="Sorot Besar: Fokuskan Jawaban ini secara Jumbo di Panggung"
+                            >
+                              <Maximize2 className="w-3 h-3" />
+                              <span>{effectiveSpotlightId === ans.id ? 'Tutup Besar' : 'Sorot Besar'}</span>
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>

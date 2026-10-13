@@ -20,6 +20,8 @@ export interface SessionStateDoc {
   externalEmbedUrl: string;
   externalPlatform: 'slido' | 'mentimeter' | 'custom';
   sessionName: string;
+  spotlightAnswerId?: string;
+  spotlightSize?: 'large' | 'small' | 'none';
   updatedAt: number;
 }
 

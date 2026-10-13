@@ -16,6 +16,7 @@ import {
   Sparkles,
   Store,
   Settings,
+  Maximize2,
 } from 'lucide-react';
 
 interface ModerationViewProps {
@@ -38,6 +39,8 @@ interface ModerationViewProps {
   onSeedSampleData: () => Promise<void>;
   onDownloadCsv: () => void;
   onOpenContentEditor: () => void;
+  activeSpotlightAnswerId?: string;
+  onToggleLargeSpotlight?: (ans: AnswerDoc) => void;
 }
 
 export const ModerationView: React.FC<ModerationViewProps> = ({
@@ -60,6 +63,8 @@ export const ModerationView: React.FC<ModerationViewProps> = ({
   onSeedSampleData,
   onDownloadCsv,
   onOpenContentEditor,
+  activeSpotlightAnswerId,
+  onToggleLargeSpotlight,
 }) => {
   const [activeCategory, setActiveCategory] = useState<'answers' | 'qna' | 'embed'>('answers');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'hidden'>('all');
@@ -430,15 +435,31 @@ export const ModerationView: React.FC<ModerationViewProps> = ({
 
                         <button
                           onClick={() => onToggleStarAnswer(ans)}
-                          className={`px-3.5 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer ${
+                          className={`px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors ${
                             ans.star
-                              ? 'bg-[#F28C28] text-white'
+                              ? 'bg-[#F28C28] text-white shadow-xs'
                               : 'bg-[#FFF7EC] text-[#1F3A5F] border border-[#F28C28]/40 hover:bg-[#F28C28] hover:text-white'
                           }`}
+                          title="Sorot Kecil: Beri Bintang & Aksen Sorot di Layar"
                         >
-                          <Star className="w-3.5 h-3.5" />
-                          <span>{ans.star ? 'Disorot' : 'Sorot ke Layar'}</span>
+                          <Star className={`w-3.5 h-3.5 ${ans.star ? 'fill-white' : ''}`} />
+                          <span>{ans.star ? 'Lepas Sorot Kecil' : 'Sorot Kecil'}</span>
                         </button>
+
+                        {onToggleLargeSpotlight && (
+                          <button
+                            onClick={() => onToggleLargeSpotlight(ans)}
+                            className={`px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors ${
+                              activeSpotlightAnswerId === ans.id
+                                ? 'bg-[#1F3A5F] text-white shadow-xs'
+                                : 'bg-white text-[#1F3A5F] border border-[#1F3A5F]/20 hover:bg-[#1F3A5F] hover:text-white'
+                            }`}
+                            title="Sorot Besar: Fokuskan Jawaban ini secara Jumbo di Panggung"
+                          >
+                            <Maximize2 className="w-3.5 h-3.5" />
+                            <span>{activeSpotlightAnswerId === ans.id ? 'Tutup Sorot Besar' : 'Sorot Besar'}</span>
+                          </button>
+                        )}
 
                         <button
                           onClick={() => startEditingAnswer(ans)}

@@ -55,7 +55,9 @@ service cloud.firestore {
         'externalEmbedUrl',
         'externalPlatform',
         'sessionName',
-        'updatedAt'
+        'updatedAt',
+        'spotlightAnswerId',
+        'spotlightSize'
       ]) &&
       data.activeQuestion is int && data.activeQuestion >= 0 && data.activeQuestion <= 30 &&
       data.activeSlide is int && data.activeSlide >= 0 && data.activeSlide <= 50 &&
@@ -64,6 +66,8 @@ service cloud.firestore {
       (!('transitionStyle' in data) || (data.transitionStyle is string && data.transitionStyle in ['slide', 'zoom', 'fade'])) &&
       (!('activeSlideDrawer' in data) || (data.activeSlideDrawer is string && data.activeSlideDrawer in ['none', 'answers', 'poll', 'qna', 'qr'])) &&
       (!('allowParticipantSlideAccess' in data) || data.allowParticipantSlideAccess is bool) &&
+      (!('spotlightAnswerId' in data) || (data.spotlightAnswerId is string && data.spotlightAnswerId.size() <= 80)) &&
+      (!('spotlightSize' in data) || (data.spotlightSize is string && data.spotlightSize in ['large', 'small', 'none'])) &&
       data.activeMode is string && data.activeMode in ['worksheet', 'poll', 'qna', 'external'] &&
       data.activePollId is string && data.activePollId.size() <= 64 &&
       data.moderationEnabled is bool &&
