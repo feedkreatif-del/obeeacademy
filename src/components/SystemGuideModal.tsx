@@ -528,16 +528,10 @@ export const SystemGuideModal: React.FC<SystemGuideModalProps> = ({
                       <strong>Gunakan Contekan Panggung (Cue Cards):</strong> Di bawah tombol slide pada ponsel Anda, baca contekan rahasia berupa poin bicara, analogi nyata, dan durasi rekomendasi.
                     </li>
                     <li>
-                      <strong>Buka Jawaban / Polling di Layar Proyektor:</strong> Tombol <strong>"Tampilkan Jawaban"</strong> dan <strong>"Polling"</strong> adalah <em>fitur eksklusif kendali Pemateri</em> (tersedia di Slide Deck laptop dan Remote HP, dan sengaja tidak dimunculkan di HP peserta). Ini memastikan hanya pemateri yang berhak mengatur kapan jawaban audiens disorot ke panggung.
+                      <strong>Buka Jawaban / Polling di Layar Proyektor:</strong> Saat masuk ke sesi praktik, tekan tombol <strong>"Buka Jawaban"</strong> atau <strong>"Polling"</strong> pada ponsel Anda. Layar proyektor otomatis menampilkan interaksi tanpa Anda menyentuh laptop.
                     </li>
                     <li>
                       <strong>Buka Akses Slide ke HP Peserta:</strong> Jika peserta meminta materi dibagikan, geser saklar <strong>"Buka Akses Slide di HP: AKTIF"</strong> di Remote HP Anda.
-                    </li>
-                    <li>
-                      <strong>Pengaman Remote HP (Master PIN 2026):</strong> Remote HP dilindungi PIN agar tidak disentuh peserta sembarangan. Anda dapat membuka instan menggunakan tombol <em>"Buka Cepat PIN Master (2026)"</em>.
-                    </li>
-                    <li>
-                      <strong>Navigasi Mobile Bebas Hambatan & Tombol Dinamis "Aksi":</strong> Pada layar smartphone, menu navigasi slide horizontal kini memiliki baris berdedikasi penuh sehingga bebas dari tumpang tindih. Tombol Buku Panduan dan Unduh Rekap CSV disatukan secara elegan ke dalam <em>Tombol Dinamis "Aksi"</em> (dropdown) di baris atas serta dapat diunduh langsung dari bagian bawah Remote HP.
                     </li>
                   </ol>
                 </div>
@@ -569,8 +563,16 @@ export const SystemGuideModal: React.FC<SystemGuideModalProps> = ({
                     C. Panduan Untuk Tim Panitia & Moderasi (Co-Host)
                   </h4>
                   <p className="text-xs text-slate-600">
-                    Buka menu <strong>Moderasi</strong> di laptop operator. Pantau jawaban yang masuk. Beri tanda <strong>Bintang (*Star*)</strong> pada jawaban yang paling menarik dan inspiratif agar segera diproyeksikan ke layar panggung depan untuk dibahas oleh pemateri.
+                    Buka menu <strong>Moderasi</strong> di laptop operator. Pantau jawaban yang masuk. Gunakan dua jenis sorotan pada box jawaban peserta:
                   </p>
+                  <ul className="list-disc pl-5 space-y-1 text-xs text-slate-600">
+                    <li>
+                      <strong>⭐ Sorot Besar:</strong> Mengangkat jawaban ke banner utama panggung dengan tipografi jumbo (sangat terbaca dari baris belakang) untuk dibedah mendalam bersama pemateri.
+                    </li>
+                    <li>
+                      <strong>⭐ Sorot Kecil:</strong> Menyorot jawaban dalam kartu kompak berbingkai emas elegan di jajaran panggung, ideal saat ingin menampilkan 2–4 jawaban inspiratif sekaligus tanpa memenuhi seluruh layar.
+                    </li>
+                  </ul>
                 </div>
 
                 {/* D. Presenter Security & PIN System */}

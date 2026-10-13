@@ -9,7 +9,7 @@ Platform tanya-jawab *real-time*, lembar kerja *Value Proposition* 7 tahap, *liv
 1. **Layar Proyektor / Panggung (`?view=projector`)**
    - Menampilkan 7 pertanyaan inti seminar dengan huruf besar yang terbaca dari belakang ruangan.
    - Tombol **Sebelumnya** & **Berikutnya** yang mengganti pertanyaan aktif di seluruh HP peserta secara *real-time*.
-   - Fitur **Sorot (Spotlight)** untuk mengangkat 1 jawaban terbaik ke baris paling atas layar proyektor, serta **Sembunyikan** untuk menyaring jawaban.
+   - Fitur **Sorot Besar** (mengangkat jawaban ke banner utama panggung berukuran ekstra besar untuk dibedah mendalam) & **Sorot Kecil** (menyorot jawaban dalam kartu kompak berbingkai emas berkilau untuk membandingkan 2–4 jawaban sekaligus), serta tombol **Sembunyikan**.
    - **QR Code Peserta Otomatis** yang langsung menyesuaikan dengan domain tempat aplikasi di-*deploy* (termasuk domain `.vercel.app`).
 
 2. **Materi 17 Slide Terintegrasi (`?view=slides`)**

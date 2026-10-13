@@ -55,19 +55,15 @@ service cloud.firestore {
         'externalEmbedUrl',
         'externalPlatform',
         'sessionName',
-        'updatedAt',
-        'spotlightAnswerId',
-        'spotlightSize'
+        'updatedAt'
       ]) &&
       data.activeQuestion is int && data.activeQuestion >= 0 && data.activeQuestion <= 30 &&
       data.activeSlide is int && data.activeSlide >= 0 && data.activeSlide <= 50 &&
-      (!('activeSlideStep' in data) || (data.activeSlideStep is int && data.activeSlideStep >= 0 && data.activeSlideStep <= 100)) &&
+      (!('activeSlideStep' in data) || (data.activeSlideStep is int && data.activeSlideStep >= 0 && data.activeSlideStep <= 30)) &&
       (!('stepByStepEnabled' in data) || data.stepByStepEnabled is bool) &&
       (!('transitionStyle' in data) || (data.transitionStyle is string && data.transitionStyle in ['slide', 'zoom', 'fade'])) &&
       (!('activeSlideDrawer' in data) || (data.activeSlideDrawer is string && data.activeSlideDrawer in ['none', 'answers', 'poll', 'qna', 'qr'])) &&
       (!('allowParticipantSlideAccess' in data) || data.allowParticipantSlideAccess is bool) &&
-      (!('spotlightAnswerId' in data) || (data.spotlightAnswerId is string && data.spotlightAnswerId.size() <= 80)) &&
-      (!('spotlightSize' in data) || (data.spotlightSize is string && data.spotlightSize in ['large', 'small', 'none'])) &&
       data.activeMode is string && data.activeMode in ['worksheet', 'poll', 'qna', 'external'] &&
       data.activePollId is string && data.activePollId.size() <= 64 &&
       data.moderationEnabled is bool &&
@@ -129,6 +125,7 @@ service cloud.firestore {
         'participantId',
         'status',
         'star',
+        'spotlightSize',
         'likes',
         'mentorNote',
         'ts'
@@ -140,6 +137,7 @@ service cloud.firestore {
       data.participantId is string && data.participantId.size() >= 1 && data.participantId.size() <= 64 && data.participantId.matches('^[a-zA-Z0-9_\\-]+$') &&
       data.status is string && data.status in ['pending', 'approved', 'hidden'] &&
       data.star is bool &&
+      (!('spotlightSize' in data) || (data.spotlightSize is string && data.spotlightSize in ['besar', 'kecil'])) &&
       data.likes is int && data.likes >= 0 && data.likes <= 100000 &&
       data.mentorNote is string && data.mentorNote.size() <= 200 &&
       data.ts is int;

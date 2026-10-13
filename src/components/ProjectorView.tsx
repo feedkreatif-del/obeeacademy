@@ -35,14 +35,12 @@ interface ProjectorViewProps {
   onChangeQuestion: (newQIndex: number) => void;
   onChangeMode: (newMode: InteractiveMode) => void;
   onChangePoll: (pollId: string) => void;
-  onToggleStarAnswer: (answer: AnswerDoc) => Promise<void>;
+  onToggleStarAnswer: (answer: AnswerDoc, targetSize?: 'besar' | 'kecil') => Promise<void>;
   onHideAnswer: (answer: AnswerDoc) => Promise<void>;
   onToggleStarQna: (qna: QnaDoc) => Promise<void>;
   onHideQna: (qna: QnaDoc) => Promise<void>;
   onDownloadCsv: () => void;
   onSwitchToParticipantPreview: () => void;
-  activeSpotlightAnswerId?: string;
-  onToggleLargeSpotlight?: (answer: AnswerDoc) => void;
 }
 
 export const ProjectorView: React.FC<ProjectorViewProps> = ({
@@ -64,18 +62,15 @@ export const ProjectorView: React.FC<ProjectorViewProps> = ({
   onHideQna,
   onDownloadCsv,
   onSwitchToParticipantPreview,
-  activeSpotlightAnswerId,
-  onToggleLargeSpotlight,
 }) => {
   const [showQrModal, setShowQrModal] = useState(false);
   const [isFullscreenStage, setIsFullscreenStage] = useState(false);
-  const [localSpotlightId, setLocalSpotlightId] = useState<string>('');
 
   const totalQuestions = questions.length;
   const activeQIndex = Math.min(sessionState.activeQuestion, Math.max(0, totalQuestions - 1));
   const currentQuestion = questions[activeQIndex] || questions[0];
 
-  // Filter answers for current active question
+  // Filter answers for current active question, putting starred (Sorot) items at the very top
   const currentQuestionAnswers = approvedAnswers
     .filter((a) => a.q === activeQIndex)
     .sort((a, b) => {
@@ -83,18 +78,12 @@ export const ProjectorView: React.FC<ProjectorViewProps> = ({
       return b.ts - a.ts;
     });
 
-  const effectiveSpotlightId = sessionState.spotlightAnswerId || activeSpotlightAnswerId || localSpotlightId;
-  const largeSpotlightAnswer = currentQuestionAnswers.find((a) => a.id === effectiveSpotlightId);
-
-  const handleToggleLargeSpotlight = (ans: AnswerDoc) => {
-    if (onToggleLargeSpotlight) {
-      onToggleLargeSpotlight(ans);
-    } else {
-      setLocalSpotlightId(localSpotlightId === ans.id ? '' : ans.id);
-    }
-  };
-
-  const starredAnswers = currentQuestionAnswers.filter((a) => a.star);
+  const starredBigAnswers = currentQuestionAnswers.filter(
+    (a) => a.star && a.spotlightSize !== 'kecil'
+  );
+  const starredSmallAnswers = currentQuestionAnswers.filter(
+    (a) => a.star && a.spotlightSize === 'kecil'
+  );
   const regularAnswers = currentQuestionAnswers.filter((a) => !a.star);
 
   // Current Poll Calculation
@@ -328,167 +317,147 @@ export const ProjectorView: React.FC<ProjectorViewProps> = ({
             })}
           </div>
 
-          {/* 1. JUMBO SPOTLIGHT (SOROT BESAR) FOKUS PANGGUNG */}
-          {largeSpotlightAnswer && (
-            <div className="bg-gradient-to-br from-white via-[#FFF9F2] to-amber-50/50 border-4 border-[#F28C28] rounded-3xl p-6 sm:p-10 shadow-2xl relative overflow-hidden animate-in fade-in zoom-in-95 duration-200 mb-6">
-              <div className="flex flex-wrap items-center justify-between gap-4 mb-6 pb-4 border-b border-[#F28C28]/20">
-                <div className="flex flex-wrap items-center gap-3">
-                  <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#F28C28] text-white text-xs sm:text-sm font-black tracking-wide shadow-sm">
-                    <Sparkles className="w-4 h-4 fill-white" />
-                    <span>SOROT BESAR PANGGUNG</span>
-                  </span>
-                  {largeSpotlightAnswer.star && (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold">
-                      <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-600" />
-                      <span>Disorot Kecil</span>
-                    </span>
-                  )}
-                  {largeSpotlightAnswer.businessName && (
-                    <span className="text-xl sm:text-2xl font-display font-black text-[#2A9D8F] flex items-center gap-2">
-                      <Store className="w-6 h-6 shrink-0" />
-                      <span>{largeSpotlightAnswer.businessName}</span>
-                    </span>
-                  )}
-                </div>
+          {/* SPOTLIGHT (SOROT BESAR & KECIL) ANSWERS */}
+          {(starredBigAnswers.length > 0 || starredSmallAnswers.length > 0) && (
+            <div className="space-y-5">
+              {/* 1. JAWABAN DISOROT BESAR (HERO BANNER PANGGUNG) */}
+              {starredBigAnswers.map((ans) => (
+                <div
+                  key={ans.id}
+                  className="bg-white border-3 sm:border-4 border-[#F28C28] rounded-2xl sm:rounded-3xl p-6 sm:p-9 shadow-lg ring-4 ring-[#F28C28]/15 transition-all"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <span className="inline-flex items-center gap-2 text-sm sm:text-base font-extrabold text-[#F28C28] bg-[#FFF7EC] px-3.5 py-1.5 rounded-xl border border-[#F28C28]/40">
+                        <Star className="w-5 h-5 fill-[#F28C28]" />
+                        <span>⭐ JAWABAN DISOROT BESAR (PANGGUNG UTAMA)</span>
+                      </span>
+                      {ans.businessName && (
+                        <>
+                          <span aria-hidden="true" className="text-[#1F3A5F]/30 hidden sm:inline">·</span>
+                          <span className="text-lg sm:text-2xl font-display font-bold text-[#2A9D8F] flex items-center gap-1.5">
+                            <Store className="w-5 h-5" />
+                            {ans.businessName}
+                          </span>
+                        </>
+                      )}
+                    </div>
 
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => onToggleStarAnswer(largeSpotlightAnswer)}
-                    className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs ${
-                      largeSpotlightAnswer.star
-                        ? 'bg-[#F28C28] text-white hover:bg-[#d97719]'
-                        : 'bg-white text-[#1F3A5F] border border-[#F28C28]/50 hover:bg-[#FFF7EC]'
-                    }`}
-                    title="Tandai Bintang / Sorot Kecil"
-                  >
-                    <Star className={`w-4 h-4 ${largeSpotlightAnswer.star ? 'fill-white' : 'text-[#F28C28]'}`} />
-                    <span>{largeSpotlightAnswer.star ? 'Lepas Sorot Kecil' : 'Sorot Kecil'}</span>
-                  </button>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        onClick={() => onToggleStarAnswer(ans, 'kecil')}
+                        className="px-3.5 py-1.5 rounded-xl bg-[#FFF7EC] hover:bg-[#F28C28]/20 text-[#1F3A5F] border border-[#F28C28]/50 text-xs sm:text-sm font-bold transition-colors cursor-pointer"
+                        title="Ubah ukuran sorot menjadi lebih kecil / ringkas"
+                      >
+                        Ubah ke Sorot Kecil
+                      </button>
+                      <button
+                        onClick={() => onToggleStarAnswer(ans, 'besar')}
+                        className="px-3.5 py-1.5 rounded-xl bg-[#F28C28] text-white text-xs sm:text-sm font-bold hover:bg-[#d97719] transition-colors cursor-pointer shadow-xs"
+                      >
+                        Lepas Sorot
+                      </button>
+                      <button
+                        onClick={() => onHideAnswer(ans)}
+                        className="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 hover:bg-red-100 hover:text-red-700 text-xs sm:text-sm font-semibold transition-colors cursor-pointer"
+                      >
+                        Sembunyikan
+                      </button>
+                    </div>
+                  </div>
 
-                  <button
-                    onClick={() => handleToggleLargeSpotlight(largeSpotlightAnswer)}
-                    className="px-4 py-2 rounded-xl bg-[#1F3A5F] hover:bg-[#162a45] text-white text-xs sm:text-sm font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
-                    title="Kembalikan ke Tampilan Grid Biasa"
-                  >
-                    <Minimize2 className="w-4 h-4 text-amber-300" />
-                    <span>Tutup Sorot Besar</span>
-                  </button>
-
-                  <button
-                    onClick={() => onHideAnswer(largeSpotlightAnswer)}
-                    className="px-3 py-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-red-100 hover:text-red-700 text-xs sm:text-sm font-bold transition-colors cursor-pointer"
-                  >
-                    <EyeOff className="w-4 h-4" />
-                    <span className="hidden sm:inline">Sembunyikan</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Jumbo Text Quote */}
-              <div className="my-4">
-                <p className="font-display text-3xl sm:text-5xl lg:text-6xl font-extrabold text-[#1F3A5F] leading-tight tracking-tight">
-                  "{largeSpotlightAnswer.text}"
-                </p>
-
-                {largeSpotlightAnswer.subText && (
-                  <p className="text-xl sm:text-3xl text-[#1F3A5F]/85 mt-4 sm:mt-6 font-medium leading-relaxed">
-                    {largeSpotlightAnswer.subText}
+                  <p className="font-display text-2xl sm:text-4xl lg:text-5xl font-black text-[#1F3A5F] leading-tight sm:leading-snug">
+                    "{ans.text}"
                   </p>
-                )}
-              </div>
 
-              {largeSpotlightAnswer.mentorNote && (
-                <div className="mt-6 pt-4 border-t border-[#1F3A5F]/15 flex items-start sm:items-center gap-2.5 text-base sm:text-xl text-[#2A9D8F] font-bold">
-                  <Sparkles className="w-6 h-6 shrink-0 text-[#F28C28]" />
-                  <span>Catatan Pembahasan Panggung: {largeSpotlightAnswer.mentorNote}</span>
+                  {ans.subText && (
+                    <p className="text-lg sm:text-2xl text-[#1F3A5F]/85 mt-3 sm:mt-4 font-medium leading-relaxed">
+                      {ans.subText}
+                    </p>
+                  )}
+
+                  {ans.mentorNote && (
+                    <div className="mt-5 pt-4 border-t border-[#1F3A5F]/10 flex items-center gap-2 text-base sm:text-xl text-[#2A9D8F] font-bold">
+                      <Sparkles className="w-5 h-5 shrink-0" />
+                      <span>Catatan Pembahasan: {ans.mentorNote}</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {/* 2. JAWABAN DISOROT KECIL (GRID KARTU KOMPAK / RINGKAS) */}
+              {starredSmallAnswers.length > 0 && (
+                <div className="space-y-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-[#F28C28] block pl-1">
+                    JAWABAN DISOROT KECIL / RINGKAS ({starredSmallAnswers.length}):
+                  </span>
+                  <div className={`grid grid-cols-1 gap-4 ${starredSmallAnswers.length > 1 ? 'md:grid-cols-2' : ''}`}>
+                    {starredSmallAnswers.map((ans) => (
+                      <div
+                        key={ans.id}
+                        className="bg-[#FFFDF8] border-2 border-[#F28C28] rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col justify-between gap-3 transition-all"
+                      >
+                        <div className="space-y-2">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#F28C28] bg-white px-2.5 py-1 rounded-lg border border-[#F28C28]/40">
+                              <Star className="w-3.5 h-3.5 fill-[#F28C28]" />
+                              <span>Sorot Kecil</span>
+                            </span>
+                            {ans.businessName && (
+                              <span className="text-sm sm:text-base font-bold text-[#2A9D8F] flex items-center gap-1">
+                                <Store className="w-4 h-4" />
+                                {ans.businessName}
+                              </span>
+                            )}
+                          </div>
+
+                          <p className="font-display text-lg sm:text-2xl font-bold text-[#1F3A5F] leading-snug">
+                            "{ans.text}"
+                          </p>
+
+                          {ans.subText && (
+                            <p className="text-sm sm:text-base text-[#1F3A5F]/80 font-medium">
+                              {ans.subText}
+                            </p>
+                          )}
+
+                          {ans.mentorNote && (
+                            <p className="text-xs sm:text-sm text-[#2A9D8F] font-semibold pt-1">
+                              Catatan: {ans.mentorNote}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="pt-2 border-t border-[#1F3A5F]/10 flex flex-wrap items-center justify-end gap-1.5 mt-auto">
+                          <button
+                            onClick={() => onToggleStarAnswer(ans, 'besar')}
+                            className="px-2.5 py-1 rounded-lg bg-[#F28C28] hover:bg-[#d97719] text-white text-xs font-bold transition-colors cursor-pointer"
+                            title="Perbesar ke Sorot Besar di panggung utama"
+                          >
+                            Perbesar (Sorot Besar)
+                          </button>
+                          <button
+                            onClick={() => onToggleStarAnswer(ans, 'kecil')}
+                            className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#1F3A5F] text-xs font-semibold transition-colors cursor-pointer"
+                          >
+                            Lepas Sorot
+                          </button>
+                          <button
+                            onClick={() => onHideAnswer(ans)}
+                            className="px-2 py-1 rounded-lg bg-slate-100 hover:bg-red-100 text-slate-600 hover:text-red-700 text-xs font-medium transition-colors cursor-pointer"
+                          >
+                            Sembunyikan
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
           )}
 
-          {/* 2. JAWABAN DISOROT KECIL (PIN GRID) */}
-          {starredAnswers.filter((a) => a.id !== effectiveSpotlightId).length > 0 && (
-            <div className="space-y-4 mb-6">
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#F28C28]">
-                <Star className="w-4 h-4 fill-[#F28C28]" />
-                <span>Jawaban Disorot Kecil ({starredAnswers.filter((a) => a.id !== effectiveSpotlightId).length})</span>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {starredAnswers
-                  .filter((a) => a.id !== effectiveSpotlightId)
-                  .map((ans) => (
-                    <div
-                      key={ans.id}
-                      className="bg-white border-3 border-[#F28C28] rounded-2xl p-6 shadow-md transition-all flex flex-col justify-between gap-4"
-                    >
-                      <div className="space-y-3">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#F28C28] bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200">
-                            <Star className="w-3.5 h-3.5 fill-[#F28C28]" />
-                            <span>DISOROT KECIL</span>
-                          </span>
-                          {ans.businessName && (
-                            <span className="text-base font-display font-bold text-[#2A9D8F] flex items-center gap-1">
-                              <Store className="w-4 h-4" />
-                              {ans.businessName}
-                            </span>
-                          )}
-                        </div>
-
-                        <p className="font-display text-xl sm:text-2xl font-bold text-[#1F3A5F] leading-snug">
-                          "{ans.text}"
-                        </p>
-
-                        {ans.subText && (
-                          <p className="text-base text-[#1F3A5F]/80 font-medium">
-                            {ans.subText}
-                          </p>
-                        )}
-
-                        {ans.mentorNote && (
-                          <p className="text-xs sm:text-sm font-semibold text-[#2A9D8F] pt-2 border-t border-[#1F3A5F]/10">
-                            Catatan: {ans.mentorNote}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="pt-3 border-t border-[#1F3A5F]/10 flex flex-wrap items-center justify-between gap-2 mt-auto">
-                        <span className="text-xs font-semibold text-[#1F3A5F]/50">
-                          #{ans.q + 1} · {new Date(ans.ts).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            onClick={() => onToggleStarAnswer(ans)}
-                            className="px-3 py-1.5 rounded-lg bg-[#F28C28] text-white text-xs font-bold hover:bg-[#d97719] transition-colors cursor-pointer flex items-center gap-1 shadow-xs"
-                            title="Lepas tanda bintang sorot kecil"
-                          >
-                            <Star className="w-3.5 h-3.5 fill-white" />
-                            <span>Lepas Sorot Kecil</span>
-                          </button>
-                          <button
-                            onClick={() => handleToggleLargeSpotlight(ans)}
-                            className="px-3 py-1.5 rounded-lg bg-[#1F3A5F] hover:bg-[#162a45] text-white text-xs font-bold transition-colors cursor-pointer flex items-center gap-1 shadow-xs"
-                            title="Tampilkan dalam Sorot Besar Jumbo"
-                          >
-                            <Maximize2 className="w-3.5 h-3.5" />
-                            <span>Sorot Besar</span>
-                          </button>
-                          <button
-                            onClick={() => onHideAnswer(ans)}
-                            className="p-1.5 rounded-lg bg-slate-100 hover:bg-red-100 text-slate-600 hover:text-red-700 text-xs transition-colors cursor-pointer"
-                            title="Sembunyikan"
-                          >
-                            <EyeOff className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </div>
-          )}
-
-          {/* 3. REGULAR ANSWERS KANBAN GRID */}
+          {/* REGULAR ANSWERS KANBAN GRID (Dynamic Sizing: Few Cards = Large, Many Cards = Proportional) */}
           {currentQuestionAnswers.length === 0 ? (
             <div className="bg-white border border-[#1F3A5F]/15 rounded-2xl p-12 text-center">
               <p className="font-display text-2xl sm:text-3xl font-bold text-[#1F3A5F]/60">
@@ -508,108 +477,110 @@ export const ProjectorView: React.FC<ProjectorViewProps> = ({
                   : 'md:grid-cols-2 lg:grid-cols-3'
               }`}
             >
-              {regularAnswers
-                .filter((a) => a.id !== effectiveSpotlightId)
-                .map((ans) => {
-                  const isFewCards = regularAnswers.length <= 2;
-                  const isMediumCards = regularAnswers.length >= 3 && regularAnswers.length <= 4;
-                  return (
-                    <div
-                      key={ans.id}
-                      className={`h-full bg-white border-2 border-[#1F3A5F]/15 rounded-2xl ${
-                        isFewCards ? 'p-7 sm:p-8 min-h-[240px]' : 'p-6 min-h-[220px]'
-                      } flex flex-col justify-between gap-4 shadow-xs hover:border-[#2A9D8F] transition-colors`}
-                    >
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between gap-2">
-                          {ans.businessName ? (
-                            <div
-                              className={`flex items-center gap-2 font-bold text-[#2A9D8F] truncate ${
-                                isFewCards ? 'text-lg sm:text-2xl' : 'text-base sm:text-lg'
-                              }`}
-                            >
-                              <Store className="w-5 h-5 shrink-0" />
-                              <span className="truncate">{ans.businessName}</span>
-                            </div>
-                          ) : (
-                            <span className="text-sm font-semibold text-[#1F3A5F]/50">
-                              Peserta UMKM
-                            </span>
-                          )}
-                          <span className="font-mono text-xs text-[#1F3A5F]/50 tabular-nums shrink-0">
-                            {new Date(ans.ts).toLocaleTimeString('id-ID', {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
-                          </span>
-                        </div>
-
-                        <p
-                          className={`font-display font-bold text-[#1F3A5F] leading-snug ${
-                            isFewCards
-                              ? 'text-2xl sm:text-4xl'
-                              : isMediumCards
-                              ? 'text-xl sm:text-3xl'
-                              : 'text-xl sm:text-2xl line-clamp-4'
-                          }`}
-                        >
-                          {ans.text}
-                        </p>
-
-                        {ans.subText && (
-                          <p
-                            className={`text-[#1F3A5F]/80 leading-relaxed font-medium ${
-                              isFewCards
-                                ? 'text-lg sm:text-2xl'
-                                : isMediumCards
-                                ? 'text-base sm:text-xl'
-                                : 'text-base sm:text-lg line-clamp-3'
+              {regularAnswers.map((ans) => {
+                const isFewCards = regularAnswers.length <= 2;
+                const isMediumCards = regularAnswers.length >= 3 && regularAnswers.length <= 4;
+                return (
+                  <div
+                    key={ans.id}
+                    className={`h-full bg-white border-2 border-[#1F3A5F]/15 rounded-2xl ${
+                      isFewCards ? 'p-7 sm:p-8 min-h-[240px]' : 'p-6 min-h-[220px]'
+                    } flex flex-col justify-between gap-4 shadow-xs hover:border-[#2A9D8F] transition-colors`}
+                  >
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-2">
+                        {ans.businessName ? (
+                          <div
+                            className={`flex items-center gap-2 font-bold text-[#2A9D8F] truncate ${
+                              isFewCards ? 'text-lg sm:text-2xl' : 'text-base sm:text-lg'
                             }`}
                           >
-                            {ans.subText}
-                          </p>
+                            <Store className="w-5 h-5 shrink-0" />
+                            <span className="truncate">{ans.businessName}</span>
+                          </div>
+                        ) : (
+                          <span className="text-sm font-semibold text-[#1F3A5F]/50">
+                            Peserta UMKM
+                          </span>
                         )}
-
-                        {ans.mentorNote && (
-                          <p className="text-sm sm:text-base font-semibold text-[#2A9D8F] pt-2 border-t border-[#1F3A5F]/10">
-                            Catatan: {ans.mentorNote}
-                          </p>
-                        )}
+                        <span className="font-mono text-xs text-[#1F3A5F]/50 tabular-nums shrink-0">
+                          {new Date(ans.ts).toLocaleTimeString('id-ID', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </span>
                       </div>
 
-                      <div className="pt-3 border-t border-[#1F3A5F]/10 flex flex-wrap items-center justify-between gap-2 shrink-0 mt-auto">
-                        <span className="text-xs sm:text-sm font-semibold text-[#1F3A5F]/60">
-                          Bagian #{ans.q + 1}
-                        </span>
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <button
-                            onClick={() => onToggleStarAnswer(ans)}
-                            className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-[#FFF7EC] hover:bg-[#F28C28] text-[#1F3A5F] hover:text-white border border-[#F28C28]/40 text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
-                            title="Sorot Kecil: Tandai Bintang & Aksen Sorot di Grid"
-                          >
-                            <Star className="w-3.5 h-3.5" />
-                            <span>Sorot Kecil</span>
-                          </button>
-                          <button
-                            onClick={() => handleToggleLargeSpotlight(ans)}
-                            className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-white hover:bg-[#1F3A5F] text-[#1F3A5F] hover:text-white border border-[#1F3A5F]/20 text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
-                            title="Sorot Besar: Fokuskan Jawaban ini secara Jumbo di Panggung"
-                          >
-                            <Maximize2 className="w-3.5 h-3.5" />
-                            <span>Sorot Besar</span>
-                          </button>
-                          <button
-                            onClick={() => onHideAnswer(ans)}
-                            className="p-1.5 rounded-lg bg-slate-100 hover:bg-red-100 text-slate-600 hover:text-red-700 text-xs transition-colors cursor-pointer"
-                            title="Sembunyikan Jawaban"
-                          >
-                            <EyeOff className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+                      <p
+                        className={`font-display font-bold text-[#1F3A5F] leading-snug ${
+                          isFewCards
+                            ? 'text-2xl sm:text-4xl'
+                            : isMediumCards
+                            ? 'text-xl sm:text-3xl'
+                            : 'text-xl sm:text-2xl line-clamp-4'
+                        }`}
+                      >
+                        {ans.text}
+                      </p>
+
+                      {ans.subText && (
+                        <p
+                          className={`text-[#1F3A5F]/80 leading-relaxed font-medium ${
+                            isFewCards
+                              ? 'text-lg sm:text-2xl'
+                              : isMediumCards
+                              ? 'text-base sm:text-xl'
+                              : 'text-base sm:text-lg line-clamp-3'
+                          }`}
+                        >
+                          {ans.subText}
+                        </p>
+                      )}
+
+                      {ans.mentorNote && (
+                        <p className="text-sm sm:text-base font-semibold text-[#2A9D8F] pt-2 border-t border-[#1F3A5F]/10">
+                          Catatan: {ans.mentorNote}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="pt-3 border-t border-[#1F3A5F]/10 flex flex-wrap items-center justify-between gap-2 shrink-0 mt-auto">
+                      <span className="text-xs sm:text-sm font-semibold text-[#1F3A5F]/60">
+                        Bagian #{ans.q + 1}
+                      </span>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => onToggleStarAnswer(ans, 'besar')}
+                          className="px-3 py-1.5 rounded-lg bg-[#F28C28] hover:bg-[#d97719] text-white text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-xs hover:shadow transition-all cursor-pointer"
+                          title="Sorot jawaban ini dalam ukuran besar di panggung utama"
+                        >
+                          <Star className="w-3.5 h-3.5 fill-white" />
+                          <span>Sorot Besar</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onToggleStarAnswer(ans, 'kecil')}
+                          className="px-3 py-1.5 rounded-lg bg-[#FFF7EC] hover:bg-[#F28C28]/20 text-[#1F3A5F] border border-[#F28C28]/60 text-xs sm:text-sm font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                          title="Sorot jawaban ini dalam ukuran kecil / ringkas di panggung"
+                        >
+                          <Star className="w-3.5 h-3.5 text-[#F28C28]" />
+                          <span>Sorot Kecil</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onHideAnswer(ans)}
+                          className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-red-100 text-slate-600 hover:text-red-700 text-xs sm:text-sm font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+                          title="Sembunyikan dari layar proyektor"
+                        >
+                          <EyeOff className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">Sembunyikan</span>
+                        </button>
                       </div>
                     </div>
-                  );
-                })}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

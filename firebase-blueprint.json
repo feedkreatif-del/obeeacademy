@@ -172,6 +172,11 @@
           "type": "boolean",
           "description": "Whether this answer is spotlighted on the projector"
         },
+        "spotlightSize": {
+          "type": "string",
+          "enum": ["besar", "kecil"],
+          "description": "Spotlight format style: besar (hero stage banner) or kecil (compact highlighted card)"
+        },
         "likes": {
           "type": "integer",
           "description": "Number of likes/upvotes"

@@ -20,8 +20,6 @@ export interface SessionStateDoc {
   externalEmbedUrl: string;
   externalPlatform: 'slido' | 'mentimeter' | 'custom';
   sessionName: string;
-  spotlightAnswerId?: string;
-  spotlightSize?: 'large' | 'small' | 'none';
   updatedAt: number;
 }
 
@@ -54,6 +52,7 @@ export interface AnswerDoc {
   participantId: string;
   status: 'pending' | 'approved' | 'hidden';
   star: boolean;
+  spotlightSize?: 'besar' | 'kecil';
   likes: number;
   mentorNote: string;
   ts: number;

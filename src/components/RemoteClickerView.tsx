@@ -35,8 +35,6 @@ import {
   Presentation,
   ThumbsUp,
   Share2,
-  Download,
-  Maximize2,
 } from 'lucide-react';
 
 interface RemoteStepDetail {
@@ -76,13 +74,10 @@ interface RemoteClickerViewProps {
   }) => void;
   onSyncQuestionOnly: (questionIndex: number) => void;
   onSyncPollOnly: (pollId: string) => void;
-  onToggleStarAnswer: (ans: AnswerDoc) => Promise<void>;
+  onToggleStarAnswer: (ans: AnswerDoc, targetSize?: 'besar' | 'kecil') => Promise<void>;
   onApproveAnswer: (ans: AnswerDoc) => Promise<void>;
   onToggleStarQna: (qna: QnaDoc) => Promise<void>;
   onOpenGuide?: () => void;
-  onDownloadCsv?: () => void;
-  activeSpotlightAnswerId?: string;
-  onToggleLargeSpotlight?: (ans: AnswerDoc) => void;
 }
 
 const DEFAULT_PIN = '2026';
@@ -109,9 +104,6 @@ export const RemoteClickerView: React.FC<RemoteClickerViewProps> = ({
   onApproveAnswer,
   onToggleStarQna,
   onOpenGuide,
-  onDownloadCsv,
-  activeSpotlightAnswerId,
-  onToggleLargeSpotlight,
 }) => {
   // Control Target Mode: 'slides' (17 Slides + PPT Points) vs 'interactive' (Direct 7 Questions / Polls / Q&A like Projector < >)
   const [remoteControlTab, setRemoteControlTab] = useState<'slides' | 'interactive'>('slides');
@@ -162,7 +154,7 @@ export const RemoteClickerView: React.FC<RemoteClickerViewProps> = ({
 
   const handlePinSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (pinInput.trim() === savedPin || pinInput.trim() === DEFAULT_PIN) {
+    if (pinInput.trim() === savedPin) {
       triggerHaptic([30, 50, 30]);
       setIsUnlocked(true);
       setPinError(false);
@@ -183,7 +175,7 @@ export const RemoteClickerView: React.FC<RemoteClickerViewProps> = ({
     setPinError(false);
     const next = (pinInput + digit).slice(0, 6);
     setPinInput(next);
-    if (next === savedPin || next === DEFAULT_PIN) {
+    if (next === savedPin) {
       triggerHaptic([30, 50, 30]);
       setIsUnlocked(true);
       setPinInput('');
@@ -443,7 +435,7 @@ export const RemoteClickerView: React.FC<RemoteClickerViewProps> = ({
       activeQuestion: qIdx,
       activeMode: 'worksheet',
       activeSlide: linkedSlideIdx,
-      activeSlideStep: 20, // Reveal points on that slide so the question box is visible
+      activeSlideStep: 99, // Reveal all points on that slide so the question box is visible
       activeSlideDrawer: activeSlideDrawer === 'answers' ? 'answers' : 'none',
     });
   };
@@ -543,25 +535,6 @@ export const RemoteClickerView: React.FC<RemoteClickerViewProps> = ({
                 className="py-3.5 rounded-2xl bg-[#F28C28] hover:bg-[#d97719] text-xs font-extrabold text-white cursor-pointer"
               >
                 Buka
-              </button>
-            </div>
-
-            <div className="pt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  triggerHaptic([30, 50, 30]);
-                  setIsUnlocked(true);
-                  try {
-                    window.sessionStorage.setItem('partnerup_remote_unlocked_v1', 'true');
-                  } catch {
-                    // ignore
-                  }
-                }}
-                className="w-full py-2.5 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-white/90 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer border border-white/20 transition-colors"
-              >
-                <Unlock className="w-4 h-4 text-[#F28C28]" />
-                <span>Buka Cepat dengan PIN Master (2026)</span>
               </button>
             </div>
           </form>
@@ -966,7 +939,7 @@ export const RemoteClickerView: React.FC<RemoteClickerViewProps> = ({
                         activePollId: p.id,
                         activeMode: 'poll',
                         ...(p.linkedSlideIndex !== undefined
-                          ? { activeSlide: p.linkedSlideIndex, activeSlideStep: 20 }
+                          ? { activeSlide: p.linkedSlideIndex, activeSlideStep: 99 }
                           : {}),
                       });
                     }}
@@ -1180,37 +1153,29 @@ export const RemoteClickerView: React.FC<RemoteClickerViewProps> = ({
                   <p className="font-bold text-[#1F3A5F] text-sm">"{ans.text}"</p>
                   {ans.subText && <p className="text-[#1F3A5F]/75">{ans.subText}</p>}
                 </div>
-                <div className="flex flex-col sm:flex-row items-end sm:items-center gap-1.5 shrink-0">
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      triggerHaptic(35);
-                      await onToggleStarAnswer(ans);
-                      if (activeSlideDrawer !== 'answers') {
-                        onUpdateSlideState({
-                          activeSlideDrawer: 'answers',
-                          activeQuestion: effectiveQuestionIndex,
-                          activeMode: 'worksheet',
-                        });
-                      }
-                    }}
-                    className={`px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors ${
-                      ans.star
-                        ? 'bg-[#F28C28] text-white shadow-xs'
-                        : 'bg-[#FFF7EC] text-[#1F3A5F] border border-[#F28C28]/40 hover:bg-[#F28C28] hover:text-white'
-                    }`}
-                    title="Sorot Kecil: Beri Bintang"
-                  >
-                    <Star className={`w-3.5 h-3.5 ${ans.star ? 'fill-white' : ''}`} />
-                    <span>{ans.star ? 'Lepas Kecil' : 'Sorot Kecil'}</span>
-                  </button>
-
-                  {onToggleLargeSpotlight && (
+                {ans.star ? (
+                  <div className="flex flex-col gap-1 shrink-0">
+                    <span className="text-[10px] font-bold text-[#F28C28] bg-[#FFF7EC] px-2 py-0.5 rounded text-center border border-[#F28C28]/40">
+                      {ans.spotlightSize === 'kecil' ? 'Sorot Kecil' : 'Sorot Besar'}
+                    </span>
                     <button
                       type="button"
-                      onClick={() => {
-                        triggerHaptic([30, 50]);
-                        onToggleLargeSpotlight(ans);
+                      onClick={async () => {
+                        triggerHaptic(35);
+                        await onToggleStarAnswer(ans);
+                      }}
+                      className="px-2.5 py-1.5 rounded-xl font-bold bg-[#F28C28] text-white text-xs cursor-pointer"
+                    >
+                      Lepas
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        triggerHaptic(35);
+                        await onToggleStarAnswer(ans, 'besar');
                         if (activeSlideDrawer !== 'answers') {
                           onUpdateSlideState({
                             activeSlideDrawer: 'answers',
@@ -1219,18 +1184,33 @@ export const RemoteClickerView: React.FC<RemoteClickerViewProps> = ({
                           });
                         }
                       }}
-                      className={`px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors ${
-                        activeSpotlightAnswerId === ans.id
-                          ? 'bg-[#1F3A5F] text-white shadow-xs'
-                          : 'bg-white text-[#1F3A5F] border border-[#1F3A5F]/20 hover:bg-[#1F3A5F] hover:text-white'
-                      }`}
-                      title="Sorot Besar: Fokuskan Jawaban ini secara Jumbo di Panggung"
+                      className="px-2.5 py-1.5 rounded-xl font-bold bg-[#F28C28] text-white text-xs flex items-center justify-center gap-1 cursor-pointer shadow-xs"
+                      title="Sorot Besar di panggung proyektor"
                     >
-                      <Maximize2 className="w-3.5 h-3.5" />
-                      <span>{activeSpotlightAnswerId === ans.id ? 'Tutup Besar' : 'Sorot Besar'}</span>
+                      <Star className="w-3 h-3 fill-white" />
+                      <span>S.Besar</span>
                     </button>
-                  )}
-                </div>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        triggerHaptic(35);
+                        await onToggleStarAnswer(ans, 'kecil');
+                        if (activeSlideDrawer !== 'answers') {
+                          onUpdateSlideState({
+                            activeSlideDrawer: 'answers',
+                            activeQuestion: effectiveQuestionIndex,
+                            activeMode: 'worksheet',
+                          });
+                        }
+                      }}
+                      className="px-2.5 py-1.5 rounded-xl font-bold bg-[#FFF7EC] text-[#1F3A5F] border border-[#F28C28]/40 text-xs flex items-center justify-center gap-1 cursor-pointer"
+                      title="Sorot Kecil di panggung proyektor"
+                    >
+                      <Star className="w-3 h-3 text-[#F28C28]" />
+                      <span>S.Kecil</span>
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -1377,36 +1357,20 @@ export const RemoteClickerView: React.FC<RemoteClickerViewProps> = ({
         </div>
       </div>
 
-      {/* 9. PANDUAN TEKNIS & DOKUMEN REKAP SESI */}
-      {(onOpenGuide || onDownloadCsv) && (
-        <div className="pt-1 flex flex-col sm:flex-row gap-2">
-          {onOpenGuide && (
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic(20);
-                onOpenGuide();
-              }}
-              className="flex-1 py-2.5 px-3 rounded-xl bg-white hover:bg-slate-50 border border-[#1F3A5F]/20 text-[#1F3A5F] text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition-colors shadow-xs"
-            >
-              <BookOpen className="w-4 h-4 text-[#F28C28]" />
-              <span>Buku Panduan (PDF)</span>
-            </button>
-          )}
-
-          {onDownloadCsv && (
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic(20);
-                onDownloadCsv();
-              }}
-              className="flex-1 py-2.5 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition-colors shadow-xs"
-            >
-              <Download className="w-4 h-4 text-emerald-600" />
-              <span>Unduh Rekap CSV</span>
-            </button>
-          )}
+      {/* 9. PANDUAN TEKNIS & MANUAL SISTEM */}
+      {onOpenGuide && (
+        <div className="pt-1">
+          <button
+            type="button"
+            onClick={() => {
+              triggerHaptic(20);
+              onOpenGuide();
+            }}
+            className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-slate-50 border border-[#1F3A5F]/20 text-[#1F3A5F] text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition-colors shadow-xs"
+          >
+            <BookOpen className="w-4 h-4 text-[#F28C28]" />
+            <span>Buku Panduan Teknis & SOP Panggung (PDF)</span>
+          </button>
         </div>
       )}
     </div>

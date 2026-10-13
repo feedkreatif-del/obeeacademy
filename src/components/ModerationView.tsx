@@ -16,7 +16,6 @@ import {
   Sparkles,
   Store,
   Settings,
-  Maximize2,
 } from 'lucide-react';
 
 interface ModerationViewProps {
@@ -28,7 +27,7 @@ interface ModerationViewProps {
   onUpdateExternalEmbed: (platform: 'slido' | 'mentimeter' | 'custom', url: string) => Promise<void>;
   onApproveAnswer: (ans: AnswerDoc) => Promise<void>;
   onHideAnswer: (ans: AnswerDoc) => Promise<void>;
-  onToggleStarAnswer: (ans: AnswerDoc) => Promise<void>;
+  onToggleStarAnswer: (ans: AnswerDoc, targetSize?: 'besar' | 'kecil') => Promise<void>;
   onUpdateAnswerDetails: (ans: AnswerDoc, newText: string, newMentorNote: string) => Promise<void>;
   onDeleteAnswer: (id: string) => Promise<void>;
   onApproveQna: (qna: QnaDoc) => Promise<void>;
@@ -39,8 +38,6 @@ interface ModerationViewProps {
   onSeedSampleData: () => Promise<void>;
   onDownloadCsv: () => void;
   onOpenContentEditor: () => void;
-  activeSpotlightAnswerId?: string;
-  onToggleLargeSpotlight?: (ans: AnswerDoc) => void;
 }
 
 export const ModerationView: React.FC<ModerationViewProps> = ({
@@ -63,8 +60,6 @@ export const ModerationView: React.FC<ModerationViewProps> = ({
   onSeedSampleData,
   onDownloadCsv,
   onOpenContentEditor,
-  activeSpotlightAnswerId,
-  onToggleLargeSpotlight,
 }) => {
   const [activeCategory, setActiveCategory] = useState<'answers' | 'qna' | 'embed'>('answers');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'hidden'>('all');
@@ -433,32 +428,49 @@ export const ModerationView: React.FC<ModerationViewProps> = ({
                           </button>
                         )}
 
-                        <button
-                          onClick={() => onToggleStarAnswer(ans)}
-                          className={`px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors ${
-                            ans.star
-                              ? 'bg-[#F28C28] text-white shadow-xs'
-                              : 'bg-[#FFF7EC] text-[#1F3A5F] border border-[#F28C28]/40 hover:bg-[#F28C28] hover:text-white'
-                          }`}
-                          title="Sorot Kecil: Beri Bintang & Aksen Sorot di Layar"
-                        >
-                          <Star className={`w-3.5 h-3.5 ${ans.star ? 'fill-white' : ''}`} />
-                          <span>{ans.star ? 'Lepas Sorot Kecil' : 'Sorot Kecil'}</span>
-                        </button>
-
-                        {onToggleLargeSpotlight && (
-                          <button
-                            onClick={() => onToggleLargeSpotlight(ans)}
-                            className={`px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors ${
-                              activeSpotlightAnswerId === ans.id
-                                ? 'bg-[#1F3A5F] text-white shadow-xs'
-                                : 'bg-white text-[#1F3A5F] border border-[#1F3A5F]/20 hover:bg-[#1F3A5F] hover:text-white'
-                            }`}
-                            title="Sorot Besar: Fokuskan Jawaban ini secara Jumbo di Panggung"
-                          >
-                            <Maximize2 className="w-3.5 h-3.5" />
-                            <span>{activeSpotlightAnswerId === ans.id ? 'Tutup Sorot Besar' : 'Sorot Besar'}</span>
-                          </button>
+                        {ans.star ? (
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className="px-2.5 py-1.5 rounded-lg bg-[#FFF7EC] border border-[#F28C28] text-xs font-bold text-[#F28C28] flex items-center gap-1">
+                              <Star className="w-3.5 h-3.5 fill-[#F28C28]" />
+                              <span>Disorot: {ans.spotlightSize === 'kecil' ? 'Kecil' : 'Besar'}</span>
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => onToggleStarAnswer(ans, ans.spotlightSize === 'kecil' ? 'besar' : 'kecil')}
+                              className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#1F3A5F] text-xs font-semibold cursor-pointer"
+                              title="Ganti ukuran sorot di proyektor"
+                            >
+                              Ganti ke {ans.spotlightSize === 'kecil' ? 'Besar' : 'Kecil'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => onToggleStarAnswer(ans)}
+                              className="px-2.5 py-1.5 rounded-lg bg-[#F28C28] text-white hover:bg-[#d97719] text-xs font-bold cursor-pointer"
+                            >
+                              Lepas Sorot
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => onToggleStarAnswer(ans, 'besar')}
+                              className="px-3 py-1.5 rounded-lg bg-[#F28C28] hover:bg-[#d97719] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                              title="Sorot dalam ukuran besar di panggung proyektor"
+                            >
+                              <Star className="w-3.5 h-3.5 fill-white" />
+                              <span>Sorot Besar</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => onToggleStarAnswer(ans, 'kecil')}
+                              className="px-3 py-1.5 rounded-lg bg-[#FFF7EC] hover:bg-[#F28C28]/20 text-[#1F3A5F] border border-[#F28C28]/60 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                              title="Sorot dalam ukuran kecil / ringkas"
+                            >
+                              <Star className="w-3.5 h-3.5 text-[#F28C28]" />
+                              <span>Sorot Kecil</span>
+                            </button>
+                          </div>
                         )}
 
                         <button

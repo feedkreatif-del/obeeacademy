@@ -90,7 +90,7 @@ interface SlideDeckViewProps {
   onLaunchQna: () => void;
   onSyncQuestionOnly: (questionIndex: number) => void;
   onSyncPollOnly: (pollId: string) => void;
-  onToggleStarAnswer: (ans: AnswerDoc) => Promise<void>;
+  onToggleStarAnswer: (ans: AnswerDoc, targetSize?: 'besar' | 'kecil') => Promise<void>;
   onApproveAnswer: (ans: AnswerDoc) => Promise<void>;
   onToggleStarQna: (qna: QnaDoc) => Promise<void>;
   onExitExtendWindow?: () => void;
@@ -98,8 +98,6 @@ interface SlideDeckViewProps {
   allAnswers: AnswerDoc[];
   approvedQna: QnaDoc[];
   activeMode: InteractiveMode;
-  activeSpotlightAnswerId?: string;
-  onToggleLargeSpotlight?: (ans: AnswerDoc) => void;
 }
 
 export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
@@ -134,25 +132,12 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
   approvedAnswers,
   allAnswers,
   approvedQna,
-  activeSpotlightAnswerId,
-  onToggleLargeSpotlight,
 }) => {
   const stageRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [presenterDualMode, setPresenterDualMode] = useState(false);
   const [showRemoteQrModal, setShowRemoteQrModal] = useState(false);
   const [slideDirection, setSlideDirection] = useState<1 | -1>(1);
-  const [localSpotlightId, setLocalSpotlightId] = useState<string>('');
-
-  const effectiveSpotlightId = activeSpotlightAnswerId || localSpotlightId;
-
-  const handleToggleLargeSpotlight = (ans: AnswerDoc) => {
-    if (onToggleLargeSpotlight) {
-      onToggleLargeSpotlight(ans);
-    } else {
-      setLocalSpotlightId(localSpotlightId === ans.id ? '' : ans.id);
-    }
-  };
   const prevSlideRef = useRef<number>(activeSlideIndex);
 
   const remoteUrl = `${window.location.origin}${window.location.pathname}?view=remote`;
@@ -1420,69 +1405,98 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {questionAnswers.map((ans) => (
-                      <div
-                        key={ans.id}
-                        className={`bg-white rounded-2xl p-5 border flex flex-col justify-between gap-3 ${
-                          ans.star
-                            ? 'border-3 border-[#F28C28] md:col-span-2'
-                            : 'border-[#1F3A5F]/15'
-                        }`}
-                      >
-                        <div className="space-y-2">
-                          {ans.businessName && (
-                            <div className="flex items-center gap-1.5 text-sm font-bold text-[#2A9D8F]">
-                              <Store className="w-4 h-4" />
-                              <span>{ans.businessName}</span>
+                    {questionAnswers.map((ans) => {
+                      const isBigSpotlight = ans.star && ans.spotlightSize !== 'kecil';
+                      const isSmallSpotlight = ans.star && ans.spotlightSize === 'kecil';
+                      return (
+                        <div
+                          key={ans.id}
+                          className={`bg-white rounded-2xl p-5 border flex flex-col justify-between gap-3 ${
+                            isBigSpotlight
+                              ? 'border-3 border-[#F28C28] md:col-span-2 shadow-md ring-2 ring-[#F28C28]/20'
+                              : isSmallSpotlight
+                              ? 'border-2 border-[#F28C28] bg-[#FFFDF8] shadow-xs'
+                              : 'border-[#1F3A5F]/15'
+                          }`}
+                        >
+                          <div className="space-y-2">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              {ans.businessName ? (
+                                <div className="flex items-center gap-1.5 text-sm font-bold text-[#2A9D8F]">
+                                  <Store className="w-4 h-4" />
+                                  <span>{ans.businessName}</span>
+                                </div>
+                              ) : (
+                                <span className="text-xs font-semibold text-[#1F3A5F]/50">Peserta UMKM</span>
+                              )}
+                              {ans.star && (
+                                <span className="inline-flex items-center gap-1 text-xs font-bold text-[#F28C28] bg-[#FFF7EC] px-2 py-0.5 rounded-md border border-[#F28C28]/40">
+                                  <Star className="w-3 h-3 fill-[#F28C28]" />
+                                  <span>{isBigSpotlight ? 'Sorot Besar' : 'Sorot Kecil'}</span>
+                                </span>
+                              )}
                             </div>
-                          )}
-                          <p
-                            className={`font-display font-bold text-[#1F3A5F] ${
-                              ans.star ? 'text-2xl sm:text-3xl' : 'text-lg sm:text-xl'
-                            }`}
-                          >
-                            "{ans.text}"
-                          </p>
-                          {ans.subText && (
-                            <p className="text-sm text-[#1F3A5F]/75">{ans.subText}</p>
+                            <p
+                              className={`font-display font-bold text-[#1F3A5F] ${
+                                isBigSpotlight
+                                  ? 'text-2xl sm:text-3xl'
+                                  : isSmallSpotlight
+                                  ? 'text-xl sm:text-2xl'
+                                  : 'text-lg sm:text-xl'
+                              }`}
+                            >
+                              "{ans.text}"
+                            </p>
+                            {ans.subText && (
+                              <p className="text-sm text-[#1F3A5F]/75">{ans.subText}</p>
+                            )}
+                          </div>
+                          {!isAudienceExtendWindow && (
+                            <div className="flex flex-wrap items-center justify-end gap-1.5 pt-2 border-t border-[#1F3A5F]/10">
+                              {ans.star ? (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => onToggleStarAnswer(ans, isBigSpotlight ? 'kecil' : 'besar')}
+                                    className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-[#1F3A5F] cursor-pointer"
+                                  >
+                                    Ubah ke Sorot {isBigSpotlight ? 'Kecil' : 'Besar'}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => onToggleStarAnswer(ans, isBigSpotlight ? 'besar' : 'kecil')}
+                                    className="px-3 py-1 rounded-lg text-xs font-bold bg-[#F28C28] text-white hover:bg-[#d97719] cursor-pointer"
+                                  >
+                                    Lepas Sorot
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => onToggleStarAnswer(ans, 'besar')}
+                                    className="px-3 py-1 rounded-lg text-xs font-bold bg-[#F28C28] hover:bg-[#d97719] text-white flex items-center gap-1 cursor-pointer"
+                                    title="Sorot dalam ukuran besar"
+                                  >
+                                    <Star className="w-3 h-3 fill-white" />
+                                    <span>Sorot Besar</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => onToggleStarAnswer(ans, 'kecil')}
+                                    className="px-3 py-1 rounded-lg text-xs font-bold bg-[#FFF7EC] hover:bg-[#F28C28]/20 text-[#1F3A5F] border border-[#F28C28]/50 flex items-center gap-1 cursor-pointer"
+                                    title="Sorot dalam ukuran kecil"
+                                  >
+                                    <Star className="w-3 h-3 text-[#F28C28]" />
+                                    <span>Sorot Kecil</span>
+                                  </button>
+                                </>
+                              )}
+                            </div>
                           )}
                         </div>
-                        {!isAudienceExtendWindow && (
-                          <div className="flex flex-wrap items-center justify-between pt-2 border-t border-[#1F3A5F]/10 gap-2">
-                            <span className="text-[11px] text-[#1F3A5F]/50 font-medium">
-                              {effectiveSpotlightId === ans.id ? 'Sedang Sorot Besar di Layar' : ans.star ? 'Disorot Kecil' : 'Jawaban Masuk'}
-                            </span>
-                            <div className="flex items-center gap-1.5">
-                              <button
-                                onClick={() => onToggleStarAnswer(ans)}
-                                className={`px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors ${
-                                  ans.star
-                                    ? 'bg-[#F28C28] text-white'
-                                    : 'bg-[#FFF7EC] text-[#1F3A5F] border border-[#F28C28]/40 hover:bg-[#F28C28] hover:text-white'
-                                }`}
-                                title="Sorot Kecil: Beri Bintang & Aksen Sorot di Grid"
-                              >
-                                <Star className={`w-3.5 h-3.5 ${ans.star ? 'fill-white' : ''}`} />
-                                <span>{ans.star ? 'Lepas Sorot Kecil' : 'Sorot Kecil'}</span>
-                              </button>
-
-                              <button
-                                onClick={() => handleToggleLargeSpotlight(ans)}
-                                className={`px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors ${
-                                  effectiveSpotlightId === ans.id
-                                    ? 'bg-[#1F3A5F] text-white shadow-xs'
-                                    : 'bg-white text-[#1F3A5F] border border-[#1F3A5F]/20 hover:bg-[#1F3A5F] hover:text-white'
-                                }`}
-                                title="Sorot Besar: Fokuskan Jawaban ini dalam Ukuran Jumbo di Layar"
-                              >
-                                <Maximize2 className="w-3.5 h-3.5" />
-                                <span>{effectiveSpotlightId === ans.id ? 'Tutup Sorot Besar' : 'Sorot Besar'}</span>
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -2096,32 +2110,40 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                             )}
                             <p className="font-semibold text-[#1F3A5F]">"{ans.text}"</p>
                           </div>
-                          <div className="flex items-center gap-1 shrink-0">
-                            <button
-                              onClick={() => onToggleStarAnswer(ans)}
-                              className={`px-2 py-1 rounded-lg font-bold text-[11px] flex items-center gap-1 cursor-pointer transition-colors ${
-                                ans.star
-                                  ? 'bg-[#F28C28] text-white'
-                                  : 'bg-[#FFF7EC] text-[#1F3A5F] border border-[#F28C28]/40 hover:bg-[#F28C28] hover:text-white'
-                              }`}
-                              title="Sorot Kecil: Beri Bintang & Aksen Sorot"
-                            >
-                              <Star className={`w-3 h-3 ${ans.star ? 'fill-white' : ''}`} />
-                              <span>{ans.star ? 'Lepas Kecil' : 'Sorot Kecil'}</span>
-                            </button>
-                            <button
-                              onClick={() => handleToggleLargeSpotlight(ans)}
-                              className={`px-2 py-1 rounded-lg font-bold text-[11px] flex items-center gap-1 cursor-pointer transition-colors ${
-                                effectiveSpotlightId === ans.id
-                                  ? 'bg-[#1F3A5F] text-white shadow-xs'
-                                  : 'bg-white text-[#1F3A5F] border border-[#1F3A5F]/20 hover:bg-[#1F3A5F] hover:text-white'
-                              }`}
-                              title="Sorot Besar: Fokuskan Jawaban ini secara Jumbo di Panggung"
-                            >
-                              <Maximize2 className="w-3 h-3" />
-                              <span>{effectiveSpotlightId === ans.id ? 'Tutup Besar' : 'Sorot Besar'}</span>
-                            </button>
-                          </div>
+                          {ans.star ? (
+                            <div className="flex items-center gap-1 shrink-0">
+                              <span className="text-[10px] font-bold text-[#F28C28] bg-white px-1.5 py-0.5 rounded border border-[#F28C28]/40">
+                                {ans.spotlightSize === 'kecil' ? 'Kecil' : 'Besar'}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => onToggleStarAnswer(ans)}
+                                className="px-2 py-1 rounded-lg font-bold bg-[#F28C28] text-white cursor-pointer text-[11px]"
+                                title="Lepas sorotan"
+                              >
+                                Lepas
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => onToggleStarAnswer(ans, 'besar')}
+                                className="px-2 py-1 rounded-lg font-bold cursor-pointer bg-[#F28C28] hover:bg-[#d97719] text-white text-[11px]"
+                                title="Sorot Besar"
+                              >
+                                S.Besar
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => onToggleStarAnswer(ans, 'kecil')}
+                                className="px-2 py-1 rounded-lg font-bold cursor-pointer bg-[#FFF7EC] text-[#1F3A5F] border border-[#F28C28]/40 hover:bg-[#F28C28]/20 text-[11px]"
+                                title="Sorot Kecil"
+                              >
+                                S.Kecil
+                              </button>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
