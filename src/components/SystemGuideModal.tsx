@@ -536,6 +536,9 @@ export const SystemGuideModal: React.FC<SystemGuideModalProps> = ({
                     <li>
                       <strong>Pengaman Remote HP (Master PIN 2026):</strong> Remote HP dilindungi PIN agar tidak disentuh peserta sembarangan. Anda dapat membuka instan menggunakan tombol <em>"Buka Cepat PIN Master (2026)"</em>.
                     </li>
+                    <li>
+                      <strong>Navigasi Mobile Bebas Hambatan & Tombol Dinamis "Aksi":</strong> Pada layar smartphone, menu navigasi slide horizontal kini memiliki baris berdedikasi penuh sehingga bebas dari tumpang tindih. Tombol Buku Panduan dan Unduh Rekap CSV disatukan secara elegan ke dalam <em>Tombol Dinamis "Aksi"</em> (dropdown) di baris atas serta dapat diunduh langsung dari bagian bawah Remote HP.
+                    </li>
                   </ol>
                 </div>
 

@@ -46,7 +46,7 @@ import { RemoteClickerView } from './components/RemoteClickerView';
 import { ContentEditorView, DEFAULT_QNA_TOPICS } from './components/ContentEditorView';
 import { OfflineBanner, PWAInstallModalTrigger } from './components/PWAInstallButton';
 import { DEFAULT_BRAND_THEME, sanitizeBrandTheme, useApplyBrandTheme } from './brandTheme';
-import { Download, BookOpen, Lock, Unlock, ShieldCheck, Settings } from 'lucide-react';
+import { Download, BookOpen, Lock, Unlock, ShieldCheck, Settings, MoreVertical, ChevronDown, FileText } from 'lucide-react';
 import { SystemGuideModal } from './components/SystemGuideModal';
 import { PresenterAuthModal } from './components/PresenterAuthModal';
 
@@ -126,6 +126,8 @@ export default function App() {
     const params = new URLSearchParams(window.location.search);
     return params.get('view') === 'guide';
   });
+
+  const [isActionMenuOpen, setIsActionMenuOpen] = useState<boolean>(false);
 
   const handleSecretTrigger = () => {
     const now = Date.now();
@@ -726,124 +728,284 @@ export default function App() {
         </header>
       ) : (
         /* Strict 3-Zone Top Navigation Bar for Presenter / Developer / Moderator */
-        <header className="w-full max-w-full flex items-center justify-between gap-2.5 sm:gap-6 px-3 sm:px-8 py-3.5 sm:py-4 bg-[#1F3A5F] text-white border-b border-white/10 sticky top-0 z-30">
-          {/* Zone 1: Brand Wordmark */}
-          <a
-            href="#top"
-            onClick={(e) => {
-              e.preventDefault();
-              setViewRole('projector');
-            }}
-            className="font-display text-base sm:text-xl font-extrabold tracking-tight text-white whitespace-nowrap shrink-0"
-          >
-            PartnerUp Live
-          </a>
+        <header className="w-full max-w-full bg-[#1F3A5F] text-white border-b border-white/10 sticky top-0 z-30 shadow-sm">
+          {/* Main Bar: 3 Zones on Desktop, Compact Brand + Action Bar on Mobile */}
+          <div className="flex items-center justify-between gap-2.5 sm:gap-6 px-3 sm:px-8 py-2.5 sm:py-4">
+            {/* Zone 1: Brand Wordmark */}
+            <div className="flex items-center gap-2 shrink-0">
+              <a
+                href="#top"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setViewRole('projector');
+                }}
+                className="font-display text-base sm:text-xl font-extrabold tracking-tight text-white whitespace-nowrap"
+              >
+                PartnerUp Live
+              </a>
+              <span className="sm:hidden text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/15 text-[#F28C28] uppercase tracking-wider">
+                Presenter
+              </span>
+            </div>
 
-          {/* Zone 2: Concise Single-Line Navigation Links */}
-          <nav className="flex-1 min-w-0 flex items-center md:justify-center gap-3.5 sm:gap-6 text-xs sm:text-sm font-medium text-white/80 overflow-x-auto no-scrollbar py-0.5">
-            <button
-              onClick={() => setViewRole('projector')}
-              className={`hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer pb-0.5 ${
-                viewRole === 'projector'
-                  ? 'text-[#F28C28] font-bold border-b-2 border-[#F28C28]'
-                  : ''
-              }`}
-            >
-              Layar Proyektor
-            </button>
+            {/* Desktop Zone 2: Navigation Links */}
+            <nav className="hidden sm:flex flex-1 min-w-0 items-center justify-center gap-3.5 sm:gap-6 text-xs sm:text-sm font-medium text-white/80 overflow-x-auto no-scrollbar py-0.5">
+              <button
+                onClick={() => setViewRole('projector')}
+                className={`hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer pb-0.5 ${
+                  viewRole === 'projector'
+                    ? 'text-[#F28C28] font-bold border-b-2 border-[#F28C28]'
+                    : ''
+                }`}
+              >
+                Layar Proyektor
+              </button>
 
-            <button
-              onClick={() => setViewRole('slides')}
-              className={`hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer pb-0.5 ${
-                viewRole === 'slides'
-                  ? 'text-[#F28C28] font-bold border-b-2 border-[#F28C28]'
-                  : ''
-              }`}
-            >
-              Materi Slide
-            </button>
+              <button
+                onClick={() => setViewRole('slides')}
+                className={`hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer pb-0.5 ${
+                  viewRole === 'slides'
+                    ? 'text-[#F28C28] font-bold border-b-2 border-[#F28C28]'
+                    : ''
+                }`}
+              >
+                Materi Slide
+              </button>
 
-            <button
-              onClick={() => setViewRole('remote')}
-              className={`hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer pb-0.5 ${
-                viewRole === 'remote'
-                  ? 'text-[#F28C28] font-bold border-b-2 border-[#F28C28]'
-                  : ''
-              }`}
-            >
-              Remote HP
-            </button>
+              <button
+                onClick={() => setViewRole('remote')}
+                className={`hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer pb-0.5 ${
+                  viewRole === 'remote'
+                    ? 'text-[#F28C28] font-bold border-b-2 border-[#F28C28]'
+                    : ''
+                }`}
+              >
+                Remote HP
+              </button>
 
-            <button
-              onClick={() => setViewRole('participant')}
-              className="hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer pb-0.5"
-            >
-              Simulasi HP Peserta
-            </button>
+              <button
+                onClick={() => setViewRole('participant')}
+                className="hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer pb-0.5"
+              >
+                Simulasi HP Peserta
+              </button>
 
-            <button
-              onClick={() => setViewRole('moderation')}
-              className={`hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer pb-0.5 ${
-                viewRole === 'moderation'
-                  ? 'text-[#F28C28] font-bold border-b-2 border-[#F28C28]'
-                  : ''
-              }`}
-            >
-              Moderasi {pendingCount > 0 ? `(${pendingCount})` : ''}
-            </button>
+              <button
+                onClick={() => setViewRole('moderation')}
+                className={`hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer pb-0.5 ${
+                  viewRole === 'moderation'
+                    ? 'text-[#F28C28] font-bold border-b-2 border-[#F28C28]'
+                    : ''
+                }`}
+              >
+                Moderasi {pendingCount > 0 ? `(${pendingCount})` : ''}
+              </button>
 
-            <button
-              onClick={() => setViewRole('editor')}
-              className={`hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer pb-0.5 ${
-                viewRole === 'editor'
-                  ? 'text-[#F28C28] font-bold border-b-2 border-[#F28C28]'
-                  : ''
-              }`}
-            >
-              Editor Materi
-            </button>
+              <button
+                onClick={() => setViewRole('editor')}
+                className={`hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer pb-0.5 ${
+                  viewRole === 'editor'
+                    ? 'text-[#F28C28] font-bold border-b-2 border-[#F28C28]'
+                    : ''
+                }`}
+              >
+                Editor Materi
+              </button>
 
-            <button
-              onClick={() => setIsGuideModalOpen(true)}
-              className={`hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer pb-0.5 flex items-center gap-1.5 ${
-                isGuideModalOpen || viewRole === 'guide'
-                  ? 'text-[#F28C28] font-bold border-b-2 border-[#F28C28]'
-                  : 'text-white/80'
-              }`}
-            >
-              <BookOpen className="w-3.5 h-3.5 text-[#F28C28]" />
-              <span>Buku Panduan</span>
-            </button>
-          </nav>
+              <button
+                onClick={() => setIsGuideModalOpen(true)}
+                className={`hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer pb-0.5 flex items-center gap-1.5 ${
+                  isGuideModalOpen || viewRole === 'guide'
+                    ? 'text-[#F28C28] font-bold border-b-2 border-[#F28C28]'
+                    : 'text-white/80'
+                }`}
+              >
+                <BookOpen className="w-3.5 h-3.5 text-[#F28C28]" />
+                <span>Buku Panduan</span>
+              </button>
+            </nav>
 
-          {/* Zone 3: 2 Primary Action Buttons + Presenter Lock */}
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={() => setIsGuideModalOpen(true)}
-              className="px-3 py-2 text-xs font-bold text-white bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer shadow-xs"
-              title="Buku Panduan Teknis, Glosarium & Duplikasi (PDF)"
-            >
-              <BookOpen className="w-3.5 h-3.5 text-[#F28C28]" />
-              <span className="hidden sm:inline">Buku Panduan</span>
-              <span className="text-[10px] font-extrabold bg-[#F28C28] text-white px-1.5 py-0.5 rounded">PDF</span>
-            </button>
+            {/* Zone 3: Actions on Desktop & Compact Dynamic Menu on Mobile */}
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 relative">
+              {/* Desktop Direct Buttons */}
+              <button
+                onClick={() => setIsGuideModalOpen(true)}
+                className="hidden sm:flex px-3 py-2 text-xs font-bold text-white bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg transition-colors whitespace-nowrap shrink-0 items-center gap-1.5 cursor-pointer shadow-xs"
+                title="Buku Panduan Teknis, Glosarium & Duplikasi (PDF)"
+              >
+                <BookOpen className="w-3.5 h-3.5 text-[#F28C28]" />
+                <span>Buku Panduan</span>
+                <span className="text-[10px] font-extrabold bg-[#F28C28] text-white px-1.5 py-0.5 rounded">PDF</span>
+              </button>
 
-            <button
-              onClick={handleDownloadCsv}
-              className="px-3.5 py-2 text-xs font-bold text-white bg-[#F28C28] rounded-lg hover:bg-[#d97719] transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Unduh Rekap CSV</span>
-              <span className="sm:hidden">CSV</span>
-            </button>
+              <button
+                onClick={handleDownloadCsv}
+                className="hidden sm:flex px-3.5 py-2 text-xs font-bold text-white bg-[#F28C28] rounded-lg hover:bg-[#d97719] transition-colors whitespace-nowrap shrink-0 items-center gap-1.5 cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Unduh Rekap CSV</span>
+              </button>
 
-            <button
-              onClick={handleLockPresenter}
-              className="p-2 text-white/70 hover:text-white bg-white/5 hover:bg-white/15 border border-white/15 rounded-lg transition-colors cursor-pointer"
-              title="Kunci Akses Presenter & Kembali ke Tampilan Peserta"
-            >
-              <Lock className="w-3.5 h-3.5" />
-            </button>
+              {/* Mobile Single Dynamic Action Button (Menu Aksi Dinamis) */}
+              <div className="relative sm:hidden">
+                <button
+                  type="button"
+                  onClick={() => setIsActionMenuOpen(!isActionMenuOpen)}
+                  className={`px-2.5 py-1.5 text-xs font-bold rounded-lg border transition-all flex items-center gap-1 cursor-pointer shadow-xs ${
+                    isActionMenuOpen
+                      ? 'bg-[#F28C28] text-white border-[#F28C28]'
+                      : 'bg-white/10 text-white hover:bg-white/20 border-white/20'
+                  }`}
+                  title="Menu Dokumen & Tindakan Presenter"
+                >
+                  <MoreVertical className="w-3.5 h-3.5 text-[#F28C28]" />
+                  <span>Aksi</span>
+                  <ChevronDown className={`w-3 h-3 transition-transform ${isActionMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {/* Dropdown Menu Popover */}
+                {isActionMenuOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setIsActionMenuOpen(false)}
+                    />
+                    <div className="absolute right-0 top-full mt-2 w-64 bg-[#1F3A5F] border border-white/20 rounded-xl shadow-2xl p-2 z-50 text-white animate-in fade-in zoom-in-95 duration-150">
+                      <div className="px-3 py-1.5 border-b border-white/10 text-[11px] font-semibold text-white/60 uppercase tracking-wider">
+                        Menu & Dokumen Presenter
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsActionMenuOpen(false);
+                          setIsGuideModalOpen(true);
+                        }}
+                        className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-white/10 transition-colors flex items-center gap-2.5 text-xs font-medium cursor-pointer"
+                      >
+                        <div className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
+                          <BookOpen className="w-4 h-4 text-[#F28C28]" />
+                        </div>
+                        <div>
+                          <div className="font-bold flex items-center gap-1.5">
+                            Buku Panduan
+                            <span className="text-[9px] bg-[#F28C28] text-white px-1 py-0.2 rounded font-extrabold">PDF</span>
+                          </div>
+                          <div className="text-[10px] text-white/60">Panduan teknis & SOP panggung</div>
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsActionMenuOpen(false);
+                          handleDownloadCsv();
+                        }}
+                        className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-white/10 transition-colors flex items-center gap-2.5 text-xs font-medium cursor-pointer"
+                      >
+                        <div className="w-7 h-7 rounded-lg bg-emerald-500/20 flex items-center justify-center shrink-0">
+                          <Download className="w-4 h-4 text-emerald-400" />
+                        </div>
+                        <div>
+                          <div className="font-bold text-emerald-300">Unduh Rekap CSV</div>
+                          <div className="text-[10px] text-white/60">Ekspor data jawaban & polling</div>
+                        </div>
+                      </button>
+
+                      <div className="my-1 border-t border-white/10" />
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsActionMenuOpen(false);
+                          handleLockPresenter();
+                        }}
+                        className="w-full text-left px-3 py-2 rounded-lg hover:bg-red-500/20 text-red-200 transition-colors flex items-center gap-2.5 text-xs font-medium cursor-pointer"
+                      >
+                        <Lock className="w-3.5 h-3.5 text-red-400" />
+                        <span>Kunci & Keluar Mode Presenter</span>
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Presenter Quick Lock */}
+              <button
+                onClick={handleLockPresenter}
+                className="p-1.5 sm:p-2 text-white/70 hover:text-white bg-white/5 hover:bg-white/15 border border-white/15 rounded-lg transition-colors cursor-pointer shrink-0"
+                title="Kunci Akses Presenter & Kembali ke Tampilan Peserta"
+              >
+                <Lock className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Dedicated Full-Width Row on Mobile for Horizontal Navigation Slider */}
+          <div className="sm:hidden px-2 pb-2.5 pt-1 border-t border-white/10 overflow-hidden bg-[#182e4b]">
+            <nav className="flex items-center gap-1.5 text-xs font-medium text-white/80 overflow-x-auto no-scrollbar py-0.5 px-1">
+              <button
+                onClick={() => setViewRole('projector')}
+                className={`px-2.5 py-1.5 rounded-lg whitespace-nowrap shrink-0 transition-colors cursor-pointer text-xs ${
+                  viewRole === 'projector'
+                    ? 'bg-[#F28C28] text-white font-bold shadow-xs'
+                    : 'bg-white/10 text-white/80 hover:bg-white/20'
+                }`}
+              >
+                Layar Proyektor
+              </button>
+
+              <button
+                onClick={() => setViewRole('slides')}
+                className={`px-2.5 py-1.5 rounded-lg whitespace-nowrap shrink-0 transition-colors cursor-pointer text-xs ${
+                  viewRole === 'slides'
+                    ? 'bg-[#F28C28] text-white font-bold shadow-xs'
+                    : 'bg-white/10 text-white/80 hover:bg-white/20'
+                }`}
+              >
+                Materi Slide
+              </button>
+
+              <button
+                onClick={() => setViewRole('remote')}
+                className={`px-2.5 py-1.5 rounded-lg whitespace-nowrap shrink-0 transition-colors cursor-pointer text-xs ${
+                  viewRole === 'remote'
+                    ? 'bg-[#F28C28] text-white font-bold shadow-xs'
+                    : 'bg-white/10 text-white/80 hover:bg-white/20'
+                }`}
+              >
+                Remote HP
+              </button>
+
+              <button
+                onClick={() => setViewRole('participant')}
+                className="px-2.5 py-1.5 rounded-lg whitespace-nowrap shrink-0 transition-colors cursor-pointer text-xs bg-white/10 text-white/80 hover:bg-white/20"
+              >
+                Simulasi Peserta
+              </button>
+
+              <button
+                onClick={() => setViewRole('moderation')}
+                className={`px-2.5 py-1.5 rounded-lg whitespace-nowrap shrink-0 transition-colors cursor-pointer text-xs ${
+                  viewRole === 'moderation'
+                    ? 'bg-[#F28C28] text-white font-bold shadow-xs'
+                    : 'bg-white/10 text-white/80 hover:bg-white/20'
+                }`}
+              >
+                Moderasi {pendingCount > 0 ? `(${pendingCount})` : ''}
+              </button>
+
+              <button
+                onClick={() => setViewRole('editor')}
+                className={`px-2.5 py-1.5 rounded-lg whitespace-nowrap shrink-0 transition-colors cursor-pointer text-xs ${
+                  viewRole === 'editor'
+                    ? 'bg-[#F28C28] text-white font-bold shadow-xs'
+                    : 'bg-white/10 text-white/80 hover:bg-white/20'
+                }`}
+              >
+                Editor Materi
+              </button>
+            </nav>
           </div>
         </header>
       )}
@@ -1034,6 +1196,7 @@ export default function App() {
             onApproveAnswer={handleApproveAnswer}
             onToggleStarQna={handleToggleStarQna}
             onOpenGuide={() => setIsGuideModalOpen(true)}
+            onDownloadCsv={handleDownloadCsv}
           />
         )}
       </main>
