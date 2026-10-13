@@ -123,6 +123,7 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submitError, setSubmitError] = useState(false);
   const [showConversionGuide, setShowConversionGuide] = useState(true);
+  const [showSubAnswer, setShowSubAnswer] = useState(false);
 
   // Copy states for Bio IG / WA Chat / Sticker Generator
   const [copiedType, setCopiedType] = useState<'ig' | 'wa' | 'sticker' | 'vp' | null>(null);
@@ -132,6 +133,7 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
     setSubAnswerText('');
     setSubmitSuccess(false);
     setSubmitError(false);
+    setShowSubAnswer(false);
   }, [activeQIndex]);
 
   const getMyPreviousAnswer = (qIdx: number) => {
@@ -487,10 +489,39 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
             </div>
           )}
 
-          <form onSubmit={handleWorksheetSubmit} className="space-y-5">
+          <form onSubmit={handleWorksheetSubmit} className="space-y-3.5">
+            {/* 1. Nama Usaha (Opsional) - Diposisikan di ATAS kotak Jawabanmu */}
+            <div className="bg-white/95 rounded-xl p-3 border border-[#1F3A5F]/20 shadow-2xs">
+              <div className="flex items-center justify-between mb-1.5">
+                <label
+                  htmlFor="business-name-input"
+                  className="block text-xs sm:text-sm font-bold text-[#1F3A5F] flex items-center gap-1.5"
+                >
+                  <Store className="w-3.5 h-3.5 text-[#F28C28]" />
+                  <span>Nama Usaha (Opsional)</span>
+                </label>
+                <span className="font-mono text-[11px] text-[#1F3A5F]/50 tabular-nums">
+                  {businessName.length} / 40
+                </span>
+              </div>
+              <input
+                id="business-name-input"
+                type="text"
+                maxLength={40}
+                value={businessName}
+                onChange={(e) => handleBusinessNameChange(e.target.value)}
+                placeholder="Contoh: Keripik Apel Bu Sari (Tersimpan otomatis)"
+                className="w-full rounded-lg border border-[#1F3A5F]/20 bg-white px-3 py-2 text-sm sm:text-base text-[#1F3A5F] placeholder:text-[#1F3A5F]/40 focus:border-[#F28C28] focus:outline-none transition-colors"
+              />
+            </div>
+
+            {/* 2. Kotak Jawabanmu - Utama & Fokus */}
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <label htmlFor="answer-textarea" className="block text-base font-bold text-[#1F3A5F]">
+              <div className="flex items-center justify-between mb-1.5">
+                <label
+                  htmlFor="answer-textarea"
+                  className="block text-sm sm:text-base font-bold text-[#1F3A5F]"
+                >
                   Jawabanmu
                 </label>
                 <span className="font-mono text-xs text-[#1F3A5F]/60 tabular-nums">
@@ -505,52 +536,60 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
                 value={answerText}
                 onChange={(e) => setAnswerText(e.target.value)}
                 placeholder="Ketik jawaban singkat di sini (1 kalimat sudah cukup)..."
-                className="w-full rounded-xl border-2 border-[#1F3A5F]/25 bg-[#FFF7EC]/50 px-4 py-3.5 text-lg text-[#1F3A5F] placeholder:text-[#1F3A5F]/40 focus:border-[#F28C28] focus:bg-white focus:outline-none transition-colors"
+                className="w-full rounded-xl border-2 border-[#1F3A5F]/25 bg-[#FFF7EC]/50 px-3.5 py-3 text-base sm:text-lg text-[#1F3A5F] placeholder:text-[#1F3A5F]/40 focus:border-[#F28C28] focus:bg-white focus:outline-none transition-colors shadow-2xs"
               />
             </div>
 
-            <div>
-              <label htmlFor="sub-answer-input" className="block text-sm font-semibold text-[#1F3A5F]/85 mb-1.5">
-                Keterangan Tambahan (Opsional)
-              </label>
-              <input
-                id="sub-answer-input"
-                type="text"
-                maxLength={180}
-                value={subAnswerText}
-                onChange={(e) => setSubAnswerText(e.target.value)}
-                placeholder={currentQuestion.secondaryPrompt || 'Tambahan penjelasan singkat...'}
-                className="w-full rounded-xl border border-[#1F3A5F]/20 bg-white px-4 py-3 text-base text-[#1F3A5F] placeholder:text-[#1F3A5F]/40 focus:border-[#F28C28] focus:outline-none"
-              />
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label htmlFor="business-name-input" className="block text-base font-bold text-[#1F3A5F] flex items-center gap-1.5">
-                  <Store className="w-4 h-4 text-[#F28C28]" />
-                  Nama Usaha (Opsional)
-                </label>
-                <span className="font-mono text-xs text-[#1F3A5F]/60 tabular-nums">
-                  {businessName.length} / 40
-                </span>
+            {/* Keterangan Tambahan (Opsional) - Ringkas / Collapsible agar Tombol Kirim Tetap Sangat Dekat dengan Jawabanmu */}
+            {showSubAnswer || subAnswerText ? (
+              <div className="bg-white/80 rounded-xl p-3 border border-[#1F3A5F]/15 space-y-1.5 animate-fadeIn">
+                <div className="flex items-center justify-between">
+                  <label
+                    htmlFor="sub-answer-input"
+                    className="block text-xs font-semibold text-[#1F3A5F]/85"
+                  >
+                    Keterangan Tambahan (Opsional)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowSubAnswer(false);
+                      setSubAnswerText('');
+                    }}
+                    className="text-[11px] text-[#1F3A5F]/50 hover:text-red-600 cursor-pointer"
+                  >
+                    Sembunyikan
+                  </button>
+                </div>
+                <input
+                  id="sub-answer-input"
+                  type="text"
+                  maxLength={180}
+                  value={subAnswerText}
+                  onChange={(e) => setSubAnswerText(e.target.value)}
+                  placeholder={currentQuestion.secondaryPrompt || 'Tambahan penjelasan singkat...'}
+                  className="w-full rounded-lg border border-[#1F3A5F]/20 bg-white px-3 py-2 text-sm text-[#1F3A5F] placeholder:text-[#1F3A5F]/40 focus:border-[#F28C28] focus:outline-none"
+                />
               </div>
-              <input
-                id="business-name-input"
-                type="text"
-                maxLength={40}
-                value={businessName}
-                onChange={(e) => handleBusinessNameChange(e.target.value)}
-                placeholder="Contoh: Keripik Apel Bu Sari (Jangan tulis nomor HP)"
-                className="w-full rounded-xl border border-[#1F3A5F]/25 bg-white px-4 py-3.5 text-base sm:text-lg text-[#1F3A5F] placeholder:text-[#1F3A5F]/40 focus:border-[#F28C28] focus:outline-none"
-              />
-            </div>
+            ) : (
+              <div className="flex items-center justify-between px-1">
+                <button
+                  type="button"
+                  onClick={() => setShowSubAnswer(true)}
+                  className="text-xs font-semibold text-[#2A9D8F] hover:text-[#218276] hover:underline flex items-center gap-1 cursor-pointer py-0.5"
+                >
+                  <span>+ Tambah Keterangan Tambahan (Opsional)</span>
+                </button>
+              </div>
+            )}
 
+            {/* 3. Tombol Kirim Jawaban - Langsung Dekat dengan Kotak Jawabanmu */}
             <button
               type="submit"
               disabled={submitting || !answerText.trim()}
-              className="w-full min-h-[56px] rounded-xl bg-[#F28C28] hover:bg-[#d97719] disabled:opacity-50 text-white font-display font-bold text-lg sm:text-xl flex items-center justify-center gap-2.5 shadow-sm transition-colors cursor-pointer"
+              className="w-full min-h-[50px] sm:min-h-[54px] rounded-xl bg-[#F28C28] hover:bg-[#d97719] disabled:opacity-50 text-white font-display font-bold text-base sm:text-lg flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
             >
-              <Send className="w-5 h-5" />
+              <Send className="w-4 h-4 sm:w-5 sm:h-5" />
               <span>{submitting ? 'Mengirim...' : 'Kirim jawaban'}</span>
             </button>
 
