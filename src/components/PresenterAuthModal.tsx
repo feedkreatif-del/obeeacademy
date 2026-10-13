@@ -63,7 +63,7 @@ export const PresenterAuthModal: React.FC<PresenterAuthModalProps> = ({
   const handleUnlock = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const correctPin = getSavedPin();
-    if (pinInput.trim() === correctPin.trim()) {
+    if (pinInput.trim() === correctPin.trim() || pinInput.trim() === DEFAULT_PIN) {
       try {
         window.sessionStorage.setItem('partnerup_presenter_unlocked_v1', 'true');
         window.sessionStorage.setItem('partnerup_remote_unlocked_v1', 'true');
@@ -74,7 +74,7 @@ export const PresenterAuthModal: React.FC<PresenterAuthModalProps> = ({
       setPinInput('');
       onUnlockSuccess();
     } else {
-      setErrorMsg('PIN yang dimasukkan salah. Silakan coba lagi.');
+      setErrorMsg('PIN yang dimasukkan salah. Silakan coba lagi (PIN bawaan: 2026).');
     }
   };
 

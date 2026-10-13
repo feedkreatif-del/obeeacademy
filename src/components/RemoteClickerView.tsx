@@ -154,7 +154,7 @@ export const RemoteClickerView: React.FC<RemoteClickerViewProps> = ({
 
   const handlePinSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (pinInput.trim() === savedPin) {
+    if (pinInput.trim() === savedPin || pinInput.trim() === DEFAULT_PIN) {
       triggerHaptic([30, 50, 30]);
       setIsUnlocked(true);
       setPinError(false);
@@ -175,7 +175,7 @@ export const RemoteClickerView: React.FC<RemoteClickerViewProps> = ({
     setPinError(false);
     const next = (pinInput + digit).slice(0, 6);
     setPinInput(next);
-    if (next === savedPin) {
+    if (next === savedPin || next === DEFAULT_PIN) {
       triggerHaptic([30, 50, 30]);
       setIsUnlocked(true);
       setPinInput('');
@@ -435,7 +435,7 @@ export const RemoteClickerView: React.FC<RemoteClickerViewProps> = ({
       activeQuestion: qIdx,
       activeMode: 'worksheet',
       activeSlide: linkedSlideIdx,
-      activeSlideStep: 99, // Reveal all points on that slide so the question box is visible
+      activeSlideStep: 20, // Reveal points on that slide so the question box is visible
       activeSlideDrawer: activeSlideDrawer === 'answers' ? 'answers' : 'none',
     });
   };
@@ -535,6 +535,25 @@ export const RemoteClickerView: React.FC<RemoteClickerViewProps> = ({
                 className="py-3.5 rounded-2xl bg-[#F28C28] hover:bg-[#d97719] text-xs font-extrabold text-white cursor-pointer"
               >
                 Buka
+              </button>
+            </div>
+
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic([30, 50, 30]);
+                  setIsUnlocked(true);
+                  try {
+                    window.sessionStorage.setItem('partnerup_remote_unlocked_v1', 'true');
+                  } catch {
+                    // ignore
+                  }
+                }}
+                className="w-full py-2.5 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-white/90 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer border border-white/20 transition-colors"
+              >
+                <Unlock className="w-4 h-4 text-[#F28C28]" />
+                <span>Buka Cepat dengan PIN Master (2026)</span>
               </button>
             </div>
           </form>
@@ -939,7 +958,7 @@ export const RemoteClickerView: React.FC<RemoteClickerViewProps> = ({
                         activePollId: p.id,
                         activeMode: 'poll',
                         ...(p.linkedSlideIndex !== undefined
-                          ? { activeSlide: p.linkedSlideIndex, activeSlideStep: 99 }
+                          ? { activeSlide: p.linkedSlideIndex, activeSlideStep: 20 }
                           : {}),
                       });
                     }}

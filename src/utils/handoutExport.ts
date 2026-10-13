@@ -1426,8 +1426,8 @@ export function printSystemDocumentationGuide(params?: {
       <p style="margin: 0; font-size: 8.5pt;">Di smartphone pemateri, buka URL aplikasi dan pilih menu <strong>Remote HP</strong>. Anda kini memegang kendali panggung: tombol panah untuk maju/mundur slide, countdown timer, dan contekan panggung di bawah tombol.</p>
     </div>
     <div class="step-card">
-      <div class="step-header"><span class="step-num">3</span> Memanggil Interaksi di Panggung</div>
-      <p style="margin: 0; font-size: 8.5pt;">Saat masuk ke topik praktik, tekan tombol <strong>"Buka Jawaban"</strong> atau <strong>"Polling"</strong> pada Remote HP. Layar proyektor depan otomatis memunculkan jawaban peserta tanpa Anda harus mendekati laptop.</p>
+      <div class="step-header"><span class="step-num">3</span> Memanggil Interaksi di Panggung (Eksklusif Pemateri)</div>
+      <p style="margin: 0; font-size: 8.5pt;">Saat masuk ke topik praktik, tekan tombol <strong>"Tampilkan Jawaban"</strong> atau <strong>"Polling"</strong> pada Remote HP / Slide Deck. Fitur ini dirancang khusus untuk pemateri (tidak muncul di HP peserta) agar hanya pemateri yang dapat mengatur kemunculan jawaban ke layar panggung. Pengaman Remote HP selalu dapat dibuka menggunakan Master PIN <code>2026</code>.</p>
     </div>
     <div class="step-card">
       <div class="step-header"><span class="step-num">4</span> Mengaktifkan Pembagian Slide ke HP Peserta</div>

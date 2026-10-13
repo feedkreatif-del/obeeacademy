@@ -346,7 +346,7 @@ export default function App() {
     try {
       await setDoc(doc(db, 'state', 'session'), nextState);
     } catch (error) {
-      handleFirestoreError(error, OperationType.WRITE, 'state/session');
+      console.warn('Gagal sinkronisasi session state ke Firestore:', error);
     }
   };
 

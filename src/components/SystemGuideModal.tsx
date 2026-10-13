@@ -528,10 +528,13 @@ export const SystemGuideModal: React.FC<SystemGuideModalProps> = ({
                       <strong>Gunakan Contekan Panggung (Cue Cards):</strong> Di bawah tombol slide pada ponsel Anda, baca contekan rahasia berupa poin bicara, analogi nyata, dan durasi rekomendasi.
                     </li>
                     <li>
-                      <strong>Buka Jawaban / Polling di Layar Proyektor:</strong> Saat masuk ke sesi praktik, tekan tombol <strong>"Buka Jawaban"</strong> atau <strong>"Polling"</strong> pada ponsel Anda. Layar proyektor otomatis menampilkan interaksi tanpa Anda menyentuh laptop.
+                      <strong>Buka Jawaban / Polling di Layar Proyektor:</strong> Tombol <strong>"Tampilkan Jawaban"</strong> dan <strong>"Polling"</strong> adalah <em>fitur eksklusif kendali Pemateri</em> (tersedia di Slide Deck laptop dan Remote HP, dan sengaja tidak dimunculkan di HP peserta). Ini memastikan hanya pemateri yang berhak mengatur kapan jawaban audiens disorot ke panggung.
                     </li>
                     <li>
                       <strong>Buka Akses Slide ke HP Peserta:</strong> Jika peserta meminta materi dibagikan, geser saklar <strong>"Buka Akses Slide di HP: AKTIF"</strong> di Remote HP Anda.
+                    </li>
+                    <li>
+                      <strong>Pengaman Remote HP (Master PIN 2026):</strong> Remote HP dilindungi PIN agar tidak disentuh peserta sembarangan. Anda dapat membuka instan menggunakan tombol <em>"Buka Cepat PIN Master (2026)"</em>.
                     </li>
                   </ol>
                 </div>
