@@ -51,6 +51,8 @@ import {
   Download,
   Copy,
   Check,
+  Lock,
+  Unlock,
 } from 'lucide-react';
 
 interface SlideStepInfo {
@@ -75,6 +77,9 @@ interface SlideDeckViewProps {
   transitionStyle: SlideTransitionStyle;
   activeSlideDrawer: SlideDrawerMode;
   allowParticipantSlideAccess?: boolean;
+  answersLocked?: boolean;
+  lockedNotice?: string;
+  onToggleLockAnswers?: (locked: boolean, notice?: string) => void;
   activeQuestionIndex: number;
   activePollId: string;
   isAudienceExtendWindow?: boolean;
@@ -85,6 +90,8 @@ interface SlideDeckViewProps {
     transitionStyle?: SlideTransitionStyle;
     activeSlideDrawer?: SlideDrawerMode;
     allowParticipantSlideAccess?: boolean;
+    answersLocked?: boolean;
+    lockedNotice?: string;
     activeQuestion?: number;
     activePollId?: string;
     activeMode?: InteractiveMode;
@@ -120,6 +127,9 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
   transitionStyle,
   activeSlideDrawer,
   allowParticipantSlideAccess = false,
+  answersLocked = false,
+  lockedNotice,
+  onToggleLockAnswers,
   activeQuestionIndex,
   activePollId,
   isAudienceExtendWindow = false,
@@ -1377,9 +1387,81 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
 
             {activeSlideDrawer === 'qr' && (
               <div className="text-center py-6 space-y-4 max-w-lg mx-auto">
-                <div className="bg-white p-6 rounded-2xl border-2 border-[#1F3A5F]/15 inline-block mx-auto shadow-md">
+                <div className={`p-6 rounded-2xl border-2 inline-block mx-auto shadow-md relative ${
+                  answersLocked ? 'bg-amber-50/70 border-amber-400' : 'bg-white border-[#1F3A5F]/15'
+                }`}>
                   <QRCodeSVG id="slide-drawer-qr-svg" value={joinUrl} size={250} fgColor="#1F3A5F" />
+                  {answersLocked && (
+                    <div className="absolute inset-0 bg-[#1F3A5F]/75 backdrop-blur-[2px] rounded-2xl flex flex-col items-center justify-center p-4 text-white">
+                      <Lock className="w-10 h-10 text-amber-300 mb-2" />
+                      <p className="font-bold text-sm text-center">Jawaban Dinonaktifkan Sementara</p>
+                      <p className="text-[11px] text-white/80 text-center mt-1">Sesi Jeda / Dilanjutkan Minggu Depan</p>
+                    </div>
+                  )}
                 </div>
+
+                {/* Kontrol Status Pengiriman Jawaban (Sesi Jeda/Minggu Depan) */}
+                <div className={`p-4 rounded-2xl text-left space-y-2.5 transition-colors border-2 ${
+                  answersLocked
+                    ? 'bg-amber-500/15 border-amber-500/50'
+                    : 'bg-emerald-50/80 border-emerald-300'
+                }`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      {answersLocked ? (
+                        <Lock className="w-4 h-4 text-amber-700 shrink-0" />
+                      ) : (
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      )}
+                      <span className={`text-xs sm:text-sm font-bold ${answersLocked ? 'text-amber-950' : 'text-emerald-950'}`}>
+                        {answersLocked
+                          ? 'Pengiriman Jawaban Dinonaktifkan Sementara'
+                          : 'Pengiriman Jawaban Peserta: Aktif'}
+                      </span>
+                    </div>
+                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                      answersLocked ? 'bg-amber-600 text-white' : 'bg-emerald-600 text-white'
+                    }`}>
+                      {answersLocked ? 'Sesi Dijeda' : 'Terbuka'}
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-[#1F3A5F]/80 leading-relaxed">
+                    {answersLocked
+                      ? 'Fitur pengisian terkunci agar peserta tidak mendahului materi yang belum dijelaskan. Buka kembali kapan saja saat Anda siap memulai sesi berikutnya.'
+                      : 'Aktifkan jeda jika pelatihan berlangsung 2 sesi atau dilanjutkan minggu depan, agar peserta fokus menyimak penjelasan pemateri terlebih dahulu.'}
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !answersLocked;
+                      if (onToggleLockAnswers) {
+                        onToggleLockAnswers(next);
+                      } else {
+                        onUpdateSlideState({ answersLocked: next });
+                      }
+                    }}
+                    className={`w-full py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors shadow-xs ${
+                      answersLocked
+                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                        : 'bg-amber-600 hover:bg-amber-700 text-white'
+                    }`}
+                  >
+                    {answersLocked ? (
+                      <>
+                        <Unlock className="w-4 h-4" />
+                        <span>Buka / Aktifkan Kembali Pengiriman Jawaban</span>
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="w-4 h-4" />
+                        <span>Nonaktifkan Sementara Pengiriman Jawaban (Jeda Sesi)</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
                 <div className="bg-white rounded-xl p-3 border border-[#1F3A5F]/15 text-left">
                   <p className="text-xs text-[#1F3A5F]/60 mb-0.5 font-semibold">Tautan Langsung Peserta:</p>
                   <p className="font-mono text-xs sm:text-sm font-bold text-[#1F3A5F] break-all select-all">{joinUrl}</p>
@@ -2002,6 +2084,39 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                     <span>
                       {activeSlideDrawer === 'qr' ? 'Tutup QR di Proyektor' : 'Tampilkan QR di Proyektor'}
                     </span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      const next = !answersLocked;
+                      if (onToggleLockAnswers) {
+                        onToggleLockAnswers(next);
+                      } else {
+                        onUpdateSlideState({ answersLocked: next });
+                      }
+                    }}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors ${
+                      answersLocked
+                        ? 'bg-amber-600 hover:bg-amber-700 text-white shadow-xs'
+                        : 'bg-[#FFF7EC] text-[#1F3A5F] border border-[#1F3A5F]/20 hover:border-amber-500'
+                    }`}
+                    title={
+                      answersLocked
+                        ? 'Pengiriman jawaban sedang dinonaktifkan sementara. Klik untuk mengaktifkan kembali.'
+                        : 'Klik untuk menonaktifkan sementara pengiriman jawaban (jeda sesi / lanjut minggu depan).'
+                    }
+                  >
+                    {answersLocked ? (
+                      <>
+                        <Lock className="w-4 h-4 text-white shrink-0" />
+                        <span>Jawaban: Terkunci (Klik Buka)</span>
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span>Jawaban: Aktif (Klik Jeda)</span>
+                      </>
+                    )}
                   </button>
 
                   {slide.linkedQuestionIndex !== undefined && (

@@ -58,6 +58,8 @@ const DEFAULT_SESSION_STATE: SessionStateDoc = {
   transitionStyle: 'slide',
   activeSlideDrawer: 'none',
   allowParticipantSlideAccess: false,
+  answersLocked: false,
+  lockedNotice: 'Pengiriman jawaban sedang dinonaktifkan sementara oleh pemateri. Pelatihan akan dilanjutkan pada sesi berikutnya minggu depan.',
   activeMode: 'worksheet',
   activePollId: 'rational_4types',
   moderationEnabled: false,
@@ -184,6 +186,11 @@ export default function App() {
             transitionStyle: data.transitionStyle || 'slide',
             activeSlideDrawer: data.activeSlideDrawer || 'none',
             allowParticipantSlideAccess: Boolean(data.allowParticipantSlideAccess),
+            answersLocked: Boolean(data.answersLocked),
+            lockedNotice:
+              typeof data.lockedNotice === 'string'
+                ? data.lockedNotice
+                : DEFAULT_SESSION_STATE.lockedNotice,
             activeMode: data.activeMode || 'worksheet',
             activePollId: data.activePollId || 'rational_4types',
             moderationEnabled: Boolean(data.moderationEnabled),
@@ -888,6 +895,12 @@ export default function App() {
             onHideQna={handleHideQna}
             onDownloadCsv={handleDownloadCsv}
             onSwitchToParticipantPreview={() => setViewRole('participant')}
+            onToggleLockAnswers={(locked, notice) =>
+              updateSessionState({
+                answersLocked: locked,
+                ...(notice ? { lockedNotice: notice } : {}),
+              })
+            }
           />
         )}
 
@@ -908,6 +921,14 @@ export default function App() {
             transitionStyle={sessionState.transitionStyle || 'slide'}
             activeSlideDrawer={sessionState.activeSlideDrawer || 'none'}
             allowParticipantSlideAccess={Boolean(sessionState.allowParticipantSlideAccess)}
+            answersLocked={Boolean(sessionState.answersLocked)}
+            lockedNotice={sessionState.lockedNotice}
+            onToggleLockAnswers={(locked, notice) =>
+              updateSessionState({
+                answersLocked: locked,
+                ...(notice ? { lockedNotice: notice } : {}),
+              })
+            }
             activeQuestionIndex={sessionState.activeQuestion}
             activePollId={sessionState.activePollId}
             onUpdateSlideState={(partial) => updateSessionState(partial)}
@@ -1004,6 +1025,12 @@ export default function App() {
             onSeedSampleData={handleSeedSampleData}
             onDownloadCsv={handleDownloadCsv}
             onOpenContentEditor={() => setViewRole('editor')}
+            onToggleLockAnswers={async (locked, notice) =>
+              updateSessionState({
+                answersLocked: locked,
+                ...(notice ? { lockedNotice: notice } : {}),
+              })
+            }
           />
         )}
 
@@ -1029,6 +1056,14 @@ export default function App() {
             transitionStyle={sessionState.transitionStyle || 'slide'}
             activeSlideDrawer={sessionState.activeSlideDrawer || 'none'}
             allowParticipantSlideAccess={Boolean(sessionState.allowParticipantSlideAccess)}
+            answersLocked={Boolean(sessionState.answersLocked)}
+            lockedNotice={sessionState.lockedNotice}
+            onToggleLockAnswers={(locked, notice) =>
+              updateSessionState({
+                answersLocked: locked,
+                ...(notice ? { lockedNotice: notice } : {}),
+              })
+            }
             activeQuestionIndex={sessionState.activeQuestion}
             activePollId={sessionState.activePollId}
             activeMode={sessionState.activeMode}

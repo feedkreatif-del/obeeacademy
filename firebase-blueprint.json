@@ -35,6 +35,15 @@
           "type": "boolean",
           "description": "Whether participants can browse and download slide materials directly on their phones"
         },
+        "answersLocked": {
+          "type": "boolean",
+          "description": "Whether participant worksheet submissions are temporarily paused/locked by presenter"
+        },
+        "lockedNotice": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "Optional custom explanation note shown to participants when submissions are paused"
+        },
         "activeMode": {
           "type": "string",
           "enum": ["worksheet", "poll", "qna", "external"],

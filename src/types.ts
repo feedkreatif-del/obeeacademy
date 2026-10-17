@@ -14,6 +14,8 @@ export interface SessionStateDoc {
   transitionStyle?: SlideTransitionStyle;
   activeSlideDrawer?: SlideDrawerMode;
   allowParticipantSlideAccess?: boolean;
+  answersLocked?: boolean;
+  lockedNotice?: string;
   activeMode: InteractiveMode;
   activePollId: string;
   moderationEnabled: boolean;

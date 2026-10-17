@@ -43,6 +43,9 @@ import {
   Tag,
   HelpCircle,
   Printer,
+  Lock,
+  Clock,
+  PauseCircle,
   Share2,
   Presentation,
   ChevronLeft,
@@ -167,8 +170,14 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
     }
   };
 
+  const isAnswersLocked = Boolean(sessionState.answersLocked);
+  const lockedNoticeText =
+    sessionState.lockedNotice ||
+    'Pengiriman jawaban sedang dinonaktifkan sementara oleh pemateri. Pelatihan akan dilanjutkan pada sesi berikutnya minggu depan.';
+
   const handleWorksheetSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isAnswersLocked) return;
     if (!answerText.trim() || submitting) return;
     setSubmitting(true);
     setSubmitSuccess(false);
@@ -489,9 +498,36 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
             </div>
           )}
 
+          {isAnswersLocked && (
+            <div className="rounded-2xl bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-orange-500/10 border-2 border-amber-500/40 p-4 sm:p-5 flex items-start gap-3.5 shadow-sm mb-4">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/25 text-amber-800 flex items-center justify-center shrink-0 shadow-2xs">
+                <Lock className="w-5 h-5 text-amber-800" />
+              </div>
+              <div className="space-y-1.5 flex-1 min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-amber-600 text-white shadow-2xs">
+                    Sesi Dijeda
+                  </span>
+                  <h3 className="font-display font-bold text-sm sm:text-base text-[#1F3A5F]">
+                    Pengiriman Jawaban Dinonaktifkan Sementara
+                  </h3>
+                </div>
+                <p className="text-xs sm:text-sm text-[#1F3A5F]/85 leading-relaxed font-medium">
+                  {lockedNoticeText}
+                </p>
+                <div className="flex items-center gap-1.5 text-[11px] text-[#1F3A5F]/65 pt-0.5">
+                  <Clock className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                  <span>
+                    Anda tetap dapat mempelajari materi dan rangkuman sebelumnya. Pengisian akan otomatis dibuka kembali saat pemateri memulai sesi berikutnya.
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleWorksheetSubmit} className="space-y-3.5">
             {/* 1. Nama Usaha (Opsional) - Diposisikan di ATAS kotak Jawabanmu */}
-            <div className="bg-white/95 rounded-xl p-3 border border-[#1F3A5F]/20 shadow-2xs">
+            <div className={`bg-white/95 rounded-xl p-3 border border-[#1F3A5F]/20 shadow-2xs ${isAnswersLocked ? 'opacity-70' : ''}`}>
               <div className="flex items-center justify-between mb-1.5">
                 <label
                   htmlFor="business-name-input"
@@ -508,21 +544,28 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
                 id="business-name-input"
                 type="text"
                 maxLength={40}
+                disabled={isAnswersLocked}
                 value={businessName}
                 onChange={(e) => handleBusinessNameChange(e.target.value)}
                 placeholder="Contoh: Keripik Apel Bu Sari (Tersimpan otomatis)"
-                className="w-full rounded-lg border border-[#1F3A5F]/20 bg-white px-3 py-2 text-sm sm:text-base text-[#1F3A5F] placeholder:text-[#1F3A5F]/40 focus:border-[#F28C28] focus:outline-none transition-colors"
+                className="w-full rounded-lg border border-[#1F3A5F]/20 bg-white px-3 py-2 text-sm sm:text-base text-[#1F3A5F] placeholder:text-[#1F3A5F]/40 focus:border-[#F28C28] focus:outline-none transition-colors disabled:bg-slate-100 disabled:cursor-not-allowed"
               />
             </div>
 
             {/* 2. Kotak Jawabanmu - Utama & Fokus */}
-            <div>
+            <div className={isAnswersLocked ? 'opacity-75' : ''}>
               <div className="flex items-center justify-between mb-1.5">
                 <label
                   htmlFor="answer-textarea"
-                  className="block text-sm sm:text-base font-bold text-[#1F3A5F]"
+                  className="block text-sm sm:text-base font-bold text-[#1F3A5F] flex items-center gap-1.5"
                 >
-                  Jawabanmu
+                  <span>Jawabanmu</span>
+                  {isAnswersLocked && (
+                    <span className="text-[11px] text-amber-700 bg-amber-100 px-2 py-0.5 rounded-md font-semibold flex items-center gap-1">
+                      <Lock className="w-3 h-3" />
+                      Terkunci Sementara
+                    </span>
+                  )}
                 </label>
                 <span className="font-mono text-xs text-[#1F3A5F]/60 tabular-nums">
                   {answerText.length} / 200 karakter
@@ -533,16 +576,21 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
                 rows={3}
                 maxLength={200}
                 required
+                disabled={isAnswersLocked}
                 value={answerText}
                 onChange={(e) => setAnswerText(e.target.value)}
-                placeholder="Ketik jawaban singkat di sini (1 kalimat sudah cukup)..."
-                className="w-full rounded-xl border-2 border-[#1F3A5F]/25 bg-[#FFF7EC]/50 px-3.5 py-3 text-base sm:text-lg text-[#1F3A5F] placeholder:text-[#1F3A5F]/40 focus:border-[#F28C28] focus:bg-white focus:outline-none transition-colors shadow-2xs"
+                placeholder={
+                  isAnswersLocked
+                    ? 'Pengiriman jawaban sedang dinonaktifkan sementara oleh pemateri (sesi jeda)...'
+                    : 'Ketik jawaban singkat di sini (1 kalimat sudah cukup)...'
+                }
+                className="w-full rounded-xl border-2 border-[#1F3A5F]/25 bg-[#FFF7EC]/50 px-3.5 py-3 text-base sm:text-lg text-[#1F3A5F] placeholder:text-[#1F3A5F]/40 focus:border-[#F28C28] focus:bg-white focus:outline-none transition-colors shadow-2xs disabled:bg-amber-50/50 disabled:border-amber-200 disabled:cursor-not-allowed"
               />
             </div>
 
             {/* Keterangan Tambahan (Opsional) - Ringkas / Collapsible agar Tombol Kirim Tetap Sangat Dekat dengan Jawabanmu */}
             {showSubAnswer || subAnswerText ? (
-              <div className="bg-white/80 rounded-xl p-3 border border-[#1F3A5F]/15 space-y-1.5 animate-fadeIn">
+              <div className={`bg-white/80 rounded-xl p-3 border border-[#1F3A5F]/15 space-y-1.5 animate-fadeIn ${isAnswersLocked ? 'opacity-70' : ''}`}>
                 <div className="flex items-center justify-between">
                   <label
                     htmlFor="sub-answer-input"
@@ -565,18 +613,20 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
                   id="sub-answer-input"
                   type="text"
                   maxLength={180}
+                  disabled={isAnswersLocked}
                   value={subAnswerText}
                   onChange={(e) => setSubAnswerText(e.target.value)}
                   placeholder={currentQuestion.secondaryPrompt || 'Tambahan penjelasan singkat...'}
-                  className="w-full rounded-lg border border-[#1F3A5F]/20 bg-white px-3 py-2 text-sm text-[#1F3A5F] placeholder:text-[#1F3A5F]/40 focus:border-[#F28C28] focus:outline-none"
+                  className="w-full rounded-lg border border-[#1F3A5F]/20 bg-white px-3 py-2 text-sm text-[#1F3A5F] placeholder:text-[#1F3A5F]/40 focus:border-[#F28C28] focus:outline-none disabled:bg-slate-100 disabled:cursor-not-allowed"
                 />
               </div>
             ) : (
               <div className="flex items-center justify-between px-1">
                 <button
                   type="button"
+                  disabled={isAnswersLocked}
                   onClick={() => setShowSubAnswer(true)}
-                  className="text-xs font-semibold text-[#2A9D8F] hover:text-[#218276] hover:underline flex items-center gap-1 cursor-pointer py-0.5"
+                  className="text-xs font-semibold text-[#2A9D8F] hover:text-[#218276] hover:underline flex items-center gap-1 cursor-pointer py-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <span>+ Tambah Keterangan Tambahan (Opsional)</span>
                 </button>
@@ -586,11 +636,24 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
             {/* 3. Tombol Kirim Jawaban - Langsung Dekat dengan Kotak Jawabanmu */}
             <button
               type="submit"
-              disabled={submitting || !answerText.trim()}
-              className="w-full min-h-[50px] sm:min-h-[54px] rounded-xl bg-[#F28C28] hover:bg-[#d97719] disabled:opacity-50 text-white font-display font-bold text-base sm:text-lg flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
+              disabled={isAnswersLocked || submitting || !answerText.trim()}
+              className={`w-full min-h-[50px] sm:min-h-[54px] rounded-xl font-display font-bold text-base sm:text-lg flex items-center justify-center gap-2 shadow-xs transition-colors ${
+                isAnswersLocked
+                  ? 'bg-amber-100 border-2 border-amber-300 text-amber-900 cursor-not-allowed opacity-90'
+                  : 'bg-[#F28C28] hover:bg-[#d97719] disabled:opacity-50 text-white cursor-pointer'
+              }`}
             >
-              <Send className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span>{submitting ? 'Mengirim...' : 'Kirim jawaban'}</span>
+              {isAnswersLocked ? (
+                <>
+                  <Lock className="w-5 h-5 text-amber-700 shrink-0" />
+                  <span>Pengiriman Jawaban Sedang Dijeda</span>
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span>{submitting ? 'Mengirim...' : 'Kirim jawaban'}</span>
+                </>
+              )}
             </button>
 
             {submitSuccess && (

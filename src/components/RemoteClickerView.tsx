@@ -55,6 +55,9 @@ interface RemoteClickerViewProps {
   transitionStyle: SlideTransitionStyle;
   activeSlideDrawer: SlideDrawerMode;
   allowParticipantSlideAccess?: boolean;
+  answersLocked?: boolean;
+  lockedNotice?: string;
+  onToggleLockAnswers?: (locked: boolean, notice?: string) => void;
   activeQuestionIndex: number;
   activePollId: string;
   activeMode: InteractiveMode;
@@ -68,6 +71,8 @@ interface RemoteClickerViewProps {
     transitionStyle?: SlideTransitionStyle;
     activeSlideDrawer?: SlideDrawerMode;
     allowParticipantSlideAccess?: boolean;
+    answersLocked?: boolean;
+    lockedNotice?: string;
     activeQuestion?: number;
     activePollId?: string;
     activeMode?: InteractiveMode;
@@ -93,6 +98,9 @@ export const RemoteClickerView: React.FC<RemoteClickerViewProps> = ({
   stepByStepEnabled,
   activeSlideDrawer,
   allowParticipantSlideAccess = false,
+  answersLocked = false,
+  lockedNotice,
+  onToggleLockAnswers,
   activeQuestionIndex,
   activePollId,
   activeMode,
@@ -1074,6 +1082,54 @@ export const RemoteClickerView: React.FC<RemoteClickerViewProps> = ({
           >
             <Share2 className="w-3.5 h-3.5" />
             <span>{allowParticipantSlideAccess ? 'Akses Slide: BUKA' : 'Buka Akses Slide'}</span>
+          </button>
+        </div>
+
+        {/* Saklar Jeda Pengiriman Jawaban Peserta (Sesi Jeda/Minggu Depan) */}
+        <div className="pt-2 border-t border-[#1F3A5F]/10 flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs font-bold text-[#1F3A5F] flex items-center gap-1.5">
+              <span>Status Pengiriman Jawaban</span>
+              {answersLocked && (
+                <span className="text-[10px] font-bold uppercase bg-amber-600 text-white px-2 py-0.5 rounded-full">
+                  Dijeda
+                </span>
+              )}
+            </p>
+            <p className="text-[11px] text-[#1F3A5F]/70">
+              {answersLocked
+                ? 'TERKUNCI: Peserta tidak dapat mendahului mengisi materi berikutnya'
+                : 'TERBUKA: Peserta bebas mengisi jawaban lembar kerja'}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              triggerHaptic([35, 50]);
+              const next = !answersLocked;
+              if (onToggleLockAnswers) {
+                onToggleLockAnswers(next);
+              } else {
+                onUpdateSlideState({ answersLocked: next });
+              }
+            }}
+            className={`px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 cursor-pointer transition-colors ${
+              answersLocked
+                ? 'bg-amber-600 text-white shadow-xs'
+                : 'bg-[#FFF7EC] text-[#1F3A5F] border border-[#1F3A5F]/20'
+            }`}
+          >
+            {answersLocked ? (
+              <>
+                <Unlock className="w-3.5 h-3.5" />
+                <span>Buka Jawaban</span>
+              </>
+            ) : (
+              <>
+                <Lock className="w-3.5 h-3.5 text-amber-700" />
+                <span>Kunci Jawaban</span>
+              </>
+            )}
           </button>
         </div>
       </div>

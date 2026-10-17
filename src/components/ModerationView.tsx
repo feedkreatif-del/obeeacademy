@@ -16,6 +16,9 @@ import {
   Sparkles,
   Store,
   Settings,
+  Lock,
+  Unlock,
+  CheckCircle2,
 } from 'lucide-react';
 
 interface ModerationViewProps {
@@ -25,6 +28,7 @@ interface ModerationViewProps {
   allQna: QnaDoc[];
   onToggleModerationGate: (enabled: boolean) => Promise<void>;
   onUpdateExternalEmbed: (platform: 'slido' | 'mentimeter' | 'custom', url: string) => Promise<void>;
+  onToggleLockAnswers?: (locked: boolean, notice?: string) => Promise<void>;
   onApproveAnswer: (ans: AnswerDoc) => Promise<void>;
   onHideAnswer: (ans: AnswerDoc) => Promise<void>;
   onToggleStarAnswer: (ans: AnswerDoc, targetSize?: 'besar' | 'kecil') => Promise<void>;
@@ -60,6 +64,7 @@ export const ModerationView: React.FC<ModerationViewProps> = ({
   onSeedSampleData,
   onDownloadCsv,
   onOpenContentEditor,
+  onToggleLockAnswers,
 }) => {
   const [activeCategory, setActiveCategory] = useState<'answers' | 'qna' | 'embed'>('answers');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'hidden'>('all');
@@ -128,6 +133,42 @@ export const ModerationView: React.FC<ModerationViewProps> = ({
 
         {/* Strict Moderation Gate Switch & Quick Actions */}
         <div className="flex flex-wrap items-center gap-3 shrink-0">
+          {/* Saklar Jeda Pengiriman Jawaban (Sesi Jeda/Minggu Depan) */}
+          <div className={`border rounded-xl p-3 flex items-center gap-3 transition-colors ${
+            sessionState.answersLocked
+              ? 'bg-amber-500/15 border-amber-500/50'
+              : 'bg-[#FFF7EC] border-[#1F3A5F]/20'
+          }`}>
+            <div>
+              <p className="text-xs font-bold text-[#1F3A5F] flex items-center gap-1.5">
+                {sessionState.answersLocked ? (
+                  <Lock className="w-3.5 h-3.5 text-amber-700" />
+                ) : (
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                )}
+                <span>Penerimaan Jawaban</span>
+              </p>
+              <p className="text-[11px] text-[#1F3A5F]/70">
+                {sessionState.answersLocked
+                  ? 'DIJEDA: Pengisian lembar kerja dikunci'
+                  : 'TERBUKA: Peserta bebas mengirim jawaban'}
+              </p>
+            </div>
+            {onToggleLockAnswers && (
+              <button
+                type="button"
+                onClick={() => onToggleLockAnswers(!sessionState.answersLocked)}
+                className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+                  sessionState.answersLocked
+                    ? 'bg-amber-600 hover:bg-amber-700 text-white'
+                    : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                }`}
+              >
+                {sessionState.answersLocked ? 'Kunci: ON (Buka)' : 'Terbuka (Jeda)'}
+              </button>
+            )}
+          </div>
+
           <div className="bg-[#FFF7EC] border border-[#1F3A5F]/20 rounded-xl p-3 flex items-center gap-3">
             <div>
               <p className="text-xs font-bold text-[#1F3A5F]">
