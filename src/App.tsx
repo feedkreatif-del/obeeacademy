@@ -49,6 +49,7 @@ import { DEFAULT_BRAND_THEME, sanitizeBrandTheme, useApplyBrandTheme } from './b
 import { Download, BookOpen, Lock, Unlock, ShieldCheck, Settings } from 'lucide-react';
 import { SystemGuideModal } from './components/SystemGuideModal';
 import { PresenterAuthModal } from './components/PresenterAuthModal';
+import { CommitteePreviewView } from './components/CommitteePreviewView';
 
 const DEFAULT_SESSION_STATE: SessionStateDoc = {
   activeQuestion: 0,
@@ -117,7 +118,8 @@ export default function App() {
       v === 'editor' ||
       v === 'extend' ||
       v === 'remote' ||
-      v === 'guide'
+      v === 'guide' ||
+      v === 'preview'
     ) {
       return v;
     }
@@ -703,6 +705,15 @@ export default function App() {
         allAnswers={answers}
         approvedQna={approvedQna}
         activeMode={sessionState.activeMode}
+      />
+    );
+  }
+
+  if (viewRole === 'preview') {
+    return (
+      <CommitteePreviewView
+        customContent={customContent}
+        onOpenPresenterPanel={() => setIsAuthModalOpen(true)}
       />
     );
   }

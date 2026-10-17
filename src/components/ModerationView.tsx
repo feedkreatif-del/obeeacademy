@@ -4,6 +4,7 @@ import { AnswerDoc, QnaDoc, SessionStateDoc } from '../types';
 import {
   Shield,
   Check,
+  Eye,
   EyeOff,
   Star,
   Trash2,
@@ -192,6 +193,18 @@ export const ModerationView: React.FC<ModerationViewProps> = ({
               {sessionState.moderationEnabled ? 'Saringan: ON' : 'Langsung Tampil'}
             </button>
           </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              window.open('/?view=preview', '_blank');
+            }}
+            className="px-4 py-3 rounded-xl bg-emerald-50 border border-emerald-300 hover:bg-emerald-100 text-emerald-900 text-xs font-bold flex items-center gap-2 cursor-pointer transition-colors shadow-2xs"
+            title="Buka tampilan preview materi panitia (baca-saja tanpa akses edit)"
+          >
+            <Eye className="w-4 h-4 text-emerald-700" />
+            <span>Preview Materi Panitia</span>
+          </button>
 
           <button
             onClick={onOpenContentEditor}

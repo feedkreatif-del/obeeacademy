@@ -17,6 +17,9 @@ import {
   EyeOff,
   LogOut,
   Sparkles,
+  Copy,
+  Check,
+  Share2,
 } from 'lucide-react';
 
 interface PresenterAuthModalProps {
@@ -49,6 +52,7 @@ export const PresenterAuthModal: React.FC<PresenterAuthModalProps> = ({
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
   const [changePinSuccess, setChangePinSuccess] = useState(false);
+  const [copiedPreviewLink, setCopiedPreviewLink] = useState(false);
 
   if (!isOpen) return null;
 
@@ -144,6 +148,13 @@ export const PresenterAuthModal: React.FC<PresenterAuthModalProps> = ({
       desc: 'Edit judul, pertanyaan, dan sesuaikan palet warna brand',
       icon: <Edit3 className="w-5 h-5 text-rose-500" />,
       color: 'border-rose-200 hover:border-rose-500',
+    },
+    {
+      role: 'preview',
+      label: 'Preview Materi Panitia (Read-Only)',
+      desc: 'Tampilan aman khusus panitia/EO tanpa tombol edit materi & proyektor',
+      icon: <Eye className="w-5 h-5 text-teal-600" />,
+      color: 'border-teal-200 hover:border-teal-500 hover:bg-teal-50/40',
     },
     {
       role: 'participant',
@@ -365,6 +376,58 @@ export const PresenterAuthModal: React.FC<PresenterAuthModalProps> = ({
                       </button>
                     );
                   })}
+                </div>
+              </div>
+
+              {/* Bagikan Link Preview Panitia (Read-Only) */}
+              <div className="bg-emerald-50/80 border border-emerald-200 rounded-xl p-3.5 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Eye className="w-4 h-4 text-emerald-700" />
+                    <span className="text-xs font-bold text-emerald-950">
+                      Bagikan Materi ke Panitia (Aman / Read-Only)
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-600 text-white">
+                    Tanpa Edit
+                  </span>
+                </div>
+                <p className="text-[11px] text-emerald-900/80 leading-relaxed">
+                  Tautan ini aman dibagikan ke panitia atau tim EO. Mereka dapat mempelajari 17 slide, 7 pertanyaan, dan polling tanpa ada tombol edit serta tidak mengganggu layar proyektor.
+                </p>
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const url = `${window.location.origin}/?view=preview`;
+                      await navigator.clipboard.writeText(url);
+                      setCopiedPreviewLink(true);
+                      setTimeout(() => setCopiedPreviewLink(false), 2500);
+                    }}
+                    className="flex-1 py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-xs"
+                  >
+                    {copiedPreviewLink ? (
+                      <>
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Link Preview Tersalin!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>Salin Link Preview Panitia</span>
+                      </>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onSelectRole('preview');
+                      onClose();
+                    }}
+                    className="py-2 px-3 rounded-lg bg-white hover:bg-emerald-100 text-emerald-900 border border-emerald-300 text-xs font-bold cursor-pointer transition-colors"
+                  >
+                    Buka
+                  </button>
                 </div>
               </div>
 

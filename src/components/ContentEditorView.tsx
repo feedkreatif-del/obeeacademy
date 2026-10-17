@@ -39,6 +39,10 @@ import {
   UploadCloud,
   XCircle,
   Info,
+  Eye,
+  Check,
+  Copy,
+  Lock,
 } from 'lucide-react';
 import { printSystemDocumentationGuide } from '../utils/handoutExport';
 
@@ -145,6 +149,7 @@ export const ContentEditorView: React.FC<ContentEditorViewProps> = ({
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [copiedPreviewLink, setCopiedPreviewLink] = useState(false);
 
   // Sync local state when customContent prop updates from Firestore
   useEffect(() => {
@@ -613,6 +618,30 @@ export const ContentEditorView: React.FC<ContentEditorViewProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+          <button
+            type="button"
+            onClick={async () => {
+              const url = `${window.location.origin}/?view=preview`;
+              await navigator.clipboard.writeText(url);
+              setCopiedPreviewLink(true);
+              setTimeout(() => setCopiedPreviewLink(false), 2500);
+            }}
+            className="px-3.5 py-2.5 rounded-xl bg-emerald-50 border border-emerald-300 hover:bg-emerald-100 text-emerald-900 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+            title="Salin tautan preview materi aman (tanpa tombol edit) untuk dibagikan ke panitia"
+          >
+            {copiedPreviewLink ? (
+              <>
+                <Check className="w-3.5 h-3.5 text-emerald-700" />
+                <span>Link Panitia Tersalin!</span>
+              </>
+            ) : (
+              <>
+                <Eye className="w-3.5 h-3.5 text-emerald-700" />
+                <span>Salin Link Preview Panitia (Read-Only)</span>
+              </>
+            )}
+          </button>
+
           <button
             type="button"
             onClick={handleLoadCopywritingPreset}
