@@ -26,6 +26,7 @@ import {
   PARTNERUP_QUESTIONS,
   LIVE_POLLS,
   SEMINAR_SLIDES,
+  DEFAULT_QNA_TOPICS,
   INITIAL_SEED_ANSWERS,
   INITIAL_SEED_QNA,
 } from './data/seminarData';
@@ -37,16 +38,27 @@ import {
   PollVoteDoc,
   InteractiveMode,
   ViewRole,
+  SavedMaterial,
 } from './types';
 import { ProjectorView } from './components/ProjectorView';
 import { ParticipantView } from './components/ParticipantView';
 import { ModerationView } from './components/ModerationView';
 import { SlideDeckView } from './components/SlideDeckView';
 import { RemoteClickerView } from './components/RemoteClickerView';
-import { ContentEditorView, DEFAULT_QNA_TOPICS } from './components/ContentEditorView';
+import { ContentEditorView } from './components/ContentEditorView';
 import { OfflineBanner, PWAInstallModalTrigger } from './components/PWAInstallButton';
 import { DEFAULT_BRAND_THEME, sanitizeBrandTheme, useApplyBrandTheme } from './brandTheme';
-import { Download, BookOpen, Lock, Unlock, ShieldCheck, Settings } from 'lucide-react';
+import {
+  getSavedMaterialsLocal,
+  getActiveMaterialIdLocal,
+  setActiveMaterialIdLocal,
+  syncMaterialsFromFirestore,
+  persistMaterial,
+  removeMaterial,
+  DEFAULT_PARTNERUP_CURRICULUM,
+} from './utils/materialsManager';
+import { MaterialsBankModal } from './components/MaterialsBankModal';
+import { Download, BookOpen, Lock, Unlock, ShieldCheck, Settings, Layers } from 'lucide-react';
 import { SystemGuideModal } from './components/SystemGuideModal';
 import { PresenterAuthModal } from './components/PresenterAuthModal';
 import { CommitteePreviewView } from './components/CommitteePreviewView';
@@ -160,10 +172,26 @@ export default function App() {
   const [participantId] = useState<string>(() => getOrCreateParticipantId());
   const [sessionState, setSessionState] = useState<SessionStateDoc>(DEFAULT_SESSION_STATE);
   const [customContent, setCustomContent] = useState<CustomContentDoc>(DEFAULT_CUSTOM_CONTENT);
+  const [materials, setMaterials] = useState<SavedMaterial[]>(() => getSavedMaterialsLocal());
+  const [activeMaterialId, setActiveMaterialId] = useState<string>(() => getActiveMaterialIdLocal());
+  const [isBankModalOpen, setIsBankModalOpen] = useState<boolean>(false);
   const [answers, setAnswers] = useState<AnswerDoc[]>([]);
   const [qnaList, setQnaList] = useState<QnaDoc[]>([]);
   const [pollVotes, setPollVotes] = useState<PollVoteDoc[]>([]);
   const [hasSeededInitial, setHasSeededInitial] = useState<boolean>(false);
+
+  // Sync saved materials library from Firestore on startup
+  useEffect(() => {
+    let isMounted = true;
+    syncMaterialsFromFirestore(db).then((synced) => {
+      if (isMounted && synced.length > 0) {
+        setMaterials(synced);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Dynamically apply organization brand color theme across all views (default: PartnerUp | Obeecreatives)
   useApplyBrandTheme(customContent.brandTheme);
@@ -233,7 +261,16 @@ export default function App() {
                 : DEFAULT_QNA_TOPICS,
             brandTheme: sanitizeBrandTheme(data.brandTheme),
             updatedAt: data.updatedAt || Date.now(),
+            materialId: data.materialId,
+            description: data.description,
+            category: data.category,
+            isDefault: Boolean(data.isDefault),
+            createdAt: data.createdAt,
           });
+          if (data.materialId) {
+            setActiveMaterialId(data.materialId);
+            setActiveMaterialIdLocal(data.materialId);
+          }
         }
       },
       (err) => {
@@ -364,6 +401,24 @@ export default function App() {
     setCustomContent(updated);
     try {
       await setDoc(doc(db, 'custom_content', 'active'), updated);
+      
+      // Update saved material entry in Bank Materi as well
+      const currentMatId = updated.materialId || activeMaterialId || DEFAULT_PARTNERUP_CURRICULUM.id;
+      const existingMat = materials.find((m) => m.id === currentMatId);
+      const updatedMaterial: SavedMaterial = {
+        id: currentMatId,
+        seminarTitle: updated.seminarTitle,
+        organizerName: updated.organizerName,
+        description: updated.description || existingMat?.description || '',
+        category: updated.category || existingMat?.category || 'Materi Kustom',
+        isDefault: existingMat?.isDefault ?? false,
+        createdAt: existingMat?.createdAt || Date.now(),
+        updatedAt: Date.now(),
+        content: updated,
+      };
+      const nextList = await persistMaterial(db, updatedMaterial, false);
+      setMaterials(nextList);
+
       // Ensure activeQuestion and activeSlide are within new bounds
       const maxQ = Math.max(0, updated.questions.length - 1);
       const maxSlide = Math.max(0, updated.slides.length - 1);
@@ -379,6 +434,50 @@ export default function App() {
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, 'custom_content/active');
     }
+  };
+
+  const handleSelectActiveMaterial = async (material: SavedMaterial) => {
+    setActiveMaterialId(material.id);
+    setActiveMaterialIdLocal(material.id);
+
+    const contentToApply: CustomContentDoc = {
+      ...material.content,
+      seminarTitle: material.seminarTitle,
+      organizerName: material.organizerName,
+      materialId: material.id,
+      description: material.description,
+      category: material.category,
+      isDefault: material.isDefault,
+      updatedAt: Date.now(),
+    };
+    setCustomContent(contentToApply);
+
+    try {
+      await setDoc(doc(db, 'custom_content', 'active'), contentToApply);
+      const firstPollId = contentToApply.polls[0]?.id || 'rational_4types';
+      await updateSessionState({
+        activeQuestion: 0,
+        activeSlide: 0,
+        activeSlideStep: 0,
+        activePollId: firstPollId,
+        sessionName: material.seminarTitle.slice(0, 120),
+      });
+    } catch (err) {
+      handleFirestoreError(err, OperationType.WRITE, 'custom_content/active');
+    }
+  };
+
+  const handleSaveNewMaterial = async (newMaterial: SavedMaterial, setAsActive: boolean = false) => {
+    const nextList = await persistMaterial(db, newMaterial, setAsActive);
+    setMaterials(nextList);
+    if (setAsActive) {
+      await handleSelectActiveMaterial(newMaterial);
+    }
+  };
+
+  const handleDeleteMaterial = async (materialId: string) => {
+    const { nextList } = await removeMaterial(db, materialId);
+    setMaterials(nextList);
   };
 
   const handleResetToPartnerUpDefault = async () => {
@@ -834,6 +933,18 @@ export default function App() {
             </button>
 
             <button
+              onClick={() => setIsBankModalOpen(true)}
+              className="hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer pb-0.5 flex items-center gap-1.5 text-white/80"
+              title="Bank Materi & Kurikulum Seminar"
+            >
+              <Layers className="w-3.5 h-3.5 text-[#F28C28]" />
+              <span>Bank Materi</span>
+              <span className="text-[10px] font-extrabold bg-[#F28C28] text-white px-1.5 py-0.2 rounded-full">
+                {materials.length}
+              </span>
+            </button>
+
+            <button
               onClick={() => setIsGuideModalOpen(true)}
               className={`hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer pb-0.5 flex items-center gap-1.5 ${
                 isGuideModalOpen || viewRole === 'guide'
@@ -848,6 +959,18 @@ export default function App() {
 
           {/* Zone 3: 2 Primary Action Buttons + Presenter Lock */}
           <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setIsBankModalOpen(true)}
+              className="px-3 py-2 text-xs font-bold text-white bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer shadow-xs"
+              title="Kelola Bank Materi, buat modul baru, atau beralih sesi"
+            >
+              <Layers className="w-3.5 h-3.5 text-[#F28C28]" />
+              <span className="hidden sm:inline">Bank Materi</span>
+              <span className="text-[10px] font-extrabold bg-[#2A9D8F] text-white px-1.5 py-0.5 rounded">
+                {materials.length}
+              </span>
+            </button>
+
             <button
               onClick={() => setIsGuideModalOpen(true)}
               className="px-3 py-2 text-xs font-bold text-white bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer shadow-xs"
@@ -1051,6 +1174,12 @@ export default function App() {
             onSaveCustomContent={handleSaveCustomContent}
             onResetToPartnerUpDefault={handleResetToPartnerUpDefault}
             onOpenGuide={() => setIsGuideModalOpen(true)}
+            materials={materials}
+            activeMaterialId={activeMaterialId}
+            onSelectActiveMaterial={handleSelectActiveMaterial}
+            onSaveNewMaterial={handleSaveNewMaterial}
+            onDeleteMaterial={handleDeleteMaterial}
+            onOpenBankModal={() => setIsBankModalOpen(true)}
           />
         )}
 
@@ -1137,6 +1266,21 @@ export default function App() {
         )}
       </footer>
       <OfflineBanner />
+
+      {/* Materials Bank Library Modal */}
+      <MaterialsBankModal
+        isOpen={isBankModalOpen}
+        onClose={() => setIsBankModalOpen(false)}
+        materials={materials}
+        activeMaterialId={activeMaterialId}
+        onSelectActiveMaterial={handleSelectActiveMaterial}
+        onEditMaterialInEditor={(mat) => {
+          handleSelectActiveMaterial(mat);
+          setViewRole('editor');
+        }}
+        onSaveNewMaterial={handleSaveNewMaterial}
+        onDeleteMaterial={handleDeleteMaterial}
+      />
 
       {/* Presenter & Developer Authentication & Role Navigation Modal */}
       <PresenterAuthModal

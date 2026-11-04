@@ -95,9 +95,19 @@ service cloud.firestore {
         'slides',
         'qnaTopics',
         'brandTheme',
-        'updatedAt'
+        'updatedAt',
+        'materialId',
+        'description',
+        'isDefault',
+        'createdAt',
+        'category'
       ]) &&
       (!('brandTheme' in data) || data.brandTheme is map) &&
+      (!('materialId' in data) || (data.materialId is string && data.materialId.size() <= 100)) &&
+      (!('description' in data) || (data.description is string && data.description.size() <= 300)) &&
+      (!('category' in data) || (data.category is string && data.category.size() <= 60)) &&
+      (!('isDefault' in data) || data.isDefault is bool) &&
+      (!('createdAt' in data) || data.createdAt is int) &&
       data.seminarTitle is string && data.seminarTitle.size() >= 1 && data.seminarTitle.size() <= 120 &&
       data.organizerName is string && data.organizerName.size() >= 1 && data.organizerName.size() <= 100 &&
       data.questions is list && data.questions.size() >= 1 && data.questions.size() <= 25 &&
@@ -254,9 +264,15 @@ service cloud.firestore {
           'slides',
           'qnaTopics',
           'brandTheme',
-          'updatedAt'
+          'updatedAt',
+          'materialId',
+          'description',
+          'isDefault',
+          'createdAt',
+          'category'
         ])
       );
+      allow delete: if isValidId(docId);
     }
 
     // Worksheet Answers: allow real-time collection query for projector & participants

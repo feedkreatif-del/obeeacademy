@@ -3,19 +3,28 @@ import {
   PARTNERUP_QUESTIONS,
   LIVE_POLLS,
   SEMINAR_SLIDES,
+  DEFAULT_QNA_TOPICS,
   WorksheetQuestion,
   LivePollConfig,
   SlideDefinition,
   SlideCardItem,
   PollOption,
 } from '../data/seminarData';
-import { CustomContentDoc, BrandThemeConfig } from '../types';
+export { DEFAULT_QNA_TOPICS };
+import { CustomContentDoc, BrandThemeConfig, SavedMaterial } from '../types';
 import {
   DEFAULT_BRAND_THEME,
   BRAND_THEME_PRESETS,
   sanitizeBrandTheme,
   useApplyBrandTheme,
 } from '../brandTheme';
+import {
+  downloadMaterialAsJson,
+  downloadAllMaterialsBundleAsJson,
+  duplicateMaterial,
+  createBlankMaterial,
+  DEFAULT_PARTNERUP_CURRICULUM,
+} from '../utils/materialsManager';
 import {
   Save,
   RotateCcw,
@@ -43,6 +52,9 @@ import {
   Check,
   Copy,
   Lock,
+  Layers,
+  PlayCircle,
+  FolderOpen,
 } from 'lucide-react';
 import { printSystemDocumentationGuide } from '../utils/handoutExport';
 
@@ -115,23 +127,34 @@ interface ContentEditorViewProps {
   onSaveCustomContent: (updated: CustomContentDoc) => Promise<void>;
   onResetToPartnerUpDefault: () => Promise<void>;
   onOpenGuide?: () => void;
+  materials?: SavedMaterial[];
+  activeMaterialId?: string;
+  onSelectActiveMaterial?: (material: SavedMaterial) => Promise<void>;
+  onSaveNewMaterial?: (newMaterial: SavedMaterial, setAsActive?: boolean) => Promise<void>;
+  onDeleteMaterial?: (materialId: string) => Promise<void>;
+  onOpenBankModal?: () => void;
 }
-
-export const DEFAULT_QNA_TOPICS = [
-  'Value Proposition',
-  'Rational Value (Bukti)',
-  'Emotional Value (Rasa)',
-  'Strategi Harga',
-  'Bio & Kemasan',
-];
 
 export const ContentEditorView: React.FC<ContentEditorViewProps> = ({
   customContent,
   onSaveCustomContent,
   onResetToPartnerUpDefault,
   onOpenGuide,
+  materials = [],
+  activeMaterialId = '',
+  onSelectActiveMaterial,
+  onSaveNewMaterial,
+  onDeleteMaterial,
+  onOpenBankModal,
 }) => {
-  const [activeTab, setActiveTab] = useState<'questions' | 'slides' | 'polls' | 'qna' | 'theme' | 'guide'>('theme');
+  const [activeTab, setActiveTab] = useState<'bank' | 'theme' | 'questions' | 'slides' | 'polls' | 'qna' | 'guide'>('theme');
+  const [isSaveCopyModalOpen, setIsSaveCopyModalOpen] = useState(false);
+  const [saveCopyTitle, setSaveCopyTitle] = useState('');
+  const [saveCopyNotice, setSaveCopyNotice] = useState('');
+  const [saveCopyActivate, setSaveCopyActivate] = useState(false);
+  const [isSavingCopy, setIsSavingCopy] = useState(false);
+  const [confirmDeleteMatId, setConfirmDeleteMatId] = useState<string | null>(null);
+  const [activatingMatId, setActivatingMatId] = useState<string | null>(null);
   const [seminarTitle, setSeminarTitle] = useState(customContent.seminarTitle);
   const [organizerName, setOrganizerName] = useState(customContent.organizerName);
   const [questions, setQuestions] = useState<WorksheetQuestion[]>(customContent.questions);
@@ -192,6 +215,57 @@ export const ContentEditorView: React.FC<ContentEditorViewProps> = ({
       setTimeout(() => setSaveSuccess(false), 3500);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSaveCopySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!saveCopyTitle.trim() || !onSaveNewMaterial) return;
+    setIsSavingCopy(true);
+    try {
+      const normalizedQuestions = questions.map((q, idx) => ({
+        ...q,
+        index: idx,
+        sectionNumber: idx + 1,
+      }));
+      const normalizedSlides = slides.map((s, idx) => ({
+        ...s,
+        index: idx,
+        pageNumber: idx + 1,
+      }));
+      const newId = `mat_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+      const newMat: SavedMaterial = {
+        id: newId,
+        seminarTitle: saveCopyTitle.trim(),
+        organizerName: organizerName.trim() || 'Program PartnerUp | Obeecreatives',
+        description: saveCopyNotice.trim() || `Salinan dibuat pada ${new Date().toLocaleDateString('id-ID')}`,
+        category: 'Materi Kustom',
+        isDefault: false,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        content: {
+          seminarTitle: saveCopyTitle.trim(),
+          organizerName: organizerName.trim() || 'Program PartnerUp | Obeecreatives',
+          questions: normalizedQuestions,
+          polls,
+          slides: normalizedSlides,
+          qnaTopics: qnaTopics.length > 0 ? qnaTopics : DEFAULT_QNA_TOPICS,
+          brandTheme: sanitizeBrandTheme(brandTheme),
+          updatedAt: Date.now(),
+          materialId: newId,
+          description: saveCopyNotice.trim(),
+          category: 'Materi Kustom',
+          isDefault: false,
+          createdAt: Date.now(),
+        },
+      };
+
+      await onSaveNewMaterial(newMat, saveCopyActivate);
+      setIsSaveCopyModalOpen(false);
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3500);
+    } finally {
+      setIsSavingCopy(false);
     }
   };
 
@@ -644,10 +718,29 @@ export const ContentEditorView: React.FC<ContentEditorViewProps> = ({
 
           <button
             type="button"
-            onClick={handleLoadCopywritingPreset}
-            className="px-3.5 py-2.5 rounded-xl bg-[#FFF7EC] border border-[#F28C28]/40 hover:bg-[#F28C28] text-[#1F3A5F] hover:text-white text-xs font-bold transition-colors cursor-pointer"
+            onClick={() => {
+              if (onOpenBankModal) onOpenBankModal();
+              else setActiveTab('bank');
+            }}
+            className="px-3.5 py-2.5 rounded-xl bg-[#FFF7EC] border border-[#F28C28]/40 hover:bg-[#F28C28] text-[#1F3A5F] hover:text-white text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 shadow-2xs"
+            title="Buka Bank Materi untuk memilih, memuat, atau menduplikasi materi seminar"
           >
-            Coba Contoh Tema Lain (Seminar Copywriting)
+            <Layers className="w-3.5 h-3.5 text-[#F28C28]" />
+            <span>Bank Materi ({materials.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setSaveCopyTitle(`Salinan ${seminarTitle}`);
+              setSaveCopyNotice(`Salinan modul dibuat pada ${new Date().toLocaleDateString('id-ID')}`);
+              setIsSaveCopyModalOpen(true);
+            }}
+            className="px-3.5 py-2.5 rounded-xl bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 text-indigo-900 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 shadow-2xs"
+            title="Simpan perubahan materi saat ini sebagai materi baru terpisah tanpa menimpa materi sebelumnya"
+          >
+            <Copy className="w-3.5 h-3.5 text-indigo-600" />
+            <span>Simpan sebagai Salinan Baru...</span>
           </button>
 
           {!confirmReset ? (
@@ -749,8 +842,21 @@ export const ContentEditorView: React.FC<ContentEditorViewProps> = ({
         </div>
       </div>
 
-      {/* 5 Sub-Editors Navigation */}
+      {/* Sub-Editors Navigation */}
       <div className="flex flex-wrap items-center gap-2 bg-white p-1.5 rounded-xl border border-[#1F3A5F]/15">
+        <button
+          type="button"
+          onClick={() => setActiveTab('bank')}
+          className={`px-4 py-2.5 rounded-lg text-xs sm:text-sm font-bold flex items-center gap-2 cursor-pointer transition-colors ${
+            activeTab === 'bank'
+              ? 'bg-[#1F3A5F] text-white shadow-xs'
+              : 'text-[#1F3A5F] bg-[#FFF7EC] hover:bg-[#F28C28]/15 border border-[#F28C28]/40'
+          }`}
+        >
+          <Layers className="w-4 h-4 text-[#F28C28]" />
+          <span>Bank Materi ({materials.length})</span>
+        </button>
+
         <button
           type="button"
           onClick={() => setActiveTab('theme')}
@@ -835,6 +941,254 @@ export const ContentEditorView: React.FC<ContentEditorViewProps> = ({
           <span>Buku Panduan & Duplikasi (PDF)</span>
         </button>
       </div>
+
+      {/* SUB-EDITOR BANK MATERI & KURIKULUM */}
+      {activeTab === 'bank' && (
+        <div className="space-y-6">
+          <div className="bg-white border border-[#1F3A5F]/15 rounded-2xl p-6 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-md bg-[#F28C28]/15 text-[#F28C28] font-bold text-xs uppercase tracking-wider">
+                  Katalog Kurikulum & Modul
+                </span>
+                <span className="text-xs font-bold text-[#1F3A5F]/60">
+                  {materials.length} Materi Tersimpan
+                </span>
+              </div>
+              <h2 className="font-display text-xl sm:text-2xl font-bold text-[#1F3A5F]">
+                Bank Materi & Kurikulum Seminar
+              </h2>
+              <p className="text-sm text-[#1F3A5F]/75 max-w-3xl">
+                Buat modul materi baru untuk pelatihan sesi berikutnya tanpa takut materi lama hilang. Anda bisa berpindah materi aktif, menduplikasi modul, atau menyunting materi kapan saja.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              {onOpenBankModal && (
+                <button
+                  type="button"
+                  onClick={onOpenBankModal}
+                  className="px-4 py-2.5 rounded-xl bg-[#F28C28] hover:bg-[#d9771e] text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>+ Buat Materi Baru</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => downloadAllMaterialsBundleAsJson(materials)}
+                className="px-3.5 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-[#1F3A5F]/20 text-[#1F3A5F] text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+              >
+                <Download className="w-3.5 h-3.5 text-[#2A9D8F]" />
+                <span>Cadangkan Semua (.JSON)</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Active Material Bar */}
+          <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-white border-2 border-emerald-500/50 rounded-2xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-extrabold uppercase tracking-wider">
+                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                  Materi Sedang Ditampilkan di Layar
+                </span>
+              </div>
+              <h3 className="font-display font-extrabold text-base sm:text-lg text-[#1F3A5F]">
+                {seminarTitle}
+              </h3>
+              <p className="text-xs text-[#1F3A5F]/70">
+                Penyelenggara: {organizerName} · {slides.length} Slide · {questions.length} Pertanyaan · {polls.length} Polling
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setSaveCopyTitle(`Salinan ${seminarTitle}`);
+                  setSaveCopyNotice(`Salinan modul dibuat pada ${new Date().toLocaleDateString('id-ID')}`);
+                  setIsSaveCopyModalOpen(true);
+                }}
+                className="px-3.5 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-[#1F3A5F]/20 text-[#1F3A5F] text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-2xs"
+              >
+                <Copy className="w-3.5 h-3.5 text-[#F28C28]" />
+                <span>Simpan sebagai Salinan Baru</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Cards Grid of all materials */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {materials.map((mat) => {
+              const isActive = mat.id === activeMaterialId;
+              const isMaster = Boolean(mat.isDefault);
+
+              return (
+                <div
+                  key={mat.id}
+                  className={`rounded-2xl border p-5 flex flex-col justify-between transition-all ${
+                    isActive
+                      ? 'bg-emerald-50/40 border-emerald-400 shadow-sm ring-1 ring-emerald-400/40'
+                      : 'bg-white border-[#1F3A5F]/15 hover:border-[#1F3A5F]/35 shadow-2xs'
+                  }`}
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                          isActive
+                            ? 'bg-emerald-600 text-white font-extrabold'
+                            : isMaster
+                            ? 'bg-[#1F3A5F] text-white'
+                            : 'bg-[#FFF7EC] text-[#F28C28] border border-[#F28C28]/30 font-semibold'
+                        }`}
+                      >
+                        {isActive ? '✓ AKTIF SEKARANG' : mat.category || (isMaster ? 'Kurikulum Master' : 'Materi Kustom')}
+                      </span>
+                      <span className="text-[11px] text-[#1F3A5F]/50">
+                        {new Date(mat.updatedAt).toLocaleDateString('id-ID')}
+                      </span>
+                    </div>
+
+                    <h4 className="font-display font-extrabold text-base text-[#1F3A5F]">
+                      {mat.seminarTitle}
+                    </h4>
+
+                    <p className="text-xs text-[#1F3A5F]/70 line-clamp-2 leading-relaxed">
+                      {mat.description || `Diselenggarakan oleh ${mat.organizerName}`}
+                    </p>
+
+                    <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] text-[#1F3A5F]/65">
+                      <span className="bg-slate-100 px-2 py-0.5 rounded-md font-medium">
+                        🖥️ {mat.content.slides?.length || 0} Slide
+                      </span>
+                      <span className="bg-slate-100 px-2 py-0.5 rounded-md font-medium">
+                        📝 {mat.content.questions?.length || 0} Soal
+                      </span>
+                      <span className="bg-slate-100 px-2 py-0.5 rounded-md font-medium">
+                        📊 {mat.content.polls?.length || 0} Polling
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t border-[#1F3A5F]/10 mt-4 flex items-center justify-between gap-2">
+                    {isActive ? (
+                      <span className="text-xs font-bold text-emerald-700 flex items-center gap-1.5 py-1">
+                        <Check className="w-4 h-4 text-emerald-600" />
+                        Sedang Digunakan
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={activatingMatId === mat.id}
+                        onClick={async () => {
+                          if (onSelectActiveMaterial) {
+                            setActivatingMatId(mat.id);
+                            try {
+                              await onSelectActiveMaterial(mat);
+                              setSaveSuccess(true);
+                              setTimeout(() => setSaveSuccess(false), 3500);
+                            } finally {
+                              setActivatingMatId(null);
+                            }
+                          }
+                        }}
+                        className="px-3.5 py-2 rounded-xl bg-[#2A9D8F] hover:bg-[#218276] text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                      >
+                        <PlayCircle className="w-3.5 h-3.5" />
+                        <span>{activatingMatId === mat.id ? 'Memuat...' : 'Jadikan Materi Aktif'}</span>
+                      </button>
+                    )}
+
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSeminarTitle(mat.seminarTitle);
+                          setOrganizerName(mat.organizerName);
+                          setQuestions(mat.content.questions);
+                          setSlides(mat.content.slides);
+                          setPolls(mat.content.polls);
+                          setQnaTopics(mat.content.qnaTopics);
+                          if (mat.content.brandTheme) {
+                            setBrandTheme(sanitizeBrandTheme(mat.content.brandTheme));
+                          }
+                          setActiveTab('questions');
+                        }}
+                        className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#1F3A5F] text-xs font-bold flex items-center gap-1 cursor-pointer"
+                        title="Buka konten materi ini ke form editor"
+                      >
+                        <span>Edit</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (onSaveNewMaterial) {
+                            const clone = duplicateMaterial(mat);
+                            await onSaveNewMaterial(clone, false);
+                          }
+                        }}
+                        className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#1F3A5F] text-xs cursor-pointer"
+                        title="Duplikasi materi ini"
+                      >
+                        <Copy className="w-3.5 h-3.5 text-[#F28C28]" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => downloadMaterialAsJson(mat)}
+                        className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#1F3A5F] text-xs cursor-pointer"
+                        title="Unduh file JSON"
+                      >
+                        <Download className="w-3.5 h-3.5 text-slate-600" />
+                      </button>
+
+                      {!isMaster && (
+                        <>
+                          {confirmDeleteMatId === mat.id ? (
+                            <div className="flex items-center gap-1 bg-rose-50 border border-rose-300 px-2 py-1 rounded-lg">
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  if (onDeleteMaterial) {
+                                    await onDeleteMaterial(mat.id);
+                                    setConfirmDeleteMatId(null);
+                                  }
+                                }}
+                                className="text-[11px] font-bold text-rose-700 hover:underline cursor-pointer"
+                              >
+                                Ya, Hapus
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setConfirmDeleteMatId(null)}
+                                className="text-[11px] text-slate-600 hover:underline cursor-pointer"
+                              >
+                                Batal
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setConfirmDeleteMatId(mat.id)}
+                              className="p-1.5 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600 text-xs cursor-pointer"
+                              title="Hapus materi ini"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* SUB-EDITOR TEMA WARNA ORGANISASI (CUSTOM BRAND COLOR PICKER) */}
       {activeTab === 'theme' && (
@@ -2114,6 +2468,99 @@ export const ContentEditorView: React.FC<ContentEditorViewProps> = ({
                 Buka Modal Pembaca Lengkap
               </button>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Simpan sebagai Salinan Baru (Save As Copy) */}
+      {isSaveCopyModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1F3A5F]/75 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl shadow-2xl border border-[#1F3A5F]/20 w-full max-w-lg p-6 space-y-5 animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-[#1F3A5F]/10 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-700">
+                  <Copy className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-display font-extrabold text-base text-[#1F3A5F]">
+                    Simpan sebagai Salinan Baru
+                  </h3>
+                  <p className="text-xs text-[#1F3A5F]/70">
+                    Materi sebelumnya tetap utuh dan tersimpan di Bank Materi
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsSaveCopyModalOpen(false)}
+                className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-500 cursor-pointer"
+              >
+                <XCircle className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCopySubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase text-[#1F3A5F]/75 mb-1">
+                  Nama / Judul Materi Baru *
+                </label>
+                <input
+                  type="text"
+                  required
+                  maxLength={120}
+                  value={saveCopyTitle}
+                  onChange={(e) => setSaveCopyTitle(e.target.value)}
+                  className="w-full rounded-xl border border-[#1F3A5F]/25 px-3.5 py-2.5 text-sm font-bold text-[#1F3A5F]"
+                  placeholder="Contoh: Sesi 2: Strategi Harga & Penjualan"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase text-[#1F3A5F]/75 mb-1">
+                  Catatan / Keterangan Modul
+                </label>
+                <input
+                  type="text"
+                  maxLength={200}
+                  value={saveCopyNotice}
+                  onChange={(e) => setSaveCopyNotice(e.target.value)}
+                  className="w-full rounded-xl border border-[#1F3A5F]/25 px-3.5 py-2 text-xs text-[#1F3A5F]"
+                  placeholder="Contoh: Modul untuk sesi lanjutan minggu kedua"
+                />
+              </div>
+
+              <div className="bg-[#FFF7EC] p-3 rounded-xl border border-[#F28C28]/25">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={saveCopyActivate}
+                    onChange={(e) => setSaveCopyActivate(e.target.checked)}
+                    className="w-4 h-4 rounded text-[#F28C28] cursor-pointer"
+                  />
+                  <span className="text-xs font-bold text-[#1F3A5F]">
+                    Langsung jadikan sebagai Materi Aktif di layar presentasi
+                  </span>
+                </label>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsSaveCopyModalOpen(false)}
+                  className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-100 cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingCopy || !saveCopyTitle.trim()}
+                  className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  <span>{isSavingCopy ? 'Menyimpan...' : 'Simpan ke Bank Materi'}</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

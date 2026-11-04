@@ -43,6 +43,23 @@ export interface CustomContentDoc {
   qnaTopics: string[];
   brandTheme?: BrandThemeConfig;
   updatedAt: number;
+  materialId?: string;
+  description?: string;
+  category?: string;
+  isDefault?: boolean;
+  createdAt?: number;
+}
+
+export interface SavedMaterial {
+  id: string;
+  seminarTitle: string;
+  organizerName: string;
+  description?: string;
+  category?: string;
+  isDefault?: boolean;
+  createdAt: number;
+  updatedAt: number;
+  content: CustomContentDoc;
 }
 
 export interface AnswerDoc {

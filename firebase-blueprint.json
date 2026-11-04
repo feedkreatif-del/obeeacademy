@@ -126,6 +126,26 @@
           "type": "object",
           "description": "Custom organization brand color theme configuration"
         },
+        "materialId": {
+          "type": "string",
+          "description": "Unique identifier for this saved training material"
+        },
+        "description": {
+          "type": "string",
+          "description": "Short description of the training material"
+        },
+        "category": {
+          "type": "string",
+          "description": "Category or batch label for this training material"
+        },
+        "isDefault": {
+          "type": "boolean",
+          "description": "Whether this is the core built-in curriculum"
+        },
+        "createdAt": {
+          "type": "integer",
+          "description": "Creation timestamp in ms"
+        },
         "updatedAt": {
           "type": "integer",
           "description": "Last modified timestamp in ms"

@@ -60,6 +60,14 @@ export interface SlideDefinition {
   imagePosition?: SlideImagePosition;
 }
 
+export const DEFAULT_QNA_TOPICS: string[] = [
+  'Value Proposition',
+  'Rational Value (Bukti)',
+  'Emotional Value (Rasa)',
+  'Strategi Harga',
+  'Bio & Kemasan',
+];
+
 export interface ToughQuestionGuide {
   id: string;
   question: string;
