@@ -460,10 +460,444 @@ export const COPYWRITING_MATERIAL_PRESET: SavedMaterial = {
 };
 
 /**
+ * Kurikulum Spesialis: Desain Kemasan Sebagai Penunjang Pemasaran UMKM
+ * Disusun dari sudut pandang ahli desain kemasan (packaging designer) & strategi marketing
+ */
+const PACKAGING_QUESTIONS: WorksheetQuestion[] = [
+  {
+    index: 0,
+    sectionNumber: 1,
+    sectionTitle: '1. Audit Kemasan Produkmu Saat Ini',
+    coreLearning: 'Mengenali kelemahan proteksi fisik dan visual kemasan sebelum diperbaiki',
+    questionText: 'Bahan kemasan apa yang saat ini kamu pakai, dan apa kendala terbesarnya (misal: gampang melempem, minyak merembes, stiker luntur, atau terlihat murahan)?',
+    secondaryPrompt: 'Sebutkan jenis wadah (plastik bening biasa, standing pouch, toples mika, thinwall, botol kaca/plastik) dan jenis labelnya.',
+    exampleAnswer: 'Kami pakai standing pouch plastik bening biasa dengan stiker kertas print rumahan. Kendalanya: stiker mudah pudar kalau kena minyak dan di rak toko terlihat sama persis dengan puluhan keripik lainnya.',
+    helperTips: [
+      'Jangan malu mengakui kekurangan kemasan saat ini; audit jujur adalah langkah awal kemasanmu naik kelas.',
+      'Perhatikan keluhan pembeli: apakah pernah ada yang komplain kemasan robek atau kerenyahan hilang?',
+    ],
+    linkedSlideIndex: 4,
+  },
+  {
+    index: 1,
+    sectionNumber: 2,
+    sectionTitle: '2. Uji Pandang 3 Detik di Rak (First Impression)',
+    coreLearning: 'Kemasan harus mampu menghentikan langkah calon pembeli dalam 3 detik pertama',
+    questionText: 'Jika produkmu dijejerkan di rak toko oleh-oleh bersama 5 produk pesaing, apakah pembeli langsung tahu apa keunggulan usahamu dalam 3 detik?',
+    secondaryPrompt: 'Apa elemen visual utama (warna kontras, ilustrasi, atau kata kunci) yang langsung menyedot pandangan pembeli?',
+    exampleAnswer: 'Belum tentu. Saat ini merek kami warnanya pucat. Seharusnya kami pakai warna kuning kunyit menyala dengan tulisan besar "Pedas Gurih Daun Jeruk" agar mata pembeli langsung tertuju ke produk kami.',
+    helperTips: [
+      'Di rak toko atau feed Instagram, pembeli tidak membaca paragraf; mereka memindai (scanning) warna dan kata kunci.',
+      'Pastikan ada satu elemen dominan yang langsung mencolok dibanding produk di sebelah kiri dan kanannya.',
+    ],
+    linkedSlideIndex: 7,
+  },
+  {
+    index: 2,
+    sectionNumber: 3,
+    sectionTitle: '3. Menyusun Hierarki 3 Tulisan Utama di Bagian Depan',
+    coreLearning: 'Menghindari kemasan yang membingungkan dengan aturan ukuran font bertingkat',
+    questionText: 'Tuliskan 3 tulisan paling penting yang wajib langsung terbaca di bagian depan kemasanmu secara berurutan!',
+    secondaryPrompt: 'Urutan wajib: 1. Nama Merek (Paling Besar) — 2. Kategori Produk (Jelas) — 3. Varian Rasa / Keunikan Utama.',
+    exampleAnswer: '1. MEREK: "Dapoer Mak Renyah" (Font tebal paling dominan) — 2. KATEGORI: "Keripik Usus Krispi" (Ukuran sedang, langsung paham makanan apa) — 3. VARIAN: "Rasa Bawang Gurih Tanpa Amis" (Kontras).',
+    helperTips: [
+      'Jangan biarkan pembeli bertanya: "Ini jualan apa ya?". Kategori produk harus terbaca dari jarak 1,5 meter.',
+      'Hindari font sambung/keriting rumit yang sulit dibaca orang tua atau saat berjalan terburu-buru.',
+    ],
+    linkedSlideIndex: 9,
+  },
+  {
+    index: 3,
+    sectionNumber: 4,
+    sectionTitle: '4. Anatomi Legalitas & Informasi Penumbuh Kepercayaan',
+    coreLearning: 'Konsumen modern rela membayar lebih jika kemasan mencantumkan jaminan keamanan',
+    questionText: 'Keterangan dan legalitas apa saja yang sudah (atau segera) kamu cantumkan pada kemasan usahamu agar pembeli tidak ragu?',
+    secondaryPrompt: 'Ceklis: Nomor P-IRT / BPOM, Logo Halal Kemenag, Tanggal Kedaluwarsa, Komposisi Bahan, Nomor WhatsApp / Medsos, dan Berat Bersih (Netto).',
+    exampleAnswer: 'Sudah ada Logo Halal dan Nomor WhatsApp pesanan. Target bulan ini: mencantumkan nomor P-IRT resmi dan membuat kotak stempel rapi untuk "Baik Digunakan Sebelum (Exp Date)".',
+    helperTips: [
+      'Toko oleh-oleh modern dan minimarket menolak produk UMKM yang tidak punya P-IRT dan tanggal expired yang jelas.',
+      'Cantumkan nomor WhatsApp pemesanan dan akun Instagram/TikTok agar kemasan menjadi media promosi berulang.',
+    ],
+    linkedSlideIndex: 11,
+  },
+  {
+    index: 4,
+    sectionNumber: 5,
+    sectionTitle: '5. Kekuatan Menaikkan Harga Jual (Pricing Power)',
+    coreLearning: 'Kemasan yang estetik dan rapi menciptakan persepsi harga (perceived value) berkali lipat',
+    questionText: 'Jika kemasanmu di-upgrade menjadi lebih higienis, kedap udara, dan berdesain profesional, berapa kenaikan harga jual yang pantas kamu tetapkan?',
+    secondaryPrompt: 'Bandingkan harga jual kemasan lama vs harga jual kemasan baru. Hitung tambahan biaya kemasan vs keuntungan harga jual barumu.',
+    exampleAnswer: 'Kemasan lama (plastik klip tipis) dijual Rp10.000 (margin Rp3.000). Dengan standing pouch aluminium foil matte berstiker vinyl UV, harga bisa naik jadi Rp18.000. Biaya kemasan cuma naik Rp1.200, tapi untung bersih melonjak jadi Rp8.800 per bungkus!',
+    helperTips: [
+      'Pembeli tidak membeli sekadar isi makanan; mereka membeli rasa aman, kebersihan, dan gengsi saat menjadikannya oleh-oleh.',
+      'Kemasan naik kelas adalah cara tercepat keluar dari perangkap banting harga murah.',
+    ],
+    linkedSlideIndex: 14,
+  },
+  {
+    index: 5,
+    sectionNumber: 6,
+    sectionTitle: '6. Menentukan Warna Dominan & Karakter Rasa Produk',
+    coreLearning: 'Psikologi warna kemasan merangsang selera makan dan emosi pembeli',
+    questionText: 'Apa warna dominan yang paling mewakili karakter usahamu, dan kesan apa yang ingin kamu tancapkan ke benak pembeli?',
+    secondaryPrompt: 'Contoh: Merah/Oranye (Pedas, Gurih, Lapar), Cokelat Kraft/Hijau (Alami, Sehat, Otentik), Hitam/Emas (Premium, Oleh-Oleh Mewah).',
+    exampleAnswer: 'Warna terakota (merah bata) kombinasi emas tua. Kesan yang ingin ditonjolkan: sambal warisan keluarga tempo dulu yang kaya rempah nusantara, pedas mantap, dan pantas dijadikan bingkisan oleh-oleh khas kota kami.',
+    helperTips: [
+      'Jangan memilih warna hanya karena "itu warna favorit pemilik usaha". Pilihlah warna yang memicu selera makan pembeli targetmu.',
+      'Batasi maksimal 3 kombinasi warna utama agar kemasan tidak tampak ramai dan norak.',
+    ],
+    linkedSlideIndex: 13,
+  },
+  {
+    index: 6,
+    sectionNumber: 7,
+    sectionTitle: '7. Rencana Aksi Merombak Kemasan 30 Hari ke Depan',
+    coreLearning: 'Langkah taktis bertahap yang bisa dieksekusi tanpa modal besar',
+    questionText: 'Tuliskan 2 tindakan nyata yang akan kamu eksekusi dalam 30 hari ke depan untuk meningkatkan kemasan usahamu!',
+    secondaryPrompt: 'Pilih langkah yang paling realistis dengan modal saat ini (misal: ganti stiker anti air, perbaiki foto produk, ganti pouch foil).',
+    exampleAnswer: '1. Ganti stiker kertas HVS menjadi stiker vinyl doff tahan air dan minyak (cetak 100 lembar dulu). 2. Rombak tulisan depan agar nama varian rasa dan logo Halal terlihat besar dan tajam.',
+    helperTips: [
+      'Tidak perlu langsung cetak plastik printing 10.000 pcs; pakai standing pouch polos food-grade + stiker vinyl desain bagus sudah sangat mewah.',
+      'Lakukan uji coba ke 10 pelanggan langganan dan tanyakan respon mereka terhadap kemasan barumu.',
+    ],
+    linkedSlideIndex: 16,
+  },
+];
+
+const PACKAGING_POLLS: LivePollConfig[] = [
+  {
+    id: 'poll_kendala_kemasan_umkm',
+    title: 'Kendala Terbesar Terkait Kemasan Usahamu Saat Ini',
+    subtitle: 'Pilih 1 tantangan yang paling sering membuatmu ragu atau terhambat merombak kemasan:',
+    linkedSlideIndex: 5,
+    type: 'bar',
+    options: [
+      {
+        id: 'opt_biaya_moq',
+        label: '1. Biaya cetak mahal & minimal order (MOQ) harus ribuan pcs',
+        subtitle: 'Modal terbatas dan khawatir kemasan tidak habis terpakai',
+        category: 'rational',
+      },
+      {
+        id: 'opt_keahlian_desain',
+        label: '2. Bingung membuat desain label yang bagus & tidak bisa aplikasi desain',
+        subtitle: 'Hasil desain sendiri terasa kaku dan kurang estetik',
+        category: 'emotional',
+      },
+      {
+        id: 'opt_daya_tahan',
+        label: '3. Produk cepat melempem, bocor, atau minyak merembes ke label',
+        subtitle: 'Bahan plastik yang dipakai belum kedap udara dan belum food-grade',
+        category: 'rational',
+      },
+      {
+        id: 'opt_legalitas_label',
+        label: '4. Belum punya izin P-IRT / Halal resmi untuk dicantumkan',
+        subtitle: 'Merasa kemasan belum percaya diri masuk ke toko oleh-oleh',
+        category: 'emotional',
+      },
+    ],
+  },
+  {
+    id: 'poll_kesan_kemasan_target',
+    title: 'Kesan Utama yang Ingin Ditonjolkan Kemasanmu',
+    subtitle: 'Ketika pembeli pertama kali melihat produkmu di rak toko, apa kesan pertama yang kamu harapkan?',
+    linkedSlideIndex: 13,
+    type: 'bar',
+    options: [
+      {
+        id: 'opt_kesan_higienis',
+        label: '1. Bersih, Higienis & Kualitasnya Sangat Terjamin',
+        subtitle: 'Membeli tanpa takut sakit perut atau tidak sehat',
+        category: 'rational',
+      },
+      {
+        id: 'opt_kesan_otentik',
+        label: '2. Otentik Tradisional & Resep Kuno Warisan Asli',
+        subtitle: 'Kaya rempah dan punya nilai kearifan lokal yang kuat',
+        category: 'emotional',
+      },
+      {
+        id: 'opt_kesan_premium',
+        label: '3. Premium, Estetik & Pantas untuk Bingkisan Oleh-Oleh',
+        subtitle: 'Pembeli bangga membawanya pulang atau memberikannya ke kerabat',
+        category: 'emotional',
+      },
+      {
+        id: 'opt_kesan_praktis',
+        label: '4. Praktis, Renyah & Enak Dimakan Kapan Saja (On-The-Go)',
+        subtitle: 'Porsi pas dengan ziplock yang bisa ditutup kembali',
+        category: 'rational',
+      },
+    ],
+  },
+];
+
+const PACKAGING_SLIDES: SlideDefinition[] = [
+  {
+    index: 0,
+    pageNumber: 1,
+    badge: 'WORKSHOP DESAIN KEMASAN UMKM',
+    title: 'Pentingnya Desain Kemasan Sebagai Penunjang Pemasaran Bagi UMKM',
+    subtitle: 'Kemasan Bukan Cuma Bungkus: Penentu Pembeli Mau Beli & Rela Bayar Mahal — PartnerUp',
+    type: 'cover',
+  },
+  {
+    index: 1,
+    pageNumber: 2,
+    badge: 'AGENDA PELATIHAN',
+    title: 'Peta Perjalanan Belajar Hari Ini',
+    subtitle: 'Membongkar rahasia kemasan juara dari sudut pandang desain grafis dan strategi pemasaran:',
+    type: 'agenda',
+    cards: [
+      { title: '1. Peran Vital Kemasan', body: 'Menyadari fungsi kemasan sebagai pelindung, wiraniaga diam (silent salesperson), dan pembangun nilai merek.', accent: 'orange' },
+      { title: '2. Hukum 3 Detik di Rak Toko', body: 'Teknik psikologi visual agar mata pembeli langsung tertuju ke produkmu di antara puluhan pesaing.', accent: 'teal' },
+      { title: '3. Anatomi Rumus 5 Elemen Label', body: 'Menyusun hierarki tulisan depan dan informasi legalitas belakang kemasan secara proporsional.', accent: 'orange' },
+      { title: '4. Packaging Power & Strategi Harga', body: 'Cara cerdas menaikkan margin laba bersih hingga 2-3x lipat lewat kemasan naik kelas tanpa modal raksasa.', accent: 'teal' },
+    ],
+  },
+  {
+    index: 2,
+    pageNumber: 3,
+    badge: 'FONDASI KEMASAN',
+    title: '3 Peran Vital Kemasan dalam Pemasaran Produk',
+    subtitle: 'Kemasan modern bekerja 24 jam untuk usahamu bahkan saat kamu sedang tidur:',
+    type: 'concept',
+    cards: [
+      { title: '1. Proteksi Fisik (Protect)', body: 'Menjaga kerenyahan, aroma, dan higienitas produk. Kemasan seindah apa pun jika produk melempem akan membuat pembeli kapok membeli ulang.', accent: 'orange' },
+      { title: '2. Wiraniaga Diam (Silent Salesperson)', body: 'Saat produk ditaruh di rak toko atau feed Instagram, kemasanlah yang berbicara, merayu, dan meyakinkan dompet pembeli.', accent: 'teal' },
+      { title: '3. Identitas & Pembeda (Brand Identity)', body: 'Wajah visual yang dicari pembeli ketika mereka ingin memesan kembali (repeat order) atau merekomendasikan ke teman.', accent: 'orange' },
+    ],
+  },
+  {
+    index: 3,
+    pageNumber: 4,
+    badge: 'REALITA PASAR',
+    title: 'Kenyataan Pahit: Produk Enak Sering Kalah dari Kemasan Bagus',
+    subtitle: 'Pembeli tidak bisa mencicipi rasa makanan sebelum mereka memutuskan membeli!',
+    type: 'comparison',
+    comparison: {
+      leftTitle: 'Kemasan Biasa / Asal Bungkus',
+      leftBody: 'Rasa enak resep turun-temurun, tapi dikemas plastik tipis buram diikat karet atau klip mika biasa. Pembeli mengira produk murahan, tidak higienis, dan menawar harga semurah mungkin (Rp8.000 - Rp10.000).',
+      rightTitle: 'Kemasan Profesional & Higienis',
+      rightBody: 'Memakai standing pouch matte / foil food-grade dengan stiker vinyl desain bersih dan nomor P-IRT jelas. Pembeli langsung percaya higienis, pantas untuk oleh-oleh keluarga, dan rela membayar Rp20.000 - Rp28.000 tanpa menawar!',
+    },
+    promptLines: ['Pelajaran penting: "Rasa enak membuat pembeli membeli ulang, tapi kemasan bagus yang membuat mereka mau membeli untuk pertama kali!"'],
+  },
+  {
+    index: 4,
+    pageNumber: 5,
+    badge: 'PRAKTIK 1: AUDIT',
+    title: 'Audit Kemasan Produkmu Saat Ini',
+    subtitle: 'Mari kita kenali kelemahan dan peluang kemasan usahamu di layar HP masing-masing:',
+    type: 'worksheet',
+    linkedQuestionIndex: 0,
+    cards: [
+      { title: 'Bahan Wadah', body: 'Apakah sudah kedap udara dan melindungi dari minyak/cahaya matahari?', accent: 'orange' },
+      { title: 'Daya Tahan Label', body: 'Apakah stiker mudah lepas, pudar kena air, atau mudah robek?', accent: 'teal' },
+    ],
+    promptLines: ['Bahan kemasan dan kendala terbesar usahamu saat ini: ______________'],
+  },
+  {
+    index: 5,
+    pageNumber: 6,
+    badge: 'POLLING INTERAKTIF',
+    title: 'Tantangan Terbesar Kemasan UMKM',
+    subtitle: 'Yuk kita petakan apa kendala paling mendesak dari teman-teman pelaku UMKM di ruangan ini:',
+    type: 'concept',
+    linkedPollId: 'poll_kendala_kemasan_umkm',
+    cards: [
+      { title: '1. Modal & MOQ Cetak', body: 'Khawatir harus cetak minimal 5.000 - 10.000 pcs.', accent: 'orange' },
+      { title: '2. Keterbatasan Desain', body: 'Bingung paduan warna dan tipografi font yang rapi.', accent: 'teal' },
+      { title: '3. Legalitas & Uji Ketahanan', body: 'Belum paham aturan P-IRT dan tanggal expired.', accent: 'orange' },
+    ],
+  },
+  {
+    index: 6,
+    pageNumber: 7,
+    badge: 'PSIKOLOGI KONSUMEN',
+    title: 'Hukum 3 Detik: Pembeli Tidak Membaca, Pembeli Memindai!',
+    subtitle: 'Dalam 3 detik pertama, otak calon pembeli memutuskan: melirik atau mengabaikan.',
+    type: 'concept',
+    cards: [
+      { title: 'Detik 1: Warna & Siluet', body: 'Warna kemasan yang kontras dan bentuk wadah yang berdiri kokoh (standing) ditangkap mata terlebih dahulu.', accent: 'orange' },
+      { title: 'Detik 2: Jenis Produk', body: 'Mata mencari kepastian: "Ini makanan apa?". Tulisan kategori produk harus langsung terbaca jelas tanpa mikir.', accent: 'teal' },
+      { title: 'Detik 3: Keunggulan Pembeda', body: 'Klaim pemikat: rasa gurih daun jeruk, tanpa MSG, renyah 3 bulan, atau logo Halal resmi.', accent: 'orange' },
+    ],
+  },
+  {
+    index: 7,
+    pageNumber: 8,
+    badge: 'PRAKTIK 2: FIRST IMPRESSION',
+    title: 'Uji Pandang 3 Detik di Rak Pesaing',
+    subtitle: 'Bayangkan produkmu ditaruh berdampingan dengan 5 kompetitor sejenis di minimarket atau toko oleh-oleh:',
+    type: 'worksheet',
+    linkedQuestionIndex: 1,
+    promptLines: ['Apakah produkmu langsung menyedot perhatian dalam 3 detik? ______________'],
+  },
+  {
+    index: 8,
+    pageNumber: 9,
+    badge: 'FORMULA DESAIN',
+    title: 'Anatomi Label Depan: Rumus 5 Elemen Wajib Kemasan Juara',
+    subtitle: 'Jangan jejalkan semua tulisan di bagian depan! Fokus pada 5 elemen penarik penjualan:',
+    type: 'formula',
+    cards: [
+      { title: '1. Brand / Nama Merek (30%)', body: 'Gunakan font tegas dan gampang dibaca. Jangan pakai font sambung yang keriting berlebihan.', accent: 'orange' },
+      { title: '2. Kategori Produk (25%)', body: 'Sebutkan jenis barangnya: "Keripik Singkong", "Sambal Cumi", "Kue Kacang". Jangan disembunyikan!', accent: 'teal' },
+      { title: '3. Varian / Keunggulan (20%)', body: 'Keterangan rasa atau keunikan resep: "Ekstra Daun Jeruk", "100% Gula Kelapa Asli".', accent: 'orange' },
+      { title: '4. Ilustrasi / Jendela Intip (15%)', body: 'Bisa berupa foto produk menggugah selera atau kemasan window transparan agar pembeli melihat isinya.', accent: 'teal' },
+      { title: '5. Netto & Tanda Legalitas (10%)', body: 'Berat bersih (misal: "Netto 150g") dan logo Halal di pojok bawah depan.', accent: 'orange' },
+    ],
+  },
+  {
+    index: 9,
+    pageNumber: 10,
+    badge: 'PRAKTIK 3: HIERARKI LABEL',
+    title: 'Menyusun Hierarki 3 Tulisan Utama Depan',
+    subtitle: 'Urutkan ukuran huruf agar pembeli tidak pusing saat melihat kemasan usahamu:',
+    type: 'worksheet',
+    linkedQuestionIndex: 2,
+    promptLines: [
+      '1. Nama Merek (Paling Besar): ______________',
+      '2. Kategori Produk (Ukuran Sedang): ______________',
+      '3. Varian Rasa / Keunikan Utama: ______________',
+    ],
+  },
+  {
+    index: 10,
+    pageNumber: 11,
+    badge: 'BAGIAN BELAKANG',
+    title: 'Sisi Belakang Kemasan: Membangun Kepercayaan & Loyalitas',
+    subtitle: 'Bagian depan menarik mata, bagian belakang meyakinkan dompet dan izin edar!',
+    type: 'concept',
+    cards: [
+      { title: '1. Komposisi Bahan Baku', body: 'Urutkan dari bahan dengan takaran terbanyak ke paling sedikit. Menunjukkan kejujuran dan higienitas.', accent: 'orange' },
+      { title: '2. Nomor Izin Edar (P-IRT / BPOM)', body: 'Kunci mutlak agar produk diterima toko retail modern, supermarket, dan toko oleh-oleh bandara.', accent: 'teal' },
+      { title: '3. Tanggal Kedaluwarsa (Exp Date)', body: 'Sediakan kotak putih rapi untuk stempel atau print tanggal. Hindari menulis tangan asal-asalan dengan spidol.', accent: 'orange' },
+      { title: '4. Media Promosi & Repeat Order', body: 'Nomor WhatsApp customer care, akun Instagram/TikTok, dan kode QR untuk pemesanan kembali.', accent: 'teal' },
+    ],
+  },
+  {
+    index: 11,
+    pageNumber: 12,
+    badge: 'PRAKTIK 4: LEGALITAS & TRUST',
+    title: 'Checklist Legalitas & Keterangan Belakang Kemasan',
+    subtitle: 'Mari cek kelengkapan informasi usahamu untuk persiapan masuk toko retail:',
+    type: 'worksheet',
+    linkedQuestionIndex: 3,
+    promptLines: ['Legalitas dan informasi yang sudah/akan kamu cantumkan: ______________'],
+  },
+  {
+    index: 12,
+    pageNumber: 13,
+    badge: 'PSIKOLOGI WARNA',
+    title: 'Panduan Memilih Warna Kemasan yang Selaras Rasa',
+    subtitle: 'Warna adalah pesan bawah sadar yang memancing air liur dan selera pembeli:',
+    type: 'concept',
+    cards: [
+      { title: 'Merah & Oranye Terakota', body: 'Memicu nafsu makan, rasa pedas, gurih, sambal, krispi, dan makanan cepat saji.', accent: 'orange' },
+      { title: 'Cokelat Kraft & Hijau Alami', body: 'Menyampaikan pesan alami, organik, resep tradisional tempo dulu, sehat, dan tanpa pengawet.', accent: 'teal' },
+      { title: 'Kuning Cerah & Emas Muda', body: 'Kesan ceria, hangat, renyah, kue mentega, keripik pisang, dan produk ramah keluarga.', accent: 'orange' },
+      { title: 'Hitam Matte & Emas Mewah', body: 'Menciptakan kesan eksklusif, mahal, premium, sangat cocok untuk oleh-oleh eksekutif atau kopi spesialti.', accent: 'teal' },
+    ],
+  },
+  {
+    index: 13,
+    pageNumber: 14,
+    badge: 'PRAKTIK 5: WARNA & KARAKTER',
+    title: 'Menentukan Warna Dominan & Pesan Rasa',
+    subtitle: 'Pilihlah kombinasi warna yang paling selaras dengan identitas produk usahamu:',
+    type: 'worksheet',
+    linkedQuestionIndex: 5,
+    promptLines: ['Warna dominan kemasanmu dan alasan pemilihannya: ______________'],
+  },
+  {
+    index: 14,
+    pageNumber: 15,
+    badge: 'STRATEGI HARGA',
+    title: 'Packaging Power: Cara Menaikkan Harga Jual & Margin Usaha',
+    subtitle: 'Modal kemasan naik Rp1.500, harga jual produk bisa dinaikkan Rp8.000 - Rp12.000!',
+    type: 'concept',
+    cards: [
+      { title: '1. Menembus Pasar Hadiah & Oleh-Oleh', body: 'Orang enggan memberi oleh-oleh dalam bungkus plastik kresek; kemasan bagus layak dijadikan buah tangan berharga.', accent: 'orange' },
+      { title: '2. Hilangkan Kebiasaan Menawar', body: 'Kemasan profesional membuat pembeli segan menawar harga murah karena terlihat seperti produk bermerek dari pabrik terstandar.', accent: 'teal' },
+      { title: '3. Margin Bersih Meningkat Drastis', body: 'Kenaikan biaya kemasan standing pouch jauh lebih kecil dibanding lonjakan keuntungan harga jual baru.', accent: 'orange' },
+    ],
+  },
+  {
+    index: 15,
+    pageNumber: 16,
+    badge: 'PRAKTIK 6: SIMULASI HARGA',
+    title: 'Simulasi Kenaikan Harga Jual Produkmu',
+    subtitle: 'Hitung potensi lonjakan omzet dan margin laba bersih setelah kemasan dirombak:',
+    type: 'worksheet',
+    linkedQuestionIndex: 4,
+    promptLines: ['Harga Kemasan Lama vs Harga Kemasan Baru & Tambahan Untung Bersih: ______________'],
+  },
+  {
+    index: 16,
+    pageNumber: 17,
+    badge: 'SOLUSI ANGGARAN & AKSI',
+    title: 'Rencana Aksi 30 Hari: Kemasan Naik Kelas Tanpa Modal Besar',
+    subtitle: 'Strategi cerdas bagi UMKM yang belum mampu cetak ribuan pcs di pabrik besar:',
+    type: 'closing',
+    linkedQuestionIndex: 6,
+    promptLines: ['2 Tindakan Nyata Merombak Kemasan dalam 30 Hari: ______________'],
+    cards: [
+      { title: 'Tahap 1: Polos Food-Grade + Stiker Vinyl', body: 'Beli standing pouch matte polos kualitas prima (isi 50 pcs), tempel stiker vinyl cetak digital anti air & minyak. Tampilan sudah setara pabrik besar!', accent: 'orange' },
+      { title: 'Tahap 2: Buat 1 Desain Template Universal', body: 'Gunakan 1 desain stiker utama, lalu sediakan kolom centang untuk varian rasa (pedas/manis/original) agar hemat ongkos cetak.', accent: 'teal' },
+      { title: 'Tahap 3: Foto Kemasan dengan Cahaya Alami', body: 'Ambil foto kemasan baru di dekat jendela terang dengan latar kayu/kain bersih untuk katalog WhatsApp dan Instagram.', accent: 'orange' },
+    ],
+  },
+];
+
+export const PACKAGING_DESIGN_MARKETING_CURRICULUM: SavedMaterial = {
+  id: 'desain_kemasan_pemasaran_umkm',
+  seminarTitle: 'Pentingnya Desain Kemasan Sebagai Penunjang Pemasaran Bagi UMKM',
+  organizerName: 'Program PartnerUp | Obeecreatives',
+  description: 'Kurikulum Spesialis: Mengubah kemasan menjadi wiraniaga diam (silent salesperson), hukum pandang 3 detik di rak toko, rumus anatomi label juara, dan strategi menaikkan harga jual 2x lipat (7 Pertanyaan, 17 Slide).',
+  category: 'Workshop Kemasan & Branding',
+  isDefault: false,
+  createdAt: 1730700000000,
+  updatedAt: 1730700000000,
+  content: {
+    seminarTitle: 'Pentingnya Desain Kemasan Sebagai Penunjang Pemasaran Bagi UMKM',
+    organizerName: 'Program PartnerUp | Obeecreatives',
+    questions: PACKAGING_QUESTIONS,
+    polls: PACKAGING_POLLS,
+    slides: PACKAGING_SLIDES,
+    qnaTopics: [
+      'Bahan & Ketahanan Kemasan',
+      'Hierarki Desain & Font Label',
+      'Legalitas (P-IRT, Halal, Barcode)',
+      'Strategi Naikkan Harga Jual',
+      'Solusi Cetak Tanpa MOQ Ribuan',
+      'Foto Produk untuk Display Sosmed',
+    ],
+    brandTheme: {
+      presetId: 'preset_packaging_amber',
+      name: 'Kemasan & Branding (Amber Emas)',
+      primaryColor: '#1F3A5F',
+      accentColor: '#D97706',
+      secondaryColor: '#059669',
+      bgColor: '#FFFBEB',
+    },
+    updatedAt: 1730700000000,
+    materialId: 'desain_kemasan_pemasaran_umkm',
+    description: 'Kurikulum Spesialis: Mengubah kemasan menjadi wiraniaga diam (silent salesperson), hukum pandang 3 detik di rak toko, rumus anatomi label juara, dan strategi menaikkan harga jual 2x lipat.',
+    category: 'Workshop Kemasan & Branding',
+    isDefault: false,
+    createdAt: 1730700000000,
+  },
+};
+
+/**
  * Daftar Material Bawaan Awal
  */
 export const INITIAL_PRESET_MATERIALS: SavedMaterial[] = [
   DEFAULT_PARTNERUP_CURRICULUM,
+  PACKAGING_DESIGN_MARKETING_CURRICULUM,
   SESI_2_ACTION_PLAN_CURRICULUM,
   COPYWRITING_MATERIAL_PRESET,
 ];
@@ -480,15 +914,35 @@ export function getSavedMaterialsLocal(): SavedMaterial[] {
     }
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed) && parsed.length > 0) {
-      // Pastikan materi bawaan master selalu ada jika tidak sengaja hilang
+      // Pastikan materi bawaan selalu ada jika belum tersimpan di sesi browser pengguna
       const hasMaster = parsed.some((m) => m.id === DEFAULT_PARTNERUP_CURRICULUM.id);
+      const hasPackaging = parsed.some((m) => m.id === PACKAGING_DESIGN_MARKETING_CURRICULUM.id);
       const hasSesi2 = parsed.some((m) => m.id === SESI_2_ACTION_PLAN_CURRICULUM.id);
+      const hasCopywriting = parsed.some((m) => m.id === COPYWRITING_MATERIAL_PRESET.id);
+
       let updated = [...parsed];
+      let changed = false;
+
       if (!hasMaster) {
         updated.unshift(DEFAULT_PARTNERUP_CURRICULUM);
+        changed = true;
+      }
+      if (!hasPackaging) {
+        // Taruh materi desain kemasan di posisi kedua yang paling mencolok
+        updated.splice(1, 0, PACKAGING_DESIGN_MARKETING_CURRICULUM);
+        changed = true;
       }
       if (!hasSesi2) {
-        updated.splice(1, 0, SESI_2_ACTION_PLAN_CURRICULUM);
+        updated.splice(2, 0, SESI_2_ACTION_PLAN_CURRICULUM);
+        changed = true;
+      }
+      if (!hasCopywriting) {
+        updated.push(COPYWRITING_MATERIAL_PRESET);
+        changed = true;
+      }
+
+      if (changed) {
+        saveSavedMaterialsLocal(updated);
       }
       return updated;
     }

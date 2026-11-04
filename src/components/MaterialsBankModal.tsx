@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   SavedMaterial,
   DEFAULT_PARTNERUP_CURRICULUM,
+  PACKAGING_DESIGN_MARKETING_CURRICULUM,
   SESI_2_ACTION_PLAN_CURRICULUM,
   COPYWRITING_MATERIAL_PRESET,
   duplicateMaterial,
@@ -60,8 +61,8 @@ export const MaterialsBankModal: React.FC<MaterialsBankModalProps> = ({
   const [newOrganizer, setNewOrganizer] = useState('Program PartnerUp | Obeecreatives');
   const [newDescription, setNewDescription] = useState('');
   const [creationSource, setCreationSource] = useState<
-    'duplicate_active' | 'template_sesi_2' | 'template_sesi_1' | 'preset_copywriting' | 'blank'
-  >('duplicate_active');
+    'duplicate_active' | 'template_packaging' | 'template_sesi_2' | 'template_sesi_1' | 'preset_copywriting' | 'blank'
+  >('template_packaging');
   const [autoActivateNew, setAutoActivateNew] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -96,7 +97,20 @@ export const MaterialsBankModal: React.FC<MaterialsBankModalProps> = ({
     try {
       let createdMaterial: SavedMaterial;
 
-      if (creationSource === 'duplicate_active') {
+      if (creationSource === 'template_packaging') {
+        const base = duplicateMaterial(PACKAGING_DESIGN_MARKETING_CURRICULUM, '');
+        createdMaterial = {
+          ...base,
+          seminarTitle: newTitle.trim(),
+          organizerName: newOrganizer.trim() || 'Program PartnerUp | Obeecreatives',
+          description: newDescription.trim() || PACKAGING_DESIGN_MARKETING_CURRICULUM.description,
+          content: {
+            ...base.content,
+            seminarTitle: newTitle.trim(),
+            organizerName: newOrganizer.trim() || 'Program PartnerUp | Obeecreatives',
+          },
+        };
+      } else if (creationSource === 'duplicate_active') {
         const base = duplicateMaterial(currentActiveMaterial, '');
         createdMaterial = {
           ...base,
@@ -572,6 +586,36 @@ export const MaterialsBankModal: React.FC<MaterialsBankModalProps> = ({
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   
+                  {/* Option: Packaging Design & Marketing UMKM */}
+                  <div
+                    onClick={() => {
+                      setCreationSource('template_packaging');
+                      if (!newTitle) {
+                        setNewTitle('Pentingnya Desain Kemasan Sebagai Penunjang Pemasaran Bagi UMKM');
+                      }
+                    }}
+                    className={`p-4 rounded-2xl border-2 transition-all cursor-pointer sm:col-span-2 ${
+                      creationSource === 'template_packaging'
+                        ? 'border-[#E76F51] bg-[#FFF5F2] shadow-xs ring-1 ring-[#E76F51]/30'
+                        : 'border-[#1F3A5F]/15 hover:border-[#E76F51]/50 bg-white'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">🎁</span>
+                        <span className="font-bold text-sm text-[#1F3A5F]">
+                          Template Desain Kemasan Sebagai Penunjang Pemasaran UMKM
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-extrabold text-[#E76F51] bg-[#FFF5F2] px-2 py-0.5 rounded border border-[#E76F51]/30">
+                        ⭐ Rekomendasi Ahli Desain & Marketing
+                      </span>
+                    </div>
+                    <p className="text-xs text-[#1F3A5F]/75 leading-relaxed">
+                      Kurikulum lengkap siap pakai: 7 lembar kerja evaluasi kemasan, 2 polling interaktif, dan 17 slide presentasi visual (salesperson senyap, hukum 3 detik di rak, anatomi 5 elemen label, psikologi warna, dan rencana aksi 30 hari).
+                    </p>
+                  </div>
+
                   {/* Option: Duplicate Active */}
                   <div
                     onClick={() => setCreationSource('duplicate_active')}
