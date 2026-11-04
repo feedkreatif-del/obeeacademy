@@ -356,6 +356,7 @@ export const CommitteePreviewView: React.FC<CommitteePreviewViewProps> = ({
                         src={currentSlide.imageUrl}
                         alt={currentSlide.title}
                         className="max-h-60 object-contain rounded-xl shadow-lg border border-white/20"
+                        referrerPolicy="no-referrer"
                       />
                       {currentSlide.imageCaption && (
                         <p className="text-[11px] text-white/60 text-center mt-2 italic">

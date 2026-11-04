@@ -685,6 +685,7 @@ export const RemoteClickerView: React.FC<RemoteClickerViewProps> = ({
                   src={slide.imageUrl}
                   alt="Thumbnail"
                   className="w-10 h-10 rounded-lg object-cover border border-[#2A9D8F]/30 shrink-0"
+                  referrerPolicy="no-referrer"
                 />
                 <div className="min-w-0 flex-1">
                   <span className="text-[11px] font-bold text-[#2A9D8F] block">📷 Slide dengan Media Foto</span>

@@ -1263,6 +1263,7 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
                           src={s.imageUrl}
                           alt={s.imageCaption || s.title}
                           className="w-full max-h-64 object-cover"
+                          referrerPolicy="no-referrer"
                         />
                         {s.imageCaption && (
                           <div className="p-3 bg-white border-t border-[#1F3A5F]/15 flex items-center gap-2">

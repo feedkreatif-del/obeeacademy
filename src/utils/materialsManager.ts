@@ -676,6 +676,9 @@ const PACKAGING_SLIDES: SlideDefinition[] = [
     title: 'Kenyataan Pahit: Produk Enak Sering Kalah dari Kemasan Bagus',
     subtitle: 'Pembeli tidak bisa mencicipi rasa makanan sebelum mereka memutuskan membeli!',
     type: 'comparison',
+    imageUrl: '/src/assets/images/kemasan_umkm_perbandingan_1793832957331.jpg',
+    imageCaption: 'Perbandingan Nyata: Plastik Karet Buram (Kiri) vs Standing Pouch Rapi & Higienis (Kanan)',
+    imagePosition: 'right',
     comparison: {
       leftTitle: 'Kemasan Biasa / Asal Bungkus',
       leftBody: 'Rasa enak resep turun-temurun, tapi dikemas plastik tipis buram diikat karet atau klip mika biasa. Pembeli mengira produk murahan, tidak higienis, dan menawar harga semurah mungkin (Rp8.000 - Rp10.000).',
@@ -692,6 +695,9 @@ const PACKAGING_SLIDES: SlideDefinition[] = [
     subtitle: 'Mari kita kenali kelemahan dan peluang kemasan usahamu di layar HP masing-masing:',
     type: 'worksheet',
     linkedQuestionIndex: 0,
+    imageUrl: '/src/assets/images/wadah_kemasan_modern_1793832959142.jpg',
+    imageCaption: 'Pilihan Wadah Food-Grade UMKM: Standing Pouch Kraft Berjendela, Black Pouch, dan Toples Kaca Minimalis',
+    imagePosition: 'right',
     cards: [
       { title: 'Bahan Wadah', body: 'Apakah sudah kedap udara dan melindungi dari minyak/cahaya matahari?', accent: 'orange' },
       { title: 'Daya Tahan Label', body: 'Apakah stiker mudah lepas, pudar kena air, atau mudah robek?', accent: 'teal' },
@@ -719,6 +725,9 @@ const PACKAGING_SLIDES: SlideDefinition[] = [
     title: 'Hukum 3 Detik: Pembeli Tidak Membaca, Pembeli Memindai!',
     subtitle: 'Dalam 3 detik pertama, otak calon pembeli memutuskan: melirik atau mengabaikan.',
     type: 'concept',
+    imageUrl: '/src/assets/images/display_rak_kemasan_1793832958364.jpg',
+    imageCaption: 'Display di Rak Retail: Kemasan yang Tegak dan Berwarna Kontras Menghentikan Langkah Pembeli',
+    imagePosition: 'right',
     cards: [
       { title: 'Detik 1: Warna & Siluet', body: 'Warna kemasan yang kontras dan bentuk wadah yang berdiri kokoh (standing) ditangkap mata terlebih dahulu.', accent: 'orange' },
       { title: 'Detik 2: Jenis Produk', body: 'Mata mencari kepastian: "Ini makanan apa?". Tulisan kategori produk harus langsung terbaca jelas tanpa mikir.', accent: 'teal' },
@@ -742,6 +751,9 @@ const PACKAGING_SLIDES: SlideDefinition[] = [
     title: 'Anatomi Label Depan: Rumus 5 Elemen Wajib Kemasan Juara',
     subtitle: 'Jangan jejalkan semua tulisan di bagian depan! Fokus pada 5 elemen penarik penjualan:',
     type: 'formula',
+    imageUrl: '/src/assets/images/anatomi_label_kemasan_1793832958314.jpg',
+    imageCaption: 'Contoh Anatomi Label Juara: Brand Tegas di Atas, Kategori Makanan Jelas, Badge Varian Rasa, Jendela Intip, dan Legalitas di Bawah',
+    imagePosition: 'right',
     cards: [
       { title: '1. Brand / Nama Merek (30%)', body: 'Gunakan font tegas dan gampang dibaca. Jangan pakai font sambung yang keriting berlebihan.', accent: 'orange' },
       { title: '2. Kategori Produk (25%)', body: 'Sebutkan jenis barangnya: "Keripik Singkong", "Sambal Cumi", "Kue Kacang". Jangan disembunyikan!', accent: 'teal' },
@@ -931,6 +943,25 @@ export function getSavedMaterialsLocal(): SavedMaterial[] {
         // Taruh materi desain kemasan di posisi kedua yang paling mencolok
         updated.splice(1, 0, PACKAGING_DESIGN_MARKETING_CURRICULUM);
         changed = true;
+      } else {
+        // Perbarui slide kemasan jika versi lama di browser belum memiliki foto ilustrasi
+        const pkgIdx = updated.findIndex((m) => m.id === PACKAGING_DESIGN_MARKETING_CURRICULUM.id);
+        if (pkgIdx >= 0) {
+          const currentPkg = updated[pkgIdx];
+          const hasImages = currentPkg?.content?.slides?.some(
+            (s: SlideDefinition) => Boolean(s.imageUrl)
+          );
+          if (!hasImages && currentPkg) {
+            updated[pkgIdx] = {
+              ...currentPkg,
+              content: {
+                ...currentPkg.content,
+                slides: PACKAGING_SLIDES,
+              },
+            };
+            changed = true;
+          }
+        }
       }
       if (!hasSesi2) {
         updated.splice(2, 0, SESI_2_ACTION_PLAN_CURRICULUM);

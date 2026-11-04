@@ -656,6 +656,7 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                       src={slide.imageUrl}
                       alt={slide.imageCaption || slide.title}
                       className="w-full h-64 sm:h-80 lg:h-96 object-cover"
+                      referrerPolicy="no-referrer"
                     />
                     {slide.imageCaption && (
                       <p className="p-3 bg-black/40 text-xs sm:text-sm text-white/90 border-t border-white/10 font-medium">
@@ -803,6 +804,7 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                           src={slide.imageUrl}
                           alt={slide.imageCaption || slide.title}
                           className="w-full h-full object-cover"
+                          referrerPolicy="no-referrer"
                         />
                       </div>
                       {slide.imageCaption && (

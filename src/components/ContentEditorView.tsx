@@ -106,19 +106,24 @@ async function compressImageFile(file: File): Promise<string> {
 
 export const SAMPLE_SLIDE_IMAGES = [
   {
-    label: 'Kemasan Produk UMKM',
-    url: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1000&q=80',
-    caption: 'Studi Kasus: Display & Kemasan Produk Makanan UMKM',
+    label: 'Perbandingan Kemasan',
+    url: '/src/assets/images/kemasan_umkm_perbandingan_1793832957331.jpg',
+    caption: 'Perbandingan: Kemasan Plastik Karet vs Standing Pouch Modern',
   },
   {
-    label: 'Etalase Toko Rapi',
-    url: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1000&q=80',
-    caption: 'Studi Kasus: Kebersihan & Standar Pelayanan Toko Fisik',
+    label: 'Anatomi Label Juara',
+    url: '/src/assets/images/anatomi_label_kemasan_1793832958314.jpg',
+    caption: 'Hierarki 5 Elemen Label: Brand, Kategori, Varian, Window, & Legalitas',
   },
   {
-    label: 'Diskusi & Tim Bisnis',
-    url: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&w=1000&q=80',
-    caption: 'Ilustrasi: Merumuskan Value Proposition Bersama Tim',
+    label: 'Display Rak Retail',
+    url: '/src/assets/images/display_rak_kemasan_1793832958364.jpg',
+    caption: 'Hukum 3 Detik: Kemasan Kontras Menghentikan Langkah Pembeli di Rak Toko',
+  },
+  {
+    label: 'Pilihan Wadah Modern',
+    url: '/src/assets/images/wadah_kemasan_modern_1793832959142.jpg',
+    caption: 'Pilihan Wadah Food-Grade UMKM: Kraft Pouch, Black Zipper & Toples Kaca',
   },
 ];
 
@@ -2034,6 +2039,7 @@ export const ContentEditorView: React.FC<ContentEditorViewProps> = ({
                           src={s.imageUrl}
                           alt={s.imageCaption || s.title}
                           className="w-full h-36 object-cover rounded-lg border border-[#1F3A5F]/15 shadow-xs"
+                          referrerPolicy="no-referrer"
                         />
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center text-white text-xs font-bold pointer-events-none">
                           Foto Aktif
