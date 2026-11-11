@@ -18,6 +18,7 @@ import {
   BrandThemeConfig,
 } from '../types';
 import { printSlideDeckHandout } from '../utils/handoutExport';
+import { exportCurriculumToPowerPoint } from '../utils/pptxExport';
 import { downloadQrCodeAsPng, downloadQrCodeAsSvg, buildQrWhatsAppShareUrl } from '../utils/qrExport';
 import { QRCodeSVG } from 'qrcode.react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -653,10 +654,20 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                     className="lg:col-span-5 rounded-2xl overflow-hidden border-2 border-white/20 shadow-2xl bg-white/5"
                   >
                     <img
-                      src={slide.imageUrl}
+                      src={
+                        slide.imageUrl.startsWith('/src/assets/images/')
+                          ? slide.imageUrl.replace('/src/assets/images/', '/assets/images/')
+                          : slide.imageUrl
+                      }
                       alt={slide.imageCaption || slide.title}
                       className="w-full h-64 sm:h-80 lg:h-96 object-cover"
                       referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        const target = e.currentTarget;
+                        if (target.src.includes('/assets/images/')) {
+                          target.src = target.src.replace('/assets/images/', '/src/assets/images/');
+                        }
+                      }}
                     />
                     {slide.imageCaption && (
                       <p className="p-3 bg-black/40 text-xs sm:text-sm text-white/90 border-t border-white/10 font-medium">
@@ -801,10 +812,20 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                         }`}
                       >
                         <img
-                          src={slide.imageUrl}
+                          src={
+                            slide.imageUrl?.startsWith('/src/assets/images/')
+                              ? slide.imageUrl.replace('/src/assets/images/', '/assets/images/')
+                              : slide.imageUrl || ''
+                          }
                           alt={slide.imageCaption || slide.title}
                           className="w-full h-full object-cover"
                           referrerPolicy="no-referrer"
+                          onError={(e) => {
+                            const target = e.currentTarget;
+                            if (target.src.includes('/assets/images/')) {
+                              target.src = target.src.replace('/assets/images/', '/src/assets/images/');
+                            }
+                          }}
                         />
                       </div>
                       {slide.imageCaption && (
@@ -1899,6 +1920,26 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
             >
               <Printer className="w-3.5 h-3.5 text-[#2A9D8F]" />
               <span>PDF Slide</span>
+            </button>
+
+            {/* Unduh Presentasi PowerPoint (.pptx) */}
+            <button
+              type="button"
+              onClick={async () => {
+                await exportCurriculumToPowerPoint({
+                  seminarTitle,
+                  organizerName,
+                  slides,
+                  questions,
+                  brandTheme,
+                  fileName: seminarTitle,
+                });
+              }}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold bg-[#E76F51] text-white hover:bg-[#D45A3D] transition-colors cursor-pointer whitespace-nowrap shadow-xs"
+              title="Unduh seluruh materi dalam format presentasi Microsoft PowerPoint (.pptx) lengkap dengan catatan pemateri"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Unduh PPTX</span>
             </button>
 
             {/* Saklar Bagikan Slide ke HP Peserta */}

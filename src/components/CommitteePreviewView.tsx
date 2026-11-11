@@ -22,8 +22,10 @@ import {
   Store,
   Tag,
   Lightbulb,
+  Download,
 } from 'lucide-react';
 import { printSlideDeckHandout } from '../utils/handoutExport';
+import { exportCurriculumToPowerPoint } from '../utils/pptxExport';
 
 interface CommitteePreviewViewProps {
   customContent: CustomContentDoc;
@@ -124,6 +126,25 @@ export const CommitteePreviewView: React.FC<CommitteePreviewViewProps> = ({
             >
               <Printer className="w-3.5 h-3.5" />
               <span>Cetak / PDF</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={async () => {
+                await exportCurriculumToPowerPoint({
+                  seminarTitle,
+                  organizerName,
+                  slides,
+                  questions,
+                  brandTheme,
+                  fileName: seminarTitle,
+                });
+              }}
+              className="px-3 py-1.5 rounded-lg bg-[#E76F51] hover:bg-[#D45A3D] text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+              title="Unduh seluruh materi dalam format presentasi Microsoft PowerPoint (.pptx) lengkap dengan catatan pemateri"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Unduh PPTX</span>
             </button>
 
             {onOpenPresenterPanel && (
@@ -353,10 +374,20 @@ export const CommitteePreviewView: React.FC<CommitteePreviewViewProps> = ({
                   {currentSlide.imageUrl ? (
                     <div className="flex flex-col items-center justify-center bg-white/5 rounded-2xl border border-white/10 p-4">
                       <img
-                        src={currentSlide.imageUrl}
+                        src={
+                          currentSlide.imageUrl.startsWith('/src/assets/images/')
+                            ? currentSlide.imageUrl.replace('/src/assets/images/', '/assets/images/')
+                            : currentSlide.imageUrl
+                        }
                         alt={currentSlide.title}
                         className="max-h-60 object-contain rounded-xl shadow-lg border border-white/20"
                         referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          const target = e.currentTarget;
+                          if (target.src.includes('/assets/images/')) {
+                            target.src = target.src.replace('/assets/images/', '/src/assets/images/');
+                          }
+                        }}
                       />
                       {currentSlide.imageCaption && (
                         <p className="text-[11px] text-white/60 text-center mt-2 italic">

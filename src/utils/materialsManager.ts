@@ -641,6 +641,7 @@ const PACKAGING_SLIDES: SlideDefinition[] = [
     title: 'Pentingnya Desain Kemasan Sebagai Penunjang Pemasaran Bagi UMKM',
     subtitle: 'Kemasan Bukan Cuma Bungkus: Penentu Pembeli Mau Beli & Rela Bayar Mahal — PartnerUp',
     type: 'cover',
+    speakerNotes: 'Buka sesi dengan menyapa para pemilik UMKM dengan hangat dan penuh empati. Tegaskan pesan utama: "Kemasan bukan sekadar biaya atau bungkus pelindung, melainkan wiraniaga diam (silent salesperson) nomor satu yang bekerja 24 jam memikat pembeli bahkan saat kita sedang tidur."',
   },
   {
     index: 1,
@@ -649,6 +650,7 @@ const PACKAGING_SLIDES: SlideDefinition[] = [
     title: 'Peta Perjalanan Belajar Hari Ini',
     subtitle: 'Membongkar rahasia kemasan juara dari sudut pandang desain grafis dan strategi pemasaran:',
     type: 'agenda',
+    speakerNotes: 'Jelaskan 4 tahapan belajar hari ini. Tekankan bahwa materi ini dirancang sangat praktis: peserta tidak hanya mendengarkan teori, melainkan langsung mengevaluasi dan merombak kemasannya melalui lembar kerja interaktif di HP masing-masing.',
     cards: [
       { title: '1. Peran Vital Kemasan', body: 'Menyadari fungsi kemasan sebagai pelindung, wiraniaga diam (silent salesperson), dan pembangun nilai merek.', accent: 'orange' },
       { title: '2. Hukum 3 Detik di Rak Toko', body: 'Teknik psikologi visual agar mata pembeli langsung tertuju ke produkmu di antara puluhan pesaing.', accent: 'teal' },
@@ -663,6 +665,7 @@ const PACKAGING_SLIDES: SlideDefinition[] = [
     title: '3 Peran Vital Kemasan dalam Pemasaran Produk',
     subtitle: 'Kemasan modern bekerja 24 jam untuk usahamu bahkan saat kamu sedang tidur:',
     type: 'concept',
+    speakerNotes: 'Uraikan 3 peran vital ini dengan contoh nyata. Tanyakan ke audiens: "Siapa di sini yang rasa produknya enak banget tapi bingung kenapa penjualannya lambat?". Jawabannya sering kali ada pada kemasan yang belum berbicara ke calon pembeli.',
     cards: [
       { title: '1. Proteksi Fisik (Protect)', body: 'Menjaga kerenyahan, aroma, dan higienitas produk. Kemasan seindah apa pun jika produk melempem akan membuat pembeli kapok membeli ulang.', accent: 'orange' },
       { title: '2. Wiraniaga Diam (Silent Salesperson)', body: 'Saat produk ditaruh di rak toko atau feed Instagram, kemasanlah yang berbicara, merayu, dan meyakinkan dompet pembeli.', accent: 'teal' },
@@ -676,9 +679,10 @@ const PACKAGING_SLIDES: SlideDefinition[] = [
     title: 'Kenyataan Pahit: Produk Enak Sering Kalah dari Kemasan Bagus',
     subtitle: 'Pembeli tidak bisa mencicipi rasa makanan sebelum mereka memutuskan membeli!',
     type: 'comparison',
-    imageUrl: '/src/assets/images/kemasan_umkm_perbandingan_1793832957331.jpg',
+    imageUrl: '/assets/images/kemasan_umkm_perbandingan_1793832957331.jpg',
     imageCaption: 'Perbandingan Nyata: Plastik Karet Buram (Kiri) vs Standing Pouch Rapi & Higienis (Kanan)',
     imagePosition: 'right',
+    speakerNotes: 'Arahkan perhatian peserta ke foto perbandingan di layar! Tekankan: "Pembeli tidak punya lidah di matanya. Sebelum mereka bisa mencicipi bumbu rahasia warisan keluarga kita, mata mereka harus jatuh cinta dulu pada kemasannya. Kemasan biasa membuat produk dicap murahan, sedangkan kemasan standing pouch matte langsung dipercaya higienis dan pantas berharga mahal."',
     comparison: {
       leftTitle: 'Kemasan Biasa / Asal Bungkus',
       leftBody: 'Rasa enak resep turun-temurun, tapi dikemas plastik tipis buram diikat karet atau klip mika biasa. Pembeli mengira produk murahan, tidak higienis, dan menawar harga semurah mungkin (Rp8.000 - Rp10.000).',
@@ -695,9 +699,10 @@ const PACKAGING_SLIDES: SlideDefinition[] = [
     subtitle: 'Mari kita kenali kelemahan dan peluang kemasan usahamu di layar HP masing-masing:',
     type: 'worksheet',
     linkedQuestionIndex: 0,
-    imageUrl: '/src/assets/images/wadah_kemasan_modern_1793832959142.jpg',
+    imageUrl: '/assets/images/wadah_kemasan_modern_1793832959142.jpg',
     imageCaption: 'Pilihan Wadah Food-Grade UMKM: Standing Pouch Kraft Berjendela, Black Pouch, dan Toples Kaca Minimalis',
     imagePosition: 'right',
+    speakerNotes: 'Instruksikan peserta membuka smartphone mereka untuk menjawab Latihan 1. Beri waktu 3 menit. Tunjukkan foto pilihan wadah modern di layar sebagai inspirasi bahwa kemasan naik kelas itu sangat terjangkau dan banyak dijual eceran.',
     cards: [
       { title: 'Bahan Wadah', body: 'Apakah sudah kedap udara dan melindungi dari minyak/cahaya matahari?', accent: 'orange' },
       { title: 'Daya Tahan Label', body: 'Apakah stiker mudah lepas, pudar kena air, atau mudah robek?', accent: 'teal' },
@@ -712,6 +717,7 @@ const PACKAGING_SLIDES: SlideDefinition[] = [
     subtitle: 'Yuk kita petakan apa kendala paling mendesak dari teman-teman pelaku UMKM di ruangan ini:',
     type: 'concept',
     linkedPollId: 'poll_kendala_kemasan_umkm',
+    speakerNotes: 'Ajak audiens memilih opsi di HP mereka. Pantau grafik suara yang masuk secara real-time di layar. Tanggapi opsi tertinggi: jika modal/MOQ tinggi mendominasi, tenangkan mereka bahwa nanti di akhir sesi ada solusi cetak stiker digital satuan tanpa modal jutaan.',
     cards: [
       { title: '1. Modal & MOQ Cetak', body: 'Khawatir harus cetak minimal 5.000 - 10.000 pcs.', accent: 'orange' },
       { title: '2. Keterbatasan Desain', body: 'Bingung paduan warna dan tipografi font yang rapi.', accent: 'teal' },
@@ -725,9 +731,10 @@ const PACKAGING_SLIDES: SlideDefinition[] = [
     title: 'Hukum 3 Detik: Pembeli Tidak Membaca, Pembeli Memindai!',
     subtitle: 'Dalam 3 detik pertama, otak calon pembeli memutuskan: melirik atau mengabaikan.',
     type: 'concept',
-    imageUrl: '/src/assets/images/display_rak_kemasan_1793832958364.jpg',
+    imageUrl: '/assets/images/display_rak_kemasan_1793832958364.jpg',
     imageCaption: 'Display di Rak Retail: Kemasan yang Tegak dan Berwarna Kontras Menghentikan Langkah Pembeli',
     imagePosition: 'right',
+    speakerNotes: 'Jelaskan foto display rak retail: bayangkan pembeli sedang mendorong troli belanja dengan langkah cepat. Otak mereka tidak membaca cerpen di kemasan; mereka memindai dalam 3 detik: Detik 1 tertumbuk warna kontras; Detik 2 membaca jenis makanan apa; Detik 3 tertarik keunggulan rasa atau logo Halal.',
     cards: [
       { title: 'Detik 1: Warna & Siluet', body: 'Warna kemasan yang kontras dan bentuk wadah yang berdiri kokoh (standing) ditangkap mata terlebih dahulu.', accent: 'orange' },
       { title: 'Detik 2: Jenis Produk', body: 'Mata mencari kepastian: "Ini makanan apa?". Tulisan kategori produk harus langsung terbaca jelas tanpa mikir.', accent: 'teal' },
@@ -742,6 +749,7 @@ const PACKAGING_SLIDES: SlideDefinition[] = [
     subtitle: 'Bayangkan produkmu ditaruh berdampingan dengan 5 kompetitor sejenis di minimarket atau toko oleh-oleh:',
     type: 'worksheet',
     linkedQuestionIndex: 1,
+    speakerNotes: 'Mintalah peserta mengetik di HP: jika produk mereka dijejerkan di rak toko oleh-oleh bersama 5 produk serupa, apa 1 hal yang membuat pembeli langsung melirik ke produk mereka? Highlight beberapa jawaban menarik di proyektor.',
     promptLines: ['Apakah produkmu langsung menyedot perhatian dalam 3 detik? ______________'],
   },
   {
@@ -751,9 +759,10 @@ const PACKAGING_SLIDES: SlideDefinition[] = [
     title: 'Anatomi Label Depan: Rumus 5 Elemen Wajib Kemasan Juara',
     subtitle: 'Jangan jejalkan semua tulisan di bagian depan! Fokus pada 5 elemen penarik penjualan:',
     type: 'formula',
-    imageUrl: '/src/assets/images/anatomi_label_kemasan_1793832958314.jpg',
+    imageUrl: '/assets/images/anatomi_label_kemasan_1793832958314.jpg',
     imageCaption: 'Contoh Anatomi Label Juara: Brand Tegas di Atas, Kategori Makanan Jelas, Badge Varian Rasa, Jendela Intip, dan Legalitas di Bawah',
     imagePosition: 'right',
+    speakerNotes: 'Tunjukkan foto kemasan Kriuk Nusantara sebagai blueprint emas! Ajarkan proporsinya: 1. Nama Brand 30% (font tegas gampang dibaca), 2. Kategori Produk 25% (langsung tahu makanan apa), 3. Varian Rasa 20% (badge menggoda), 4. Jendela Intip 15% (bukti tekstur asli), 5. Legalitas 10% (Halal & Netto di pojok bawah).',
     cards: [
       { title: '1. Brand / Nama Merek (30%)', body: 'Gunakan font tegas dan gampang dibaca. Jangan pakai font sambung yang keriting berlebihan.', accent: 'orange' },
       { title: '2. Kategori Produk (25%)', body: 'Sebutkan jenis barangnya: "Keripik Singkong", "Sambal Cumi", "Kue Kacang". Jangan disembunyikan!', accent: 'teal' },
@@ -770,6 +779,7 @@ const PACKAGING_SLIDES: SlideDefinition[] = [
     subtitle: 'Urutkan ukuran huruf agar pembeli tidak pusing saat melihat kemasan usahamu:',
     type: 'worksheet',
     linkedQuestionIndex: 2,
+    speakerNotes: 'Ajak peserta menyusun 3 baris tulisan di bagian depan kemasannya. Ingatkan jangan sampai nama varian rasa lebih besar dari nama merek atau jenis makanannya.',
     promptLines: [
       '1. Nama Merek (Paling Besar): ______________',
       '2. Kategori Produk (Ukuran Sedang): ______________',
@@ -783,6 +793,7 @@ const PACKAGING_SLIDES: SlideDefinition[] = [
     title: 'Sisi Belakang Kemasan: Membangun Kepercayaan & Loyalitas',
     subtitle: 'Bagian depan menarik mata, bagian belakang meyakinkan dompet dan izin edar!',
     type: 'concept',
+    speakerNotes: 'Jelaskan perbedaan fungsi depan vs belakang: Bagian depan adalah pemikat visual, sedangkan sisi belakang adalah penuntas keraguan. Pembeli yang membalik kemasan ingin memastikan kebersihan, izin edar resmi, tanggal kedaluwarsa, dan kontak untuk pesan ulang.',
     cards: [
       { title: '1. Komposisi Bahan Baku', body: 'Urutkan dari bahan dengan takaran terbanyak ke paling sedikit. Menunjukkan kejujuran dan higienitas.', accent: 'orange' },
       { title: '2. Nomor Izin Edar (P-IRT / BPOM)', body: 'Kunci mutlak agar produk diterima toko retail modern, supermarket, dan toko oleh-oleh bandara.', accent: 'teal' },
@@ -798,6 +809,7 @@ const PACKAGING_SLIDES: SlideDefinition[] = [
     subtitle: 'Mari cek kelengkapan informasi usahamu untuk persiapan masuk toko retail:',
     type: 'worksheet',
     linkedQuestionIndex: 3,
+    speakerNotes: 'Beri waktu peserta mencatat legalitas apa saja yang sudah dimiliki dan apa target berikutnya (P-IRT, Sertifikasi Halal gratis BPJPH, atau cetak stempel expired date rapi).',
     promptLines: ['Legalitas dan informasi yang sudah/akan kamu cantumkan: ______________'],
   },
   {
@@ -807,6 +819,7 @@ const PACKAGING_SLIDES: SlideDefinition[] = [
     title: 'Panduan Memilih Warna Kemasan yang Selaras Rasa',
     subtitle: 'Warna adalah pesan bawah sadar yang memancing air liur dan selera pembeli:',
     type: 'concept',
+    speakerNotes: 'Bahas psikologi warna: Ingatkan bahwa warna kemasan bukan ditentukan oleh warna kesukaan pemilik usaha, melainkan sensasi rasa yang ingin dipicu ke lidah pembeli. Merah/oranye memicu rasa lapar & pedas; Cokelat/hijau menguatkan kesan alami & tanpa pengawet.',
     cards: [
       { title: 'Merah & Oranye Terakota', body: 'Memicu nafsu makan, rasa pedas, gurih, sambal, krispi, dan makanan cepat saji.', accent: 'orange' },
       { title: 'Cokelat Kraft & Hijau Alami', body: 'Menyampaikan pesan alami, organik, resep tradisional tempo dulu, sehat, dan tanpa pengawet.', accent: 'teal' },
@@ -822,6 +835,7 @@ const PACKAGING_SLIDES: SlideDefinition[] = [
     subtitle: 'Pilihlah kombinasi warna yang paling selaras dengan identitas produk usahamu:',
     type: 'worksheet',
     linkedQuestionIndex: 5,
+    speakerNotes: 'Minta peserta menuliskan warna dominan yang paling mewakili karakter produknya dan kesan apa yang ingin mereka tancapkan ke benak konsumen.',
     promptLines: ['Warna dominan kemasanmu dan alasan pemilihannya: ______________'],
   },
   {
@@ -831,6 +845,7 @@ const PACKAGING_SLIDES: SlideDefinition[] = [
     title: 'Packaging Power: Cara Menaikkan Harga Jual & Margin Usaha',
     subtitle: 'Modal kemasan naik Rp1.500, harga jual produk bisa dinaikkan Rp8.000 - Rp12.000!',
     type: 'concept',
+    speakerNotes: 'Bedah ilmu bisnis penting ini: Mengapa kemasan bagus bisa melipatgandakan keuntungan? Karena kemasan bagus membuka pasar baru (pasar oleh-oleh & bingkisan) dan menghilangkan budaya tawar-menawar dari pembeli.',
     cards: [
       { title: '1. Menembus Pasar Hadiah & Oleh-Oleh', body: 'Orang enggan memberi oleh-oleh dalam bungkus plastik kresek; kemasan bagus layak dijadikan buah tangan berharga.', accent: 'orange' },
       { title: '2. Hilangkan Kebiasaan Menawar', body: 'Kemasan profesional membuat pembeli segan menawar harga murah karena terlihat seperti produk bermerek dari pabrik terstandar.', accent: 'teal' },
@@ -845,6 +860,7 @@ const PACKAGING_SLIDES: SlideDefinition[] = [
     subtitle: 'Hitung potensi lonjakan omzet dan margin laba bersih setelah kemasan dirombak:',
     type: 'worksheet',
     linkedQuestionIndex: 4,
+    speakerNotes: 'Ajak peserta menghitung langsung di HP: Berapa harga jual kemasan lama vs harga jual kemasan baru. Tunjukkan bahwa kemasan naik kelas adalah jalan keluar terbaik dari perangkap banting harga murah.',
     promptLines: ['Harga Kemasan Lama vs Harga Kemasan Baru & Tambahan Untung Bersih: ______________'],
   },
   {
@@ -855,6 +871,7 @@ const PACKAGING_SLIDES: SlideDefinition[] = [
     subtitle: 'Strategi cerdas bagi UMKM yang belum mampu cetak ribuan pcs di pabrik besar:',
     type: 'closing',
     linkedQuestionIndex: 6,
+    speakerNotes: 'Tutup sesi materi dengan motivasi kuat dan langkah eksekusi nyata: Jangan menunggu punya modal 10 juta untuk cetak di pabrik besar. Beli standing pouch polos food-grade isi 50 pcs + stiker vinyl tahan air & minyak cetak digital satuan. Kualitasnya sudah setara pabrik besar! Mintalah seluruh peserta berkomitmen mengeksekusi 2 tindakan dalam 30 hari.',
     promptLines: ['2 Tindakan Nyata Merombak Kemasan dalam 30 Hari: ______________'],
     cards: [
       { title: 'Tahap 1: Polos Food-Grade + Stiker Vinyl', body: 'Beli standing pouch matte polos kualitas prima (isi 50 pcs), tempel stiker vinyl cetak digital anti air & minyak. Tampilan sudah setara pabrik besar!', accent: 'orange' },
@@ -944,14 +961,14 @@ export function getSavedMaterialsLocal(): SavedMaterial[] {
         updated.splice(1, 0, PACKAGING_DESIGN_MARKETING_CURRICULUM);
         changed = true;
       } else {
-        // Perbarui slide kemasan jika versi lama di browser belum memiliki foto ilustrasi
+        // Perbarui slide kemasan jika versi lama di browser belum memiliki foto atau speaker notes
         const pkgIdx = updated.findIndex((m) => m.id === PACKAGING_DESIGN_MARKETING_CURRICULUM.id);
         if (pkgIdx >= 0) {
           const currentPkg = updated[pkgIdx];
-          const hasImages = currentPkg?.content?.slides?.some(
-            (s: SlideDefinition) => Boolean(s.imageUrl)
-          );
-          if (!hasImages && currentPkg) {
+          const needsRefresh =
+            !currentPkg?.content?.slides?.some((s: SlideDefinition) => Boolean(s.speakerNotes)) ||
+            currentPkg?.content?.slides?.some((s: SlideDefinition) => s.imageUrl?.startsWith('/src/assets/'));
+          if (needsRefresh && currentPkg) {
             updated[pkgIdx] = {
               ...currentPkg,
               content: {
@@ -971,6 +988,24 @@ export function getSavedMaterialsLocal(): SavedMaterial[] {
         updated.push(COPYWRITING_MATERIAL_PRESET);
         changed = true;
       }
+
+      // Normalisasi semua path imageUrl dari /src/assets/images/ ke /assets/images/
+      updated = updated.map((m) => ({
+        ...m,
+        content: {
+          ...m.content,
+          slides: m.content.slides.map((s: SlideDefinition) => {
+            if (s.imageUrl && s.imageUrl.startsWith('/src/assets/images/')) {
+              changed = true;
+              return {
+                ...s,
+                imageUrl: s.imageUrl.replace('/src/assets/images/', '/assets/images/'),
+              };
+            }
+            return s;
+          }),
+        },
+      }));
 
       if (changed) {
         saveSavedMaterialsLocal(updated);

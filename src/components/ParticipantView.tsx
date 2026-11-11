@@ -23,6 +23,7 @@ import {
   downloadParticipantTxtHandout,
   buildWhatsAppShareUrl,
 } from '../utils/handoutExport';
+import { exportCurriculumToPowerPoint } from '../utils/pptxExport';
 import {
   Send,
   CheckCircle2,
@@ -1224,21 +1225,42 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
                     </h2>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() =>
-                      printSlideDeckHandout({
-                        slides,
-                        seminarTitle,
-                        organizerName,
-                        brandTheme,
-                      })
-                    }
-                    className="px-3.5 py-2 rounded-xl bg-[#1F3A5F] hover:bg-[#162944] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Printer className="w-3.5 h-3.5 text-[#F28C28]" />
-                    <span>Simpan PDF Semua Slide</span>
-                  </button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await exportCurriculumToPowerPoint({
+                          seminarTitle,
+                          organizerName,
+                          slides,
+                          questions,
+                          brandTheme,
+                          fileName: seminarTitle,
+                        });
+                      }}
+                      className="px-3 py-2 rounded-xl bg-[#E76F51] hover:bg-[#D45A3D] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                      title="Unduh seluruh slide sebagai file PowerPoint (.pptx)"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Unduh PPTX</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        printSlideDeckHandout({
+                          slides,
+                          seminarTitle,
+                          organizerName,
+                          brandTheme,
+                        })
+                      }
+                      className="px-3 py-2 rounded-xl bg-[#1F3A5F] hover:bg-[#162944] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Printer className="w-3.5 h-3.5 text-[#F28C28]" />
+                      <span>Simpan PDF</span>
+                    </button>
+                  </div>
                 </div>
 
                 {/* Slide Card Content for Mobile Reading */}
@@ -1260,10 +1282,20 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
                     {s.imageUrl && (
                       <div className="rounded-xl overflow-hidden border-2 border-[#1F3A5F]/20 bg-white shadow-xs">
                         <img
-                          src={s.imageUrl}
+                          src={
+                            s.imageUrl.startsWith('/src/assets/images/')
+                              ? s.imageUrl.replace('/src/assets/images/', '/assets/images/')
+                              : s.imageUrl
+                          }
                           alt={s.imageCaption || s.title}
                           className="w-full max-h-64 object-cover"
                           referrerPolicy="no-referrer"
+                          onError={(e) => {
+                            const target = e.currentTarget;
+                            if (target.src.includes('/assets/images/')) {
+                              target.src = target.src.replace('/assets/images/', '/src/assets/images/');
+                            }
+                          }}
                         />
                         {s.imageCaption && (
                           <div className="p-3 bg-white border-t border-[#1F3A5F]/15 flex items-center gap-2">

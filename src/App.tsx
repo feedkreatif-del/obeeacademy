@@ -253,7 +253,12 @@ export default function App() {
               Array.isArray(data.polls) && data.polls.length > 0 ? data.polls : LIVE_POLLS,
             slides:
               Array.isArray(data.slides) && data.slides.length > 0
-                ? data.slides
+                ? data.slides.map((s) => ({
+                    ...s,
+                    imageUrl: s.imageUrl?.startsWith('/src/assets/images/')
+                      ? s.imageUrl.replace('/src/assets/images/', '/assets/images/')
+                      : s.imageUrl,
+                  }))
                 : SEMINAR_SLIDES,
             qnaTopics:
               Array.isArray(data.qnaTopics) && data.qnaTopics.length > 0

@@ -682,10 +682,20 @@ export const RemoteClickerView: React.FC<RemoteClickerViewProps> = ({
             {slide.imageUrl && (
               <div className="flex items-center gap-2.5 p-2 rounded-xl bg-[#2A9D8F]/10 border border-[#2A9D8F]/25 text-[#1F3A5F]">
                 <img
-                  src={slide.imageUrl}
+                  src={
+                    slide.imageUrl.startsWith('/src/assets/images/')
+                      ? slide.imageUrl.replace('/src/assets/images/', '/assets/images/')
+                      : slide.imageUrl
+                  }
                   alt="Thumbnail"
                   className="w-10 h-10 rounded-lg object-cover border border-[#2A9D8F]/30 shrink-0"
                   referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    if (target.src.includes('/assets/images/')) {
+                      target.src = target.src.replace('/assets/images/', '/src/assets/images/');
+                    }
+                  }}
                 />
                 <div className="min-w-0 flex-1">
                   <span className="text-[11px] font-bold text-[#2A9D8F] block">📷 Slide dengan Media Foto</span>

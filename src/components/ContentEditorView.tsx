@@ -25,6 +25,7 @@ import {
   createBlankMaterial,
   DEFAULT_PARTNERUP_CURRICULUM,
 } from '../utils/materialsManager';
+import { exportCurriculumToPowerPoint } from '../utils/pptxExport';
 import {
   Save,
   RotateCcw,
@@ -107,22 +108,22 @@ async function compressImageFile(file: File): Promise<string> {
 export const SAMPLE_SLIDE_IMAGES = [
   {
     label: 'Perbandingan Kemasan',
-    url: '/src/assets/images/kemasan_umkm_perbandingan_1793832957331.jpg',
+    url: '/assets/images/kemasan_umkm_perbandingan_1793832957331.jpg',
     caption: 'Perbandingan: Kemasan Plastik Karet vs Standing Pouch Modern',
   },
   {
     label: 'Anatomi Label Juara',
-    url: '/src/assets/images/anatomi_label_kemasan_1793832958314.jpg',
+    url: '/assets/images/anatomi_label_kemasan_1793832958314.jpg',
     caption: 'Hierarki 5 Elemen Label: Brand, Kategori, Varian, Window, & Legalitas',
   },
   {
     label: 'Display Rak Retail',
-    url: '/src/assets/images/display_rak_kemasan_1793832958364.jpg',
+    url: '/assets/images/display_rak_kemasan_1793832958364.jpg',
     caption: 'Hukum 3 Detik: Kemasan Kontras Menghentikan Langkah Pembeli di Rak Toko',
   },
   {
     label: 'Pilihan Wadah Modern',
-    url: '/src/assets/images/wadah_kemasan_modern_1793832959142.jpg',
+    url: '/assets/images/wadah_kemasan_modern_1793832959142.jpg',
     caption: 'Pilihan Wadah Food-Grade UMKM: Kraft Pouch, Black Zipper & Toples Kaca',
   },
 ];
@@ -829,7 +830,25 @@ export const ContentEditorView: React.FC<ContentEditorViewProps> = ({
             className="w-full rounded-xl border border-[#1F3A5F]/25 px-3.5 py-2.5 text-sm font-semibold text-[#1F3A5F]"
           />
         </div>
-        <div className="md:col-span-3 flex items-center justify-end gap-2">
+        <div className="md:col-span-3 flex flex-wrap items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={async () => {
+              await exportCurriculumToPowerPoint({
+                seminarTitle,
+                organizerName,
+                slides,
+                questions,
+                brandTheme,
+                fileName: seminarTitle,
+              });
+            }}
+            className="px-3 py-2.5 rounded-xl bg-[#E76F51] hover:bg-[#D45A3D] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+            title="Unduh seluruh materi dalam format presentasi Microsoft PowerPoint (.pptx) lengkap dengan catatan pemateri"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Unduh PPTX</span>
+          </button>
           <button
             type="button"
             onClick={handleExportJson}

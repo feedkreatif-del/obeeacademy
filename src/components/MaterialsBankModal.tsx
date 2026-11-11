@@ -10,6 +10,7 @@ import {
   downloadMaterialAsJson,
   downloadAllMaterialsBundleAsJson,
 } from '../utils/materialsManager';
+import { exportCurriculumToPowerPoint } from '../utils/pptxExport';
 import {
   Layers,
   BookOpen,
@@ -514,6 +515,25 @@ export const MaterialsBankModal: React.FC<MaterialsBankModalProps> = ({
                               title="Duplikasi / Salin materi ini"
                             >
                               <Copy className="w-3.5 h-3.5 text-[#F28C28]" />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                await exportCurriculumToPowerPoint({
+                                  seminarTitle: mat.seminarTitle,
+                                  organizerName: mat.organizerName,
+                                  slides: mat.content.slides,
+                                  questions: mat.content.questions,
+                                  brandTheme: mat.content.brandTheme,
+                                  fileName: mat.seminarTitle,
+                                });
+                              }}
+                              className="px-2 py-1.5 rounded-lg bg-orange-50 hover:bg-orange-100 text-[#E76F51] text-[11px] font-black transition-colors cursor-pointer border border-[#E76F51]/30 flex items-center gap-1"
+                              title="Unduh seluruh slide materi ini sebagai file presentasi PowerPoint (.pptx)"
+                            >
+                              <Download className="w-3 h-3" />
+                              <span>PPTX</span>
                             </button>
 
                             <button
