@@ -26,6 +26,7 @@ import {
   DEFAULT_PARTNERUP_CURRICULUM,
 } from '../utils/materialsManager';
 import { exportCurriculumToPowerPoint } from '../utils/pptxExport';
+import { exportFacilitatorDeepDivePdf } from '../utils/facilitatorPdfExport';
 import {
   Save,
   RotateCcw,
@@ -831,6 +832,26 @@ export const ContentEditorView: React.FC<ContentEditorViewProps> = ({
           />
         </div>
         <div className="md:col-span-3 flex flex-wrap items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              exportFacilitatorDeepDivePdf({
+                materialId: customContent.materialId,
+                seminarTitle,
+                organizerName,
+                description: customContent.description,
+                slides,
+                questions,
+                polls,
+                brandTheme,
+              });
+            }}
+            className="px-3 py-2.5 rounded-xl bg-[#1F3A5F] hover:bg-[#162a45] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+            title="Unduh Modul Pendalaman Materi Khusus Pemateri (.pdf) lengkap dengan rumus, studi kasus F&B/Kriya/Persewaan, & skrip mengajar"
+          >
+            <FileText className="w-3.5 h-3.5 text-[#F28C28]" />
+            <span>PDF Pendalaman</span>
+          </button>
           <button
             type="button"
             onClick={async () => {

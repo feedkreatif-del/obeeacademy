@@ -19,6 +19,7 @@ import {
 } from '../types';
 import { printSlideDeckHandout } from '../utils/handoutExport';
 import { exportCurriculumToPowerPoint } from '../utils/pptxExport';
+import { exportFacilitatorDeepDivePdf } from '../utils/facilitatorPdfExport';
 import { downloadQrCodeAsPng, downloadQrCodeAsSvg, buildQrWhatsAppShareUrl } from '../utils/qrExport';
 import { QRCodeSVG } from 'qrcode.react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -1920,6 +1921,26 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
             >
               <Printer className="w-3.5 h-3.5 text-[#2A9D8F]" />
               <span>PDF Slide</span>
+            </button>
+
+            {/* Unduh Modul Pendalaman Materi Khusus Pemateri (.pdf) */}
+            <button
+              type="button"
+              onClick={() =>
+                exportFacilitatorDeepDivePdf({
+                  seminarTitle,
+                  organizerName,
+                  slides,
+                  questions,
+                  polls,
+                  brandTheme,
+                })
+              }
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold bg-[#1F3A5F] text-white hover:bg-[#162a45] transition-colors cursor-pointer whitespace-nowrap shadow-xs"
+              title="Unduh Modul Pendalaman Materi Khusus Pemateri (.pdf) berisi konsep, hitung-hitungan simulasi, teknik jawab pertanyaan sulit, & skrip tiap slide"
+            >
+              <FileText className="w-3.5 h-3.5 text-[#F28C28]" />
+              <span>PDF Pendalaman</span>
             </button>
 
             {/* Unduh Presentasi PowerPoint (.pptx) */}
