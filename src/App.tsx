@@ -3,10 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   doc,
   collection,
+  getDocs,
   onSnapshot,
   setDoc,
   addDoc,
@@ -27,8 +28,7 @@ import {
   LIVE_POLLS,
   SEMINAR_SLIDES,
   DEFAULT_QNA_TOPICS,
-  INITIAL_SEED_ANSWERS,
-  INITIAL_SEED_QNA,
+  getSeedDataForCurriculum,
 } from './data/seminarData';
 import {
   SessionStateDoc,
@@ -56,6 +56,7 @@ import {
   persistMaterial,
   removeMaterial,
   DEFAULT_PARTNERUP_CURRICULUM,
+  SESI_2_ACTION_PLAN_CURRICULUM,
 } from './utils/materialsManager';
 import { MaterialsBankModal } from './components/MaterialsBankModal';
 import { Download, BookOpen, Lock, Unlock, ShieldCheck, Settings, Layers } from 'lucide-react';
@@ -179,6 +180,60 @@ export default function App() {
   const [qnaList, setQnaList] = useState<QnaDoc[]>([]);
   const [pollVotes, setPollVotes] = useState<PollVoteDoc[]>([]);
   const [hasSeededInitial, setHasSeededInitial] = useState<boolean>(false);
+  const seedSyncLockRef = useRef<boolean>(false);
+  const sesiSeedHealDoneRef = useRef<boolean>(false);
+  const sesi2ContentUpgradeDoneRef = useRef<boolean>(false);
+
+  const replaceSimulationSeeds = async (
+    materialId?: string,
+    seminarTitle?: string
+  ) => {
+    if (seedSyncLockRef.current) return;
+    seedSyncLockRef.current = true;
+    try {
+      const [ansSnap, qnaSnap] = await Promise.all([
+        getDocs(collection(db, 'answers')),
+        getDocs(collection(db, 'qna')),
+      ]);
+
+      const deletePromises: Promise<void>[] = [];
+      ansSnap.forEach((d) => {
+        const pid = (d.data() as { participantId?: string })?.participantId || '';
+        if (pid.startsWith('seed_')) {
+          deletePromises.push(deleteDoc(doc(db, 'answers', d.id)));
+        }
+      });
+      qnaSnap.forEach((d) => {
+        const pid = (d.data() as { participantId?: string })?.participantId || '';
+        if (pid.startsWith('seed_qna_')) {
+          deletePromises.push(deleteDoc(doc(db, 'qna', d.id)));
+        }
+      });
+      await Promise.all(deletePromises);
+
+      const { answers: nextSeedAnswers, qna: nextSeedQna } =
+        getSeedDataForCurriculum(materialId, seminarTitle);
+      const baseTs = Date.now();
+      await Promise.all([
+        ...nextSeedAnswers.map((item, idx) =>
+          addDoc(collection(db, 'answers'), {
+            ...item,
+            ts: baseTs - (nextSeedAnswers.length - idx) * 60000,
+          })
+        ),
+        ...nextSeedQna.map((qItem, idx) =>
+          addDoc(collection(db, 'qna'), {
+            ...qItem,
+            ts: baseTs - (nextSeedQna.length - idx) * 60000,
+          })
+        ),
+      ]);
+    } catch (err) {
+      console.warn('Gagal menyinkronkan data simulasi kurikulum:', err);
+    } finally {
+      seedSyncLockRef.current = false;
+    }
+  };
 
   // Sync saved materials library from Firestore on startup
   useEffect(() => {
@@ -276,6 +331,24 @@ export default function App() {
             setActiveMaterialId(data.materialId);
             setActiveMaterialIdLocal(data.materialId);
           }
+          // Auto-upgrade active Sesi 2 curriculum once if missing the 5 new slide visuals
+          const isSesi2ActiveDoc =
+            data.materialId === SESI_2_ACTION_PLAN_CURRICULUM.id ||
+            (data.seminarTitle || '').toLowerCase().includes('target penjualan');
+          if (
+            isSesi2ActiveDoc &&
+            !sesi2ContentUpgradeDoneRef.current &&
+            (!data.slides?.[1]?.imageUrl || (data.updatedAt || 0) < 1732500000000)
+          ) {
+            sesi2ContentUpgradeDoneRef.current = true;
+            setDoc(doc(db, 'custom_content', 'active'), {
+              ...SESI_2_ACTION_PLAN_CURRICULUM.content,
+              brandTheme: sanitizeBrandTheme(data.brandTheme),
+              updatedAt: Date.now(),
+            }).catch((err) => {
+              console.warn('Sesi 2 visual upgrade skipped:', err);
+            });
+          }
         }
       },
       (err) => {
@@ -337,55 +410,114 @@ export default function App() {
     };
   }, []);
 
-  // Auto-seed realistic UMKM examples if database is completely empty on first launch
+  // Auto-seed & auto-heal simulation answers if empty, duplicated, or mismatched with active curriculum
   useEffect(() => {
     const checkAndSeed = async () => {
-      if (hasSeededInitial) return;
-      const seededFlag = window.localStorage.getItem('partnerup_initial_seeded_v1');
-      const upgradedV2Flag = window.localStorage.getItem('partnerup_curriculum_v2_8page');
+      if (!hasSeededInitial) {
+        const seededFlag = window.localStorage.getItem('partnerup_initial_seeded_v1');
+        const upgradedV2Flag = window.localStorage.getItem('partnerup_curriculum_v2_8page');
 
-      if (!upgradedV2Flag) {
-        window.localStorage.setItem('partnerup_curriculum_v2_8page', 'true');
-        try {
-          await setDoc(doc(db, 'custom_content', 'active'), {
-            ...DEFAULT_CUSTOM_CONTENT,
-            updatedAt: Date.now(),
-          });
-        } catch (e) {
-          console.warn('Curriculum v2 sync skipped:', e);
+        if (!upgradedV2Flag) {
+          window.localStorage.setItem('partnerup_curriculum_v2_8page', 'true');
+          if (
+            !customContent.materialId ||
+            customContent.materialId === DEFAULT_PARTNERUP_CURRICULUM.id
+          ) {
+            try {
+              await setDoc(doc(db, 'custom_content', 'active'), {
+                ...DEFAULT_CUSTOM_CONTENT,
+                updatedAt: Date.now(),
+              });
+            } catch (e) {
+              console.warn('Curriculum v2 sync skipped:', e);
+            }
+          }
+        }
+
+        if (seededFlag) {
+          setHasSeededInitial(true);
+        } else if (answers.length === 0 && qnaList.length === 0) {
+          setHasSeededInitial(true);
+          window.localStorage.setItem('partnerup_initial_seeded_v1', 'true');
+          try {
+            await setDoc(doc(db, 'state', 'session'), {
+              ...DEFAULT_SESSION_STATE,
+              updatedAt: Date.now(),
+            });
+            await setDoc(doc(db, 'custom_content', 'active'), {
+              ...DEFAULT_CUSTOM_CONTENT,
+              updatedAt: Date.now(),
+            });
+            await replaceSimulationSeeds(
+              DEFAULT_CUSTOM_CONTENT.materialId,
+              DEFAULT_CUSTOM_CONTENT.seminarTitle
+            );
+          } catch (e) {
+            console.warn('Initial seed skipped:', e);
+          }
+          return;
+        } else {
+          setHasSeededInitial(true);
         }
       }
 
-      if (seededFlag) {
-        setHasSeededInitial(true);
-        return;
-      }
-      if (answers.length === 0 && qnaList.length === 0) {
-        setHasSeededInitial(true);
-        window.localStorage.setItem('partnerup_initial_seeded_v1', 'true');
-        try {
-          await setDoc(doc(db, 'state', 'session'), {
-            ...DEFAULT_SESSION_STATE,
-            updatedAt: Date.now(),
-          });
-          await setDoc(doc(db, 'custom_content', 'active'), {
-            ...DEFAULT_CUSTOM_CONTENT,
-            updatedAt: Date.now(),
-          });
-          for (const item of INITIAL_SEED_ANSWERS) {
-            await addDoc(collection(db, 'answers'), item);
+      // Auto-clean duplicated or mismatched simulation seeds (never touches real attendee answers)
+      if (!sesiSeedHealDoneRef.current && answers.length > 0) {
+        const seedAnswers = answers.filter((a) => a.participantId?.startsWith('seed_'));
+        if (seedAnswers.length > 0) {
+          const seenKeys = new Set<string>();
+          let hasDuplicates = false;
+          for (const sa of seedAnswers) {
+            const key = `${sa.participantId}_${sa.q}`;
+            if (seenKeys.has(key)) {
+              hasDuplicates = true;
+              break;
+            }
+            seenKeys.add(key);
           }
-          for (const qItem of INITIAL_SEED_QNA) {
-            await addDoc(collection(db, 'qna'), qItem);
+
+          const titleLower = (customContent.seminarTitle || '').toLowerCase();
+          const isSesi2 =
+            customContent.materialId === SESI_2_ACTION_PLAN_CURRICULUM.id ||
+            titleLower.includes('target penjualan') ||
+            titleLower.includes('margin ideal');
+          const isPackaging =
+            customContent.materialId === 'desain_kemasan_pemasaran_umkm' ||
+            titleLower.includes('desain kemasan');
+
+          const hasSesi1Seed = seedAnswers.some(
+            (sa) =>
+              sa.participantId === 'seed_busari' ||
+              sa.participantId === 'seed_kemuning' ||
+              sa.participantId === 'seed_berkah'
+          );
+          const hasSesi2Seed = seedAnswers.some((sa) =>
+            sa.participantId?.startsWith('seed_s2_')
+          );
+          const hasPkgSeed = seedAnswers.some((sa) =>
+            sa.participantId?.startsWith('seed_pkg_')
+          );
+
+          const isMismatched =
+            (isSesi2 && !hasSesi2Seed) ||
+            (isPackaging && !hasPkgSeed) ||
+            (!isSesi2 && !isPackaging && !hasSesi1Seed);
+
+          if (hasDuplicates || isMismatched) {
+            sesiSeedHealDoneRef.current = true;
+            await replaceSimulationSeeds(
+              customContent.materialId,
+              customContent.seminarTitle
+            );
+          } else {
+            sesiSeedHealDoneRef.current = true;
           }
-        } catch (e) {
-          console.warn('Initial seed skipped:', e);
         }
       }
     };
-    const timer = setTimeout(checkAndSeed, 1200);
+    const timer = setTimeout(checkAndSeed, 1000);
     return () => clearTimeout(timer);
-  }, [answers.length, qnaList.length, hasSeededInitial]);
+  }, [answers, qnaList.length, hasSeededInitial, customContent.materialId, customContent.seminarTitle]);
 
   const updateSessionState = async (partial: Partial<SessionStateDoc>) => {
     const nextState: SessionStateDoc = {
@@ -467,6 +599,12 @@ export default function App() {
         activePollId: firstPollId,
         sessionName: material.seminarTitle.slice(0, 120),
       });
+      // Sinkronkan contoh simulasi demo agar sesuai dengan materi yang baru dipilih (tanpa menghapus jawaban peserta asli)
+      const hasSeedAnswers = answers.some((a) => a.participantId?.startsWith('seed_'));
+      if (hasSeedAnswers || answers.length === 0) {
+        sesiSeedHealDoneRef.current = true;
+        await replaceSimulationSeeds(material.id, material.seminarTitle);
+      }
     } catch (err) {
       handleFirestoreError(err, OperationType.WRITE, 'custom_content/active');
     }
@@ -749,12 +887,8 @@ export default function App() {
   };
 
   const handleSeedSampleData = async () => {
-    for (const item of INITIAL_SEED_ANSWERS) {
-      await addDoc(collection(db, 'answers'), { ...item, ts: Date.now() });
-    }
-    for (const qItem of INITIAL_SEED_QNA) {
-      await addDoc(collection(db, 'qna'), { ...qItem, ts: Date.now() });
-    }
+    sesiSeedHealDoneRef.current = true;
+    await replaceSimulationSeeds(customContent.materialId, customContent.seminarTitle);
   };
 
   const approvedAnswers = answers.filter((a) => a.status === 'approved');

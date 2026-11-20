@@ -7,6 +7,10 @@ import {
   FORBIDDEN_VAGUE_WORDS,
   VP_THREE_TESTS,
   ZERO_CERT_PROOFS,
+  SESI_2_MARGIN_BENCHMARKS,
+  SESI_2_BUNDLING_TEMPLATES,
+  SESI_2_COPYWRITING_TEMPLATES,
+  SESI_2_THREE_CHECKS,
 } from '../data/seminarData';
 import {
   AnswerDoc,
@@ -140,12 +144,35 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
     setShowSubAnswer(false);
   }, [activeQIndex]);
 
+  const isVpSesi1 = questions.some(
+    (q) =>
+      q.sectionTitle.includes('Rational Value') ||
+      q.sectionTitle.includes('Apa Itu Value Proposition?')
+  );
+  const isSesi2PartnerUp = questions.some(
+    (q) =>
+      q.sectionTitle.includes('Margin Ideal') ||
+      q.sectionTitle.includes('Target Laba Bersih')
+  );
+
   const getMyPreviousAnswer = (qIdx: number) => {
     const found = myAnswers.find((a) => a.q === qIdx);
     return found ? found.text : '';
   };
 
   const handleAutoFillPart6Formula = () => {
+    if (isSesi2PartnerUp) {
+      const vpPromise = getMyPreviousAnswer(0) || '[Keunggulan & Bukti Nyata Usahamu]';
+      const priceNote = getMyPreviousAnswer(2) || '[Harga Spesial Berkualitas]';
+      const bundlingNote = getMyPreviousAnswer(3) || '[Paket Bundling Hemat]';
+      const drafted =
+        `[Hook]: Masih bingung cari produk/jasa terpercaya? [Bukti]: ${vpPromise}. [Ajakan]: Ambil ${bundlingNote} (${priceNote}) hari ini via WA!`.slice(
+          0,
+          200
+        );
+      setAnswerText(drafted);
+      return;
+    }
     const prod = getMyPreviousAnswer(0) || '[Nama Produk Andalan]';
     const buyer = getMyPreviousAnswer(1) || '[Target Pembeli Spesifik]';
     const rational = getMyPreviousAnswer(3) || '[Bukti Angka / Keunggulan]';
@@ -252,21 +279,30 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
     setPollSubmitted(true);
   };
 
-  // Auto-Generated Marketing Kit Data from Participant's Answers (Parts 1 to 7)
-  const umkmTitle = businessName.trim() || getMyPreviousAnswer(0) || 'Nama Usaha UMKM';
+  // Auto-Generated Marketing Kit Data from Participant's Answers (Curriculum-Aware)
+  const umkmTitle = businessName.trim() || 'Usaha UMKM Saya';
   const productInfo = getMyPreviousAnswer(0) || 'Produk Andalan Pilihan';
   const targetBuyer = getMyPreviousAnswer(1) || 'Pelanggan Setia & Keluarga';
   const rationalProof = getMyPreviousAnswer(3) || getMyPreviousAnswer(2) || 'Bahan Asli · Kualitas Terjamin · Harga Bersahabat';
   const emotionalFeeling = getMyPreviousAnswer(4) || 'Praktis, Tenang & Bikin Keluarga Senang';
-  const finalVpSentence =
-    getMyPreviousAnswer(5) ||
-    `${productInfo} untuk ${targetBuyer} yang ingin ${emotionalFeeling}, karena ${rationalProof}.`;
 
-  const generatedInstagramBio = `✨ ${umkmTitle}\n🎯 Solusi untuk: ${targetBuyer}\n✅ ${rationalProof}\n💛 ${emotionalFeeling}\n👇 Pesan sekarang via WhatsApp di bawah:`;
+  const finalVpSentence = isSesi2PartnerUp
+    ? getMyPreviousAnswer(5) ||
+      `${productInfo} — penawaran paket hemat: ${getMyPreviousAnswer(3) || 'Paket Bundling Spesial Hari Ini'}.`
+    : getMyPreviousAnswer(5) ||
+      `${productInfo} untuk ${targetBuyer} yang ingin ${emotionalFeeling}, karena ${rationalProof}.`;
 
-  const generatedWhatsappGreeting = `Halo Kak! 👋 Terima kasih sudah menghubungi *${umkmTitle}*.\n\nKami menyediakan ${finalVpSentence}\n\nAda varian atau paket yang ingin Kakak pesan untuk hari ini? 😊`;
+  const generatedInstagramBio = isSesi2PartnerUp
+    ? `✨ ${umkmTitle}\n✅ ${productInfo}\n🎁 Paket Favorit: ${getMyPreviousAnswer(3) || 'Tersedia Paket Hemat / Bundling'}\n📣 Promo: ${getMyPreviousAnswer(5) || 'Chat WA untuk pemesanan cepat hari ini!'}\n👇 Pesan langsung via WhatsApp:`
+    : `✨ ${umkmTitle}\n🎯 Solusi untuk: ${targetBuyer}\n✅ ${rationalProof}\n💛 ${emotionalFeeling}\n👇 Pesan sekarang via WhatsApp di bawah:`;
 
-  const generatedPackagingSticker = `${umkmTitle.toUpperCase()}\n"${emotionalFeeling}"\n• ${rationalProof} •`;
+  const generatedWhatsappGreeting = isSesi2PartnerUp
+    ? `Halo Kak! 👋 Terima kasih sudah menghubungi *${umkmTitle}*.\n\n${finalVpSentence}\n\nTarget kami membantu Kakak mendapatkan layanan/produk terbaik tanpa ragu. Mau ambil satuan atau Paket Bundling lebih hemat hari ini? 😊`
+    : `Halo Kak! 👋 Terima kasih sudah menghubungi *${umkmTitle}*.\n\nKami menyediakan ${finalVpSentence}\n\nAda varian atau paket yang ingin Kakak pesan untuk hari ini? 😊`;
+
+  const generatedPackagingSticker = isSesi2PartnerUp
+    ? `${umkmTitle.toUpperCase()}\n"${productInfo}"\n• Target & Paket: ${getMyPreviousAnswer(3) || 'Paket Hemat Keluarga'} •`
+    : `${umkmTitle.toUpperCase()}\n"${emotionalFeeling}"\n• ${rationalProof} •`;
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 pb-24">
@@ -378,8 +414,8 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
             )}
           </div>
 
-          {/* BUKTI TANPA SERTIFIKAT FORMAL (Khusus Bagian 4 - UMKM Pemula) */}
-          {activeQIndex === 3 && (
+          {/* BUKTI TANPA SERTIFIKAT FORMAL (Khusus VP Sesi 1 Bagian 4) */}
+          {isVpSesi1 && activeQIndex === 3 && (
             <div className="rounded-xl bg-[#FFF7EC] border border-[#1F3A5F]/15 p-4 mb-4 space-y-2">
               <p className="text-xs font-bold text-[#1F3A5F] uppercase tracking-wider">
                 Belum Punya Sertifikat PIRT/Halal? Ketuk Bukti UMKM Pemula Ini:
@@ -399,8 +435,8 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
             </div>
           )}
 
-          {/* KATA TERLARANG & KAMUS KONVERSI ANGKA INTERAKTIF (Khusus Bagian 3 & Bagian 4) */}
-          {(activeQIndex === 2 || activeQIndex === 3) && (
+          {/* KATA TERLARANG & KAMUS KONVERSI ANGKA INTERAKTIF (Khusus VP Sesi 1 Bagian 3 & 4) */}
+          {isVpSesi1 && (activeQIndex === 2 || activeQIndex === 3) && (
             <div className="rounded-xl bg-[#E3F5F2] border border-[#2A9D8F]/40 p-4 mb-6 space-y-3">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-xs sm:text-sm font-bold text-[#1F3A5F] flex items-center gap-1.5">
@@ -445,8 +481,72 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
             </div>
           )}
 
-          {/* Smart Formula Builder & 3 Alat Uji VP on Question 6 (Index 5) */}
-          {activeQIndex === 5 && questions.length >= 6 && (
+          {/* PANDUAN HITUNG MARGIN SEHAT (Khusus Sesi 2 PartnerUp Bagian 3) */}
+          {isSesi2PartnerUp && activeQIndex === 2 && (
+            <div className="rounded-xl bg-[#E3F5F2] border border-[#2A9D8F]/40 p-4 mb-6 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs sm:text-sm font-bold text-[#1F3A5F] flex items-center gap-1.5">
+                  <HelpCircle className="w-4 h-4 text-[#2A9D8F] shrink-0" />
+                  <span>Patokan Margin Ideal VP & Contoh Hitungan (Ketuk untuk Pakai)</span>
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowConversionGuide(!showConversionGuide)}
+                  className="text-xs font-bold text-[#2A9D8F] hover:underline cursor-pointer"
+                >
+                  {showConversionGuide ? 'Sembunyikan' : 'Lihat Patokan'}
+                </button>
+              </div>
+              {showConversionGuide && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+                  {SESI_2_MARGIN_BENCHMARKS.map((mb, idx) => (
+                    <div
+                      key={idx}
+                      onClick={() => handleInsertChip(mb.chipText)}
+                      className="bg-white rounded-lg p-2.5 border border-[#2A9D8F]/30 hover:border-[#F28C28] cursor-pointer transition-colors space-y-1"
+                    >
+                      <div className="flex items-center justify-between gap-1 text-[11px]">
+                        <span className="font-bold text-[#1F3A5F]">{mb.sector}</span>
+                        <span className="font-bold text-[#F28C28]">+ Isi Format</span>
+                      </div>
+                      <p className="text-xs font-bold text-[#2A9D8F]">{mb.healthyRange}</p>
+                      <p className="text-[11px] text-[#1F3A5F]/75 leading-snug">{mb.costReminder}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* PANDUAN PAKET BUNDLING & TARGET HARIAN (Khusus Sesi 2 PartnerUp Bagian 4) */}
+          {isSesi2PartnerUp && activeQIndex === 3 && (
+            <div className="rounded-xl bg-[#E3F5F2] border border-[#2A9D8F]/40 p-4 mb-6 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs sm:text-sm font-bold text-[#1F3A5F] flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-[#2A9D8F] shrink-0" />
+                  <span>Inspirasi Paket Bundling Per Jenis Usaha (Ketuk untuk Tiru Polanya)</span>
+                </p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                {SESI_2_BUNDLING_TEMPLATES.map((bt, idx) => (
+                  <div
+                    key={idx}
+                    onClick={() => handleInsertChip(bt.chipText)}
+                    className="bg-white rounded-lg p-2.5 border border-[#2A9D8F]/30 hover:border-[#F28C28] cursor-pointer transition-colors space-y-1"
+                  >
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="font-bold text-[#1F3A5F]">{bt.sector}</span>
+                      <span className="font-bold text-[#F28C28]">+ Pakai</span>
+                    </div>
+                    <p className="text-xs font-semibold text-[#2A9D8F] leading-snug">{bt.idea}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Smart Formula Builder & 3 Alat Uji VP on Question 6 (Khusus VP Sesi 1) */}
+          {isVpSesi1 && activeQIndex === 5 && questions.length >= 6 && (
             <div className="space-y-4 mb-6">
               <div className="rounded-xl bg-[#E3F5F2] border border-[#2A9D8F]/40 p-4 space-y-3">
                 <div className="flex items-center justify-between gap-2">
@@ -492,6 +592,78 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
                       <p className="font-bold text-[#1F3A5F]">{test.title}</p>
                       <p className="text-[#1F3A5F]/80">{test.question}</p>
                       <p className="font-semibold text-[#2A9D8F]">{test.passCriteria}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Bantuan Rangkai Copywriting 3 Pilar (Khusus Sesi 2 PartnerUp Bagian 6) */}
+          {isSesi2PartnerUp && activeQIndex === 5 && (
+            <div className="space-y-4 mb-6">
+              <div className="rounded-xl bg-[#E3F5F2] border border-[#2A9D8F]/40 p-4 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-bold text-[#1F3A5F] flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-[#2A9D8F]" />
+                    Bantuan Rangkai Copywriting 3 Pilar (Dari Jawabanmu Sebelumnya)
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleAutoFillPart6Formula}
+                    className="px-3 py-1.5 rounded-lg bg-[#2A9D8F] text-white text-xs font-bold hover:bg-[#218276] transition-colors cursor-pointer"
+                  >
+                    Susun Otomatis ke Kolom
+                  </button>
+                </div>
+                <div className="text-xs text-[#1F3A5F]/80 space-y-1">
+                  <p>
+                    <strong>Bagian 1 (Bukti VP):</strong> {getMyPreviousAnswer(0) || 'Belum diisi'}
+                  </p>
+                  <p>
+                    <strong>Bagian 3 (Harga & Margin):</strong> {getMyPreviousAnswer(2) || 'Belum diisi'}
+                  </p>
+                  <p>
+                    <strong>Bagian 4 (Paket Bundling):</strong> {getMyPreviousAnswer(3) || 'Belum diisi'}
+                  </p>
+                </div>
+                <div className="pt-2 border-t border-[#2A9D8F]/20 space-y-1.5">
+                  <p className="text-[11px] font-bold text-[#1F3A5F]">
+                    Atau ketuk contoh siap pakai sesuai usahamu untuk langsung dimodifikasi:
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {SESI_2_COPYWRITING_TEMPLATES.map((tpl, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setAnswerText(tpl.chipText.slice(0, 200))}
+                        className="text-left p-2.5 rounded-lg bg-white border border-[#2A9D8F]/30 hover:border-[#F28C28] text-xs font-semibold text-[#1F3A5F] cursor-pointer transition-colors"
+                      >
+                        <span className="font-bold text-[#F28C28] block text-[11px]">
+                          + Contoh {tpl.sector}
+                        </span>
+                        <span className="line-clamp-2 text-[11px] text-[#1F3A5F]/80 mt-0.5">
+                          {tpl.chipText}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl bg-[#FFF7EC] border border-[#F28C28]/40 p-4 space-y-2.5">
+                <p className="text-xs font-bold uppercase tracking-wider text-[#F28C28]">
+                  Ceklis 3 Pilar Copywriting Sebelum Posting:
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  {SESI_2_THREE_CHECKS.map((chk, idx) => (
+                    <div
+                      key={idx}
+                      className="bg-white rounded-lg p-3 border border-[#1F3A5F]/10 space-y-1 text-xs"
+                    >
+                      <p className="font-bold text-[#1F3A5F]">{chk.title}</p>
+                      <p className="text-[#1F3A5F]/80">{chk.question}</p>
+                      <p className="font-semibold text-[#2A9D8F]">{chk.passCriteria}</p>
                     </div>
                   ))}
                 </div>

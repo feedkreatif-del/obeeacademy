@@ -3,6 +3,8 @@ import {
   WorksheetQuestion,
   RATIONAL_CONVERSION_DICTIONARY,
   VP_THREE_TESTS,
+  SESI_2_MARGIN_BENCHMARKS,
+  SESI_2_THREE_CHECKS,
 } from '../data/seminarData';
 import { AnswerDoc, BrandThemeConfig } from '../types';
 import { DEFAULT_BRAND_THEME } from '../brandTheme';
@@ -430,14 +432,29 @@ export function printParticipantWorkbookHandout(params: {
     })
     .join('');
 
-  const dictionaryHtml = RATIONAL_CONVERSION_DICTIONARY.map(
-    (d) => `
+  const isSesi2Curriculum = questions.some(
+    (q) =>
+      q.sectionTitle.includes('Margin Ideal') ||
+      q.sectionTitle.includes('Target Laba Bersih')
+  );
+
+  const dictionaryHtml = isSesi2Curriculum
+    ? SESI_2_MARGIN_BENCHMARKS.map(
+        (m) => `
+      <tr>
+        <td style="font-weight:700;color:${theme.primaryColor};">✅ ${escapeHtml(m.sector)}<br/><span style="color:${theme.secondaryColor};font-size:11px;">${escapeHtml(m.healthyRange)}</span></td>
+        <td>${escapeHtml(m.costReminder)}</td>
+      </tr>
+    `
+      ).join('')
+    : RATIONAL_CONVERSION_DICTIONARY.map(
+        (d) => `
       <tr>
         <td class="bad-word">❌ ${escapeHtml(d.vagueWord)}</td>
         <td class="good-word">✅ ${escapeHtml(d.concreteProof)}</td>
       </tr>
     `
-  ).join('');
+      ).join('');
 
   const slideDigestHtml = slides
     .filter((s) => s.type !== 'cover')
@@ -675,12 +692,16 @@ export function printParticipantWorkbookHandout(params: {
   <h2 class="section-heading">A. Rekap Jawaban Lembar Kerja Saya (Bagian 1–${questions.length})</h2>
   ${questionsHtml}
 
-  <h2 class="section-heading">B. Kamus Konversi: Ubah Kata Sifat Umum Jadi Bukti Angka</h2>
+  <h2 class="section-heading">${
+    isSesi2Curriculum
+      ? 'B. Patokan Margin Ideal VP & Komponen Modal Wajib'
+      : 'B. Kamus Konversi: Ubah Kata Sifat Umum Jadi Bukti Angka'
+  }</h2>
   <table>
     <thead>
       <tr>
-        <th>Hindari Klaim Umum Ini</th>
-        <th>Ganti Dengan Bukti Spesifik / Angka Ini</th>
+        <th>${isSesi2Curriculum ? 'Jenis Usaha & Patokan Margin' : 'Hindari Klaim Umum Ini'}</th>
+        <th>${isSesi2Curriculum ? 'Biaya Jaga Janji VP yang Wajib Dihitung' : 'Ganti Dengan Bukti Spesifik / Angka Ini'}</th>
       </tr>
     </thead>
     <tbody>
@@ -763,25 +784,53 @@ export function downloadParticipantTxtHandout(params: {
     }
   });
 
-  lines.push(
-    '',
-    '====================================================================',
-    'KAMUS KONVERSI KATA SIFAT -> BUKTI ANGKA SPESIFIK',
-    '===================================================================='
+  const isSesi2Txt = questions.some(
+    (q) =>
+      q.sectionTitle.includes('Margin Ideal') ||
+      q.sectionTitle.includes('Target Laba Bersih')
   );
-  RATIONAL_CONVERSION_DICTIONARY.forEach((d) => {
-    lines.push(`• Jangan tulis "${d.vagueWord}" -> Ganti dengan: "${d.concreteProof}"`);
-  });
 
-  lines.push(
-    '',
-    '====================================================================',
-    '3 ALAT UJI KALIMAT VALUE PROPOSITION',
-    '===================================================================='
-  );
-  VP_THREE_TESTS.forEach((t, i) => {
-    lines.push(`${i + 1}. ${t.title}: ${t.question} (${t.passCriteria})`);
-  });
+  if (isSesi2Txt) {
+    lines.push(
+      '',
+      '====================================================================',
+      'PATOKAN MARGIN IDEAL VP (SESI 2 PARTNERUP)',
+      '===================================================================='
+    );
+    SESI_2_MARGIN_BENCHMARKS.forEach((m) => {
+      lines.push(`• ${m.sector} — ${m.healthyRange} (${m.costReminder})`);
+    });
+
+    lines.push(
+      '',
+      '====================================================================',
+      'CEKLIS 3 PILAR COPYWRITING PENYAMPAI VALUE PROPOSITION',
+      '===================================================================='
+    );
+    SESI_2_THREE_CHECKS.forEach((c, i) => {
+      lines.push(`${i + 1}. ${c.title}: ${c.question} (${c.passCriteria})`);
+    });
+  } else {
+    lines.push(
+      '',
+      '====================================================================',
+      'KAMUS KONVERSI KATA SIFAT -> BUKTI ANGKA SPESIFIK',
+      '===================================================================='
+    );
+    RATIONAL_CONVERSION_DICTIONARY.forEach((d) => {
+      lines.push(`• Jangan tulis "${d.vagueWord}" -> Ganti dengan: "${d.concreteProof}"`);
+    });
+
+    lines.push(
+      '',
+      '====================================================================',
+      '3 ALAT UJI KALIMAT VALUE PROPOSITION',
+      '===================================================================='
+    );
+    VP_THREE_TESTS.forEach((t, i) => {
+      lines.push(`${i + 1}. ${t.title}: ${t.question} (${t.passCriteria})`);
+    });
+  }
 
   lines.push(
     '',

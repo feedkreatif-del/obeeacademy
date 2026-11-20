@@ -1003,3 +1003,420 @@ export const INITIAL_SEED_QNA = [
     ts: Date.now() - 900000,
   },
 ];
+
+// ============================================================================
+// PANDUAN & SIMULASI KHUSUS SESI 2 PARTNERUP (Target, Margin, Copywriting VP)
+// ============================================================================
+
+export const SESI_2_MARGIN_BENCHMARKS = [
+  {
+    sector: 'F&B (Yoghurt, Keripik, Olahan)',
+    healthyRange: 'Margin Ideal: 30% – 50%',
+    costReminder: 'Wajib hitung: bahan baku + kemasan segel/zip + stiker + es/gas + susut.',
+    chipText: 'Harga jual Rp15.000, Total modal + kemasan VP Rp8.500, Untung bersih Rp6.500 (Margin 43%)',
+  },
+  {
+    sector: 'Kriya / Handycraft',
+    healthyRange: 'Margin Ideal: 40% – 70%',
+    costReminder: 'Wajib hitung: bahan + ongkos kerja tangan per jam + box kado & kartu ucapan.',
+    chipText: 'Harga jual Rp125.000, Total modal + upah jahit + box kado Rp55.000, Untung bersih Rp70.000 (Margin 56%)',
+  },
+  {
+    sector: 'Jasa Persewaan',
+    healthyRange: 'Margin Ideal: 50% – 70%',
+    costReminder: 'Sisihkan 15%–20% per transaksi untuk biaya cuci/steril, antar, & dana perbaikan alat.',
+    chipText: 'Tarif sewa Rp350.000/hari, Biaya steril + bensin + cadangan rawat Rp110.000, Untung bersih Rp240.000 (Margin 68%)',
+  },
+];
+
+export const SESI_2_BUNDLING_TEMPLATES = [
+  {
+    sector: 'F&B (Yoghurt / Keripik)',
+    idea: 'Paket Sehat Keluarga / Hampers Camilan (Isi 4–5 pcs)',
+    chipText: 'Target 25 unit/hari — bikin "Paket Keluarga Isi 5 Botol/Pouch" cukup cari 5 pembeli/hari!',
+  },
+  {
+    sector: 'Kriya (Tas / Kerajinan)',
+    idea: 'Paket Kado Siap Beri (Produk Utama + Dompet Kecil + Box & Kartu)',
+    chipText: 'Target 2 set/hari — gabungkan "Tas Rajut + Dompet Koin dalam Box Kado" agar nilai transaksi naik 40%!',
+  },
+  {
+    sector: 'Jasa Persewaan',
+    idea: 'Paket Sewa 3 Hari Hemat / Paket Lengkap Acara + Ekstra Perlengkapan',
+    chipText: 'Target 4 paket/minggu — tawarkan "Paket Komplit 2 Hari Free Setup" agar penyewa tidak ambil satuan!',
+  },
+];
+
+export const SESI_2_COPYWRITING_TEMPLATES = [
+  {
+    sector: 'F&B (Yoghurt / Keripik)',
+    chipText: '[Hook]: Sering khawatir jajan anak di luar pakai pemanis buatan? [Bukti]: Yoghurt segar fermentasi 12 jam tanpa pengawet, botol segel + tahan dingin 7 hari. [Ajakan]: Ambil Paket Keluarga 5 botol Rp70rb hari ini — balas MAU PAKET!',
+  },
+  {
+    sector: 'Kriya (Handycraft)',
+    chipText: '[Hook]: Cari kado unik buat sahabat yang gak gampang rusak & gak pasaran? [Bukti]: Tas rajut tangan jahitan rapat anti-brudul, sudah termasuk box kado & kartu ucapan nama. [Ajakan]: Slot custom minggu ini sisa 4 pcs — chat WA sekarang!',
+  },
+  {
+    sector: 'Jasa Persewaan',
+    chipText: '[Hook]: Takut alat acara datang telat atau kotor pas hari H? [Bukti]: Semua unit kami disterilkan & dicek fungsi 1 hari sebelumnya + garansi tiba 2 jam sebelum acara! [Ajakan]: Cek tanggal kosong & Paket Komplit hemat via WA di bio!',
+  },
+];
+
+export const SESI_2_THREE_CHECKS = [
+  {
+    title: '1. Ada Hook Masalah?',
+    question: 'Apakah kalimat pertama langsung menyentuh kekhawatiran atau kebutuhan pembelimu?',
+    passCriteria: 'Jangan buka dengan "Ready stock...", mulailah dengan situasi pembelimu.',
+  },
+  {
+    title: '2. Ada Bukti Nyata VP?',
+    question: 'Apakah tertulis angka, masa tahan, proses dapur/steril, atau jaminan layanan?',
+    passCriteria: 'Pembeli percaya pada bukti terukur, bukan kata "murah" atau "terbaik".',
+  },
+  {
+    title: '3. Jelas Paket & Ajakan?',
+    question: 'Apakah pembaca tahu paket bundling apa yang harus dipilih & cara chatnya sekarang?',
+    passCriteria: 'Tambahkan batas waktu/slot hari ini agar pembeli langsung menghubungi WA.',
+  },
+];
+
+export const SESI_2_SEED_ANSWERS = [
+  // Q0: Review Value Proposition & Biaya Menjaga Janji
+  {
+    q: 0,
+    text: 'Yoghurt segar tanpa pemanis buatan untuk ibu & anak, tahan dingin 7 hari. Hal wajib: botol segel higienis + ice pack kirim.',
+    subText: 'F&B — Biaya botol segel & ice gel Rp1.800/pesanan sudah masuk perhitungan.',
+    businessName: 'Yoghurt Segar Mbak Nisa',
+    participantId: 'seed_s2_nisa',
+    status: 'approved' as const,
+    star: true,
+    spotlightSize: 'besar' as const,
+    likes: 9,
+    mentorNote: 'Mantap! Janji tanpa pemanis buatan langsung dikawal biaya botol segel dan ice gel agar kualitas tidak turun.',
+    ts: Date.now() - 3600000,
+  },
+  {
+    q: 0,
+    text: 'Tas rajut handmade jahitan rapat untuk kado spesial. Hal wajib: box tebal + pita + kartu ucapan custom gratis.',
+    subText: 'Kriya — Menjaga kesan pantas jadi hadiah tanpa terlihat murahan.',
+    businessName: 'Tas Rajut Kreasi Mbak Dita',
+    participantId: 'seed_s2_dita',
+    status: 'approved' as const,
+    star: false,
+    likes: 6,
+    mentorNote: '',
+    ts: Date.now() - 3500000,
+  },
+  {
+    q: 0,
+    text: 'Sewa perlengkapan piknik & acara bersih wangi bebas repot. Hal wajib: cuci steril tiap kembali + tiba 2 jam sebelum acara.',
+    subText: 'Jasa Persewaan — Cadangan waktu kirim dan laundry unit selalu dihitung.',
+    businessName: 'Berkah Event Rental',
+    participantId: 'seed_s2_berkah',
+    status: 'approved' as const,
+    star: false,
+    likes: 5,
+    mentorNote: '',
+    ts: Date.now() - 3400000,
+  },
+  // Q1: Target Laba Bersih Bulanan
+  {
+    q: 1,
+    text: 'Target laba bersih Rp4.500.000/bulan (Rp3 juta gaji saya pribadi + Rp1,5 juta tabungan beli chiller display baru).',
+    subText: 'Dihitung dari 25 hari produksi efektif per bulan.',
+    businessName: 'Yoghurt Segar Mbak Nisa',
+    participantId: 'seed_s2_nisa',
+    status: 'approved' as const,
+    star: true,
+    spotlightSize: 'kecil' as const,
+    likes: 8,
+    mentorNote: 'Contoh kompas yang sangat sehat! Memisahkan gaji pemilik dan tabungan ekspansi alat.',
+    ts: Date.now() - 3100000,
+  },
+  {
+    q: 1,
+    text: 'Target laba bersih Rp3.500.000/bulan agar tidak perlu kerja sambilan lagi dan bisa tambah stok benang premium.',
+    subText: 'Kriya rumahan dikerjakan berdua dengan asisten jahit.',
+    businessName: 'Tas Rajut Kreasi Mbak Dita',
+    participantId: 'seed_s2_dita',
+    status: 'approved' as const,
+    star: false,
+    likes: 5,
+    mentorNote: '',
+    ts: Date.now() - 3000000,
+  },
+  {
+    q: 1,
+    text: 'Target laba bersih Rp5.000.000/bulan di luar dana perawatan tenda & kursi.',
+    subText: 'Fokus sewa akhir pekan (Jumat–Minggu) + acara kantor hari kerja.',
+    businessName: 'Berkah Event Rental',
+    participantId: 'seed_s2_berkah',
+    status: 'approved' as const,
+    star: false,
+    likes: 6,
+    mentorNote: '',
+    ts: Date.now() - 2900000,
+  },
+  // Q2: Harga Jual, Total Modal + Biaya VP, & Margin Bersih
+  {
+    q: 2,
+    text: 'Harga jual Rp15.000/botol. Total modal bahan + botol segel + stiker + es = Rp8.500. Untung bersih Rp6.500/botol (Margin 43%).',
+    subText: 'Lolos batas sehat F&B (30%–50%), masih aman kasih diskon paket 5 botol.',
+    businessName: 'Yoghurt Segar Mbak Nisa',
+    participantId: 'seed_s2_nisa',
+    status: 'approved' as const,
+    star: true,
+    spotlightSize: 'besar' as const,
+    likes: 11,
+    mentorNote: 'Margin 43% sangat ideal! Ongkos jaga janji VP (segel & es) sudah masuk sebelum untung.',
+    ts: Date.now() - 2600000,
+  },
+  {
+    q: 2,
+    text: 'Keripik Apel 150gr harga jual Rp18.000. Modal apel + minyak vakum + pouch zip foil + stiker = Rp10.500. Untung bersih Rp7.500 (Margin 41%).',
+    subText: 'Dulu jual Rp12rb modal plastik biasa untungnya habis dimakan ongkos kirim & kemasan penyok.',
+    businessName: 'Keripik Apel Bu Sari',
+    participantId: 'seed_s2_busari',
+    status: 'approved' as const,
+    star: false,
+    likes: 7,
+    mentorNote: '',
+    ts: Date.now() - 2500000,
+  },
+  {
+    q: 2,
+    text: 'Tas Rajut Kado harga jual Rp135.000. Modal benang + furing + upah rajut + box pita = Rp65.000. Untung bersih Rp70.000 (Margin 52%).',
+    subText: 'Upah tangan sendiri sudah saya hitung Rp30.000 per tas.',
+    businessName: 'Tas Rajut Kreasi Mbak Dita',
+    participantId: 'seed_s2_dita',
+    status: 'approved' as const,
+    star: true,
+    spotlightSize: 'kecil' as const,
+    likes: 9,
+    mentorNote: 'Bagus sekali Mbak Dita sudah memasukkan upah kerja tangan sendiri ke dalam modal!',
+    ts: Date.now() - 2400000,
+  },
+  // Q3: Target Harian & Paket Bundling
+  {
+    q: 3,
+    text: 'Target 28 botol/hari (Rp4,5jt ÷ Rp6.500 ÷ 25 hari). Bikin "Paket Sehat Keluarga Isi 5 Botol Rp70rb", cukup cari 5–6 pembeli/hari!',
+    subText: 'Lebih mudah closing 6 ibu rumah tangga ambil paket keluarga daripada cari 28 orang beli satuan.',
+    businessName: 'Yoghurt Segar Mbak Nisa',
+    participantId: 'seed_s2_nisa',
+    status: 'approved' as const,
+    star: true,
+    spotlightSize: 'besar' as const,
+    likes: 12,
+    mentorNote: 'Rumus bundling yang cemerlang: beban harian turun dari 28 pembeli jadi cukup 6 transaksi paket!',
+    ts: Date.now() - 2100000,
+  },
+  {
+    q: 3,
+    text: 'Target 2 tas/hari. Bikin "Paket Kado Sahabat" (Tas Rajut + Dompet Koin + Box Kartu Ucapan Rp165rb, hemat Rp15rb).',
+    subText: 'Membantu target bulanan tercapai lebih cepat dengan jumlah kiriman lebih ringkas.',
+    businessName: 'Tas Rajut Kreasi Mbak Dita',
+    participantId: 'seed_s2_dita',
+    status: 'approved' as const,
+    star: false,
+    likes: 7,
+    mentorNote: '',
+    ts: Date.now() - 2000000,
+  },
+  // Q4: Angka Jemput Bola (Traffic & Chat Harian)
+  {
+    q: 4,
+    text: 'Butuh 6 closing paket/hari → minimal harus ada 20 orang chat WA bertanya tiap hari, lewat Status WA jam 8 pagi, grup sekolah anak, & titip 3 warung sehat.',
+    subText: 'Tidak lagi pasrah menunggu notif HP berbunyi sendiri.',
+    businessName: 'Yoghurt Segar Mbak Nisa',
+    participantId: 'seed_s2_nisa',
+    status: 'approved' as const,
+    star: true,
+    spotlightSize: 'kecil' as const,
+    likes: 9,
+    mentorNote: 'Angka aktivitas hariannya jelas: kejar 20 chat masuk/hari demi mengamankan 6 transaksi!',
+    ts: Date.now() - 1700000,
+  },
+  {
+    q: 4,
+    text: 'Butuh 4 sewa paket/minggu → target 15–20 calon penyewa tanya tanggal tiap minggu via Reels IG + kerja sama 5 WO & dekor lokal.',
+    subText: 'Fokus jemput bola ke penyelenggara acara rutin kantor & keluarga.',
+    businessName: 'Berkah Event Rental',
+    participantId: 'seed_s2_berkah',
+    status: 'approved' as const,
+    star: false,
+    likes: 6,
+    mentorNote: '',
+    ts: Date.now() - 1600000,
+  },
+  // Q5: Naskah Copywriting 3 Pilar Penyampai VP
+  {
+    q: 5,
+    text: '[Hook]: Sering bingung cari camilan sore anak yang gak bikin serik tenggorokan? [Bukti]: Yoghurt kami difermentasi 12 jam dari susu murni tanpa pemanis buatan, kemasan segel dingin. [Ajakan]: Hari ini ada Paket Keluarga 5 botol Rp70rb — balas "MAU PAKET" sebelum jam 3 sore!',
+    subText: 'Langsung siap diposting ke Status WA dan caption Instagram pagi ini.',
+    businessName: 'Yoghurt Segar Mbak Nisa',
+    participantId: 'seed_s2_nisa',
+    status: 'approved' as const,
+    star: true,
+    spotlightSize: 'besar' as const,
+    likes: 15,
+    mentorNote: 'Copywriting 3 Pilar yang sangat lengkap! Hook menyentuh hati ibu, bukti terukur 12 jam & tanpa pemanis, ditutup CTA paket bundling.',
+    ts: Date.now() - 1200000,
+  },
+  {
+    q: 5,
+    text: '[Hook]: Takut alat tenda & sound acara datang kotor atau molor pas hari H? [Bukti]: Setiap unit Berkah Rental disterilkan & dicek H-1, garansi tiba 2 jam sebelum acara! [Ajakan]: Paket Komplit 2 Hari lebih hemat 20% — chat WA sekarang untuk kunci tanggalmu.',
+    subText: 'Cocok untuk brosur WhatsApp & penawaran ke panitia acara/WO.',
+    businessName: 'Berkah Event Rental',
+    participantId: 'seed_s2_berkah',
+    status: 'approved' as const,
+    star: false,
+    likes: 10,
+    mentorNote: '',
+    ts: Date.now() - 1100000,
+  },
+  // Q6: Komitmen Aksi 14 Hari
+  {
+    q: 6,
+    text: '1. Jam 08.00 WIB update Status WA video produksi bersih + Paket 5 Botol. 2. Rabu & Sabtu chat 15 pelanggan lama tawarkan isi kulkas. 3. Minggu malam hitung total botol vs target.',
+    subText: 'Siap setor progres omzet minggu depan di grup PartnerUp!',
+    businessName: 'Yoghurt Segar Mbak Nisa',
+    participantId: 'seed_s2_nisa',
+    status: 'approved' as const,
+    star: true,
+    spotlightSize: 'besar' as const,
+    likes: 11,
+    mentorNote: 'Komitmen yang terukur dengan jam dan hari eksekusi yang pasti!',
+    ts: Date.now() - 800000,
+  },
+];
+
+export const SESI_2_SEED_QNA = [
+  {
+    text: 'Kalau pelanggan lama kaget saat harga naik demi menjaga margin sehat 40% dan kualitas kemasan VP, bagaimana cara menjelaskannya tanpa ditinggal?',
+    authorName: 'Dapur Yoghurt Mbak Nisa',
+    isAnonymous: false,
+    topicTag: 'Margin Ideal F&B, Kriya & Jasa',
+    upvotes: 13,
+    status: 'approved' as const,
+    star: true,
+    participantId: 'seed_qna_s2_1',
+    ts: Date.now() - 1800000,
+  },
+  {
+    text: 'Untuk usaha kriya made-by-order yang pengerjaannya makan waktu berhari-hari, bagaimana cara menentukan batas target unit harian yang realistis?',
+    authorName: 'Anonim (UMKM Kriya)',
+    isAnonymous: true,
+    topicTag: 'Menetapkan Target Penjualan',
+    upvotes: 10,
+    status: 'approved' as const,
+    star: false,
+    participantId: 'seed_qna_s2_2',
+    ts: Date.now() - 1400000,
+  },
+  {
+    text: 'Bagaimana cara menyusun kalimat follow-up WA yang sopan supaya calon pembeli yang sudah tanya harga Paket Bundling mau langsung transfer tanpa merasa diteror?',
+    authorName: 'Anonim (Jasa Persewaan)',
+    isAnonymous: true,
+    topicTag: 'Copywriting Penyampai VP',
+    upvotes: 9,
+    status: 'approved' as const,
+    star: false,
+    participantId: 'seed_qna_s2_3',
+    ts: Date.now() - 900000,
+  },
+];
+
+// ============================================================================
+// SIMULASI KHUSUS MATERI DESAIN KEMASAN UMKM
+// ============================================================================
+
+export const PACKAGING_SEED_ANSWERS = [
+  {
+    q: 0,
+    text: 'Standing pouch plastik bening biasa + stiker kertas HVS tempel. Kendalanya stiker sering luntur kena minyak sambal dan produk tampak sama di rak.',
+    subText: 'Keripik & Sambal Rumahan — siap ganti ke stiker vinyl anti minyak.',
+    businessName: 'Dapoer Mak Renyah',
+    participantId: 'seed_pkg_makrenyah',
+    status: 'approved' as const,
+    star: true,
+    spotlightSize: 'besar' as const,
+    likes: 8,
+    mentorNote: 'Audit yang sangat jujur! Mengganti stiker HVS ke vinyl anti minyak langsung menaikkan kesan higienis.',
+    ts: Date.now() - 3200000,
+  },
+  {
+    q: 1,
+    text: 'Pakai warna kuning kunyit menyala & badge tegas "Pedas Gurih Daun Jeruk" supaya langsung kontras di antara deretan kemasan putih/bening di rak.',
+    subText: 'Uji pandang 3 detik dari jarak 1,5 meter.',
+    businessName: 'Dapoer Mak Renyah',
+    participantId: 'seed_pkg_makrenyah',
+    status: 'approved' as const,
+    star: false,
+    likes: 6,
+    mentorNote: '',
+    ts: Date.now() - 2600000,
+  },
+  {
+    q: 2,
+    text: '1. BRAND: Dapoer Mak Renyah (Paling Besar) — 2. KATEGORI: Keripik Usus Krispi — 3. VARIAN: Ekstra Daun Jeruk Tanpa Amis.',
+    subText: 'Ditambah jendela intip di tengah agar tekstur renyah terlihat jelas.',
+    businessName: 'Dapoer Mak Renyah',
+    participantId: 'seed_pkg_makrenyah',
+    status: 'approved' as const,
+    star: true,
+    spotlightSize: 'kecil' as const,
+    likes: 9,
+    mentorNote: 'Hierarki ukuran huruf sudah tepat dan terbaca dalam 3 detik!',
+    ts: Date.now() - 2000000,
+  },
+];
+
+export const PACKAGING_SEED_QNA = [
+  {
+    text: 'Untuk UMKM pemula yang modal cetaknya masih terbatas, apakah wajib langsung cetak kemasan full printing ribuan pcs atau boleh pakai pouch polos + stiker vinyl dulu?',
+    authorName: 'Anonim (UMKM Camilan)',
+    isAnonymous: true,
+    topicTag: 'Biaya & MOQ Cetak',
+    upvotes: 12,
+    status: 'approved' as const,
+    star: true,
+    participantId: 'seed_qna_pkg_1',
+    ts: Date.now() - 1500000,
+  },
+];
+
+export function getSeedDataForCurriculum(
+  materialId?: string,
+  seminarTitle?: string
+): {
+  answers: typeof INITIAL_SEED_ANSWERS;
+  qna: typeof INITIAL_SEED_QNA;
+} {
+  const titleLower = (seminarTitle || '').toLowerCase();
+  if (
+    materialId === 'partnerup_sesi_2_action_plan' ||
+    titleLower.includes('target penjualan') ||
+    titleLower.includes('margin ideal') ||
+    titleLower.includes('sesi 2')
+  ) {
+    return {
+      answers: SESI_2_SEED_ANSWERS,
+      qna: SESI_2_SEED_QNA,
+    };
+  }
+  if (
+    materialId === 'desain_kemasan_pemasaran_umkm' ||
+    materialId === 'desain_kemasan_umkm' ||
+    titleLower.includes('desain kemasan')
+  ) {
+    return {
+      answers: PACKAGING_SEED_ANSWERS,
+      qna: PACKAGING_SEED_QNA,
+    };
+  }
+  return {
+    answers: INITIAL_SEED_ANSWERS,
+    qna: INITIAL_SEED_QNA,
+  };
+}
+

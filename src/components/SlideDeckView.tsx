@@ -254,6 +254,16 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
   const linkedQuestion =
     slide?.linkedQuestionIndex !== undefined ? questions[slide.linkedQuestionIndex] : null;
 
+  const isVpSesi1Curriculum = useMemo(
+    () =>
+      questions.some(
+        (q) =>
+          q.sectionTitle.includes('Rational Value') ||
+          q.sectionTitle.includes('Apa Itu Value Proposition?')
+      ),
+    [questions]
+  );
+
   // Fallback question & poll so the overlay drawer ALWAYS works on any slide (1-17)
   const effectiveQuestionIndex =
     slide?.linkedQuestionIndex !== undefined
@@ -339,7 +349,9 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
       });
     }
 
-    const hasDictionary = slide.linkedQuestionIndex === 2 || slide.linkedQuestionIndex === 3;
+    const hasDictionary =
+      isVpSesi1Curriculum &&
+      (slide.linkedQuestionIndex === 2 || slide.linkedQuestionIndex === 3);
     let dictionaryStep = 0;
     if (hasDictionary) {
       dictionaryStep = ++counter;
@@ -383,7 +395,7 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
       promptStep,
       stepDetails,
     };
-  }, [slide, linkedQuestion]);
+  }, [slide, linkedQuestion, isVpSesi1Curriculum]);
 
   const maxSteps = slideStepAssignments.totalSteps;
   const revealedStep = stepByStepEnabled
@@ -1158,8 +1170,9 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                   </motion.div>
                 )}
 
-                {/* Kamus Konversi Kata Sifat Jadi Angka (Slide Bagian 4 - Readable Proportional Cards) */}
-                {slide.linkedQuestionIndex === 3 &&
+                {/* Kamus Konversi Kata Sifat Jadi Angka (Khusus Materi VP Sesi 1 Bagian 4) */}
+                {isVpSesi1Curriculum &&
+                  slide.linkedQuestionIndex === 3 &&
                   isStepVisible(slideStepAssignments.dictionaryStep) && (
                     <motion.div
                       {...itemRevealProps}
@@ -1193,8 +1206,9 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                     </motion.div>
                   )}
 
-                {/* Daftar 3 Kata Terlarang (Slide Bagian 3 - Readable Cards) */}
-                {slide.linkedQuestionIndex === 2 &&
+                {/* Daftar 3 Kata Terlarang (Khusus Materi VP Sesi 1 Bagian 3) */}
+                {isVpSesi1Curriculum &&
+                  slide.linkedQuestionIndex === 2 &&
                   isStepVisible(slideStepAssignments.dictionaryStep) && (
                     <motion.div
                       {...itemRevealProps}

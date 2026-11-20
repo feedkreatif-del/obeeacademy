@@ -249,6 +249,9 @@ const SESI_2_SLIDES: SlideDefinition[] = [
     title: 'Kalau Tidak Punya Target Penjualan, Buat Apa Belajar Marketing?',
     subtitle: 'Marketing tanpa angka target ibarat naik ojek tanpa menyebutkan alamat tujuan!',
     type: 'comparison',
+    imageUrl: '/assets/images/sesi2_target_arah_umkm_1795154804394.jpg',
+    imageCaption: 'Ilustrasi: Jualan Pasrah Tanpa Arah (Kiri) vs Punya Kompas Target Menuju Toko Ramai (Kanan)',
+    imagePosition: 'top',
     speakerNotes: 'Sampaikan refleksi tajam dari diskusi kemarin: "Kemarin saat ditanya berapa target penjualan per bulan, rata-rata masih pasrah—terjual berapapun ya sudah. Padahal justru TARGET PENJUALAN itulah yang memaksa otak kita menyusun strategi marketing! Tanpa target, bikin konten cuma semangat 2 hari lalu berhenti."',
     comparison: {
       leftTitle: 'Pola Lama: Jualan "Mengalir / Pasrah"',
@@ -280,6 +283,9 @@ const SESI_2_SLIDES: SlideDefinition[] = [
     subtitle: 'Setiap janji kehebatan produk butuh biaya nyata agar pembeli tidak merasa dibohongi.',
     type: 'worksheet',
     linkedQuestionIndex: 0,
+    imageUrl: '/assets/images/sesi2_ongkos_janji_vp_1795154804634.jpg',
+    imageCaption: 'Wujud Nyata Ongkos Jaga Janji VP: Yoghurt Segel & Pouch Keripik (F&B), Box Kado Rapi (Kriya), & Alat Steril Terawat (Persewaan)',
+    imagePosition: 'top',
     speakerNotes: 'Minta peserta mengingat kembali hasil 3 sesi VP kemarin (Latihan 1). Tekankan bahwa ketika kita menjanjikan nilai tambah—misal yoghurt botol segel tanpa pengawet, kerajinan rapi siap kado, atau unit sewa selalu wangi & steril—ada biaya menjaga janji yang wajib dihitung ke modal.',
     cards: [
       { title: 'F&B (Yoghurt / Keripik)', body: 'Janji "segar & renyah" butuh biaya botol segel, ice pack, atau standing pouch kedap udara.', accent: 'orange' },
@@ -320,6 +326,9 @@ const SESI_2_SLIDES: SlideDefinition[] = [
     title: 'Berapa Margin Ideal Saat Value Proposition Diterapkan?',
     subtitle: 'Karena kamu TIDAK ikut perang harga murah, marginmu wajib cukup tebal untuk menjaga kualitas & promosi!',
     type: 'formula',
+    imageUrl: '/assets/images/sesi2_margin_sehat_visual_1795154803890.jpg',
+    imageCaption: 'Perbandingan Visual: Harga Murah Margin Teriris Tipis (Kiri) vs Harga Sehat VP Untung Tebal (Kanan)',
+    imagePosition: 'right',
     speakerNotes: 'Jawab pertanyaan krusial peserta kemarin: "Berapa margin yang ideal kalau VP diterapkan?". Jelaskan patokan sehat per jenis usaha mereka: F&B 30–50%, Kriya 40–70%, Jasa Persewaan 50–70% setelah cadangan perawatan. Ingatkan: margin tipis di bawah 20% sangat berbahaya karena sekali produk rusak atau ada biaya VP, bisnis langsung tekor.',
     cards: [
       { title: 'F&B (Yoghurt, Keripik, Olahan)', body: 'Ideal: 30% – 50% dari harga jual. Wajib sudah memasukkan biaya kemasan kedap udara, stiker, gas/listrik, & risiko susut.', accent: 'orange' },
@@ -336,6 +345,11 @@ const SESI_2_SLIDES: SlideDefinition[] = [
     type: 'worksheet',
     linkedQuestionIndex: 2,
     speakerNotes: 'Bimbing peserta menghitung 1 produk unggulannya di HP. Sorot jawaban yang ternyata masih lupa memasukkan biaya kemasan atau ongkos tenaga kerja sendiri, lalu bantu koreksi langsung di kelas.',
+    cards: [
+      { title: '1. Rumus Margin Sehat', body: '(Harga Jual − Total Modal VP) ÷ Harga Jual × 100%. Minimal 30% untuk F&B, 40%+ untuk Kriya & Sewa.', accent: 'orange' },
+      { title: '2. Jangan Lupa Biaya VP', body: 'Sertakan harga botol segel, pouch zip, box kado, es kirim, upah kerja tangan, atau laundry alat.', accent: 'teal' },
+      { title: '3. Peringatan Margin Tipis', body: 'Jika margin masih di bawah 20%, naikkan harga dengan bukti VP atau buatkan paket bundling hemat ongkir.', accent: 'orange' },
+    ],
     promptLines: [
       'Harga Jual: Rp _______ | Total Modal + Biaya VP: Rp _______ | Untung Bersih: Rp _______',
     ],
@@ -347,6 +361,9 @@ const SESI_2_SLIDES: SlideDefinition[] = [
     title: 'Pecah Target Bulanan Jadi Target Harian + Jurus Paket Bundling',
     subtitle: 'Angka besar terasa menakutkan; angka harian terasa ringan & bisa langsung dikejar hari ini!',
     type: 'formula',
+    imageUrl: '/assets/images/sesi2_bundling_yoghurt_kriya_1795154804662.jpg',
+    imageCaption: 'Jual Satuan (Butuh 28 Orang/Hari) vs Paket Keluarga Yoghurt & Gift Set Kriya (Cukup 5–6 Pembeli/Hari!)',
+    imagePosition: 'top',
     speakerNotes: 'Tunjukkan keajaiban memecah angka dan memakai Paket Bundling. Misal untung bersih Yoghurt Rp6.500/botol dan target laba Rp4.500.000 -> butuh 28 botol/hari! Kalau jual satuan susah cari 28 pembeli, buatlah Paket Keluarga isi 5 botol -> cukup cari 5–6 pembeli saja per hari!',
     cards: [
       { title: 'Rumus Target Harian', body: 'Target Laba ÷ Untung per Unit ÷ 25 Hari Kerja = Jumlah Unit Wajib Terjual Setiap Hari.', accent: 'orange' },
@@ -363,6 +380,11 @@ const SESI_2_SLIDES: SlideDefinition[] = [
     type: 'worksheet',
     linkedQuestionIndex: 3,
     speakerNotes: 'Ajak peserta menghitung target hariannya di tempat. Tanyakan langsung ke 2–3 orang peserta secara lisan: "Ibu jualan apa? Berapa target hariannya? Kalau dibuat paket, jadi butuh berapa pembeli saja per hari?".',
+    cards: [
+      { title: 'Ide Bundling F&B', body: 'Paket Kulkas 5 Botol Yoghurt / Paket Oleh-Oleh 4 Pouch Keripik (sekali kirim, ongkir lebih ringan).', accent: 'orange' },
+      { title: 'Ide Bundling Kriya', body: 'Paket Kado Siap Beri: Produk Utama + Dompet Koin + Box Pita & Kartu Ucapan (harga naik 35%).', accent: 'teal' },
+      { title: 'Ide Bundling Persewaan', body: 'Paket Komplit 2–3 Hari atau Sewa Alat Utama + Ekstra Perlengkapan (nilai per acara melonjak).', accent: 'orange' },
+    ],
     promptLines: ['Target Unit/Hari: _______ pcs | Ide Paket Bundling untuk Mempercepat Target: ______________'],
   },
   {
@@ -373,6 +395,9 @@ const SESI_2_SLIDES: SlideDefinition[] = [
     subtitle: 'Sekarang kamu tahu KENAPA strategi marketing & konten itu wajib ada setiap hari!',
     type: 'concept',
     linkedPollId: 'poll_titik_macet_marketing',
+    imageUrl: '/assets/images/sesi2_corong_jemput_bola_1795154803326.jpg',
+    imageCaption: 'Corong Angka Jemput Bola: 100–150 Lihat Status → 15–20 Chat Tanya → 5–6 Transaksi Paket/Hari',
+    imagePosition: 'right',
     speakerNotes: 'Ini adalah momen pencerahan utama! Jelaskan hukum angka sederhana: tidak semua orang yang melihat statusmu atau chat WA pasti beli. Biasanya dari 10 orang tanya harga, cuma 2–3 yang transfer. Jadi kalau butuh 6 pembeli/hari, kamu WAJIB menciptakan minimal 20 orang chat/tertarik tiap hari! Sekarang buka Polling ke-2 untuk melihat di mana titik macet mereka.',
     cards: [
       { title: '1. Orang Melihat (Traffic)', body: 'Minimal 100–150 pasang mata melihat status WA, IG, etalase, atau brosurmu tiap hari.', accent: 'orange' },
@@ -457,7 +482,7 @@ export const SESI_2_ACTION_PLAN_CURRICULUM: SavedMaterial = {
   category: 'Sesi 2 PartnerUp (Lanjutan VP)',
   isDefault: false,
   createdAt: 1730000000000,
-  updatedAt: 1732000000000,
+  updatedAt: 1732500000000,
   content: {
     seminarTitle: 'Sesi 2 PartnerUp: Target Penjualan, Margin Ideal & Copywriting Penyampai Value Proposition',
     organizerName: 'Program PartnerUp | Obeecreatives',
@@ -472,7 +497,7 @@ export const SESI_2_ACTION_PLAN_CURRICULUM: SavedMaterial = {
       'Cara Jemput Pembeli & Closing WA',
     ],
     brandTheme: DEFAULT_BRAND_THEME,
-    updatedAt: 1732000000000,
+    updatedAt: 1732500000000,
     materialId: 'partnerup_sesi_2_action_plan',
     description: 'Kurikulum Lanjutan PartnerUp setelah pendalaman 3 sesi Value Proposition: Menetapkan target laba & unit harian, menghitung margin sehat F&B/Kriya/Persewaan, merancang paket bundling, & rumus copywriting penyampai VP.',
     category: 'Sesi 2 PartnerUp (Lanjutan VP)',
@@ -1161,8 +1186,9 @@ export function getSavedMaterialsLocal(): SavedMaterial[] {
           const currentSesi2 = updated[sesi2Idx];
           const needsSesi2Refresh =
             !currentSesi2?.updatedAt ||
-            currentSesi2.updatedAt < 1732000000000 ||
-            !currentSesi2?.content?.polls?.some((p: LivePollConfig) => p.id === 'poll_target_penjualan_umkm');
+            currentSesi2.updatedAt < 1732500000000 ||
+            !currentSesi2?.content?.polls?.some((p: LivePollConfig) => p.id === 'poll_target_penjualan_umkm') ||
+            !currentSesi2?.content?.slides?.[1]?.imageUrl;
           if (needsSesi2Refresh && currentSesi2) {
             updated[sesi2Idx] = SESI_2_ACTION_PLAN_CURRICULUM;
             changed = true;
@@ -1278,10 +1304,15 @@ export async function syncMaterialsFromFirestore(db: Firestore): Promise<SavedMa
     });
 
     if (remoteDocs.length > 0) {
-      // Gabungkan data remote dan lokal (remote menang jika updatedAt lebih baru)
+      // Gabungkan data remote dan lokal (versi dengan updatedAt lebih baru menang)
       const mergedMap = new Map<string, SavedMaterial>();
       localList.forEach((m) => mergedMap.set(m.id, m));
-      remoteDocs.forEach((m) => mergedMap.set(m.id, m));
+      remoteDocs.forEach((m) => {
+        const existing = mergedMap.get(m.id);
+        if (!existing || (m.updatedAt || 0) >= (existing.updatedAt || 0)) {
+          mergedMap.set(m.id, m);
+        }
+      });
       const merged = Array.from(mergedMap.values());
       saveSavedMaterialsLocal(merged);
       return merged;
