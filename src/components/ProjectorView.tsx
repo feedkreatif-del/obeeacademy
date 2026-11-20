@@ -4,6 +4,7 @@ import { AnswerDoc, QnaDoc, PollVoteDoc, SessionStateDoc, InteractiveMode } from
 import { QRCodeSVG } from 'qrcode.react';
 import { PWAInstallModalTrigger } from './PWAInstallButton';
 import { downloadQrCodeAsPng, downloadQrCodeAsSvg, buildQrWhatsAppShareUrl } from '../utils/qrExport';
+import { FlipchartCanvasModal } from './FlipchartCanvasModal';
 import {
   ChevronLeft,
   ChevronRight,
@@ -27,6 +28,7 @@ import {
   Lock,
   Unlock,
   CheckCircle2,
+  PenTool,
 } from 'lucide-react';
 
 interface ProjectorViewProps {
@@ -73,6 +75,7 @@ export const ProjectorView: React.FC<ProjectorViewProps> = ({
   onToggleLockAnswers,
 }) => {
   const [showQrModal, setShowQrModal] = useState(false);
+  const [isFlipchartOpen, setIsFlipchartOpen] = useState(false);
   const [isFullscreenStage, setIsFullscreenStage] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [downloadingQr, setDownloadingQr] = useState(false);
@@ -202,6 +205,15 @@ export const ProjectorView: React.FC<ProjectorViewProps> = ({
                 </button>
               </>
             )}
+
+            <button
+              onClick={() => setIsFlipchartOpen(true)}
+              className="px-3.5 py-2 rounded-xl bg-[#F28C28] hover:bg-[#d97719] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 shadow-xs"
+              title="Buka Papan Tulis / Flipchart lokal untuk simulasi & hitungan spontan"
+            >
+              <PenTool className="w-4 h-4" />
+              <span>Papan Tulis</span>
+            </button>
 
             <button
               onClick={() => setShowQrModal(true)}
@@ -1181,6 +1193,13 @@ export const ProjectorView: React.FC<ProjectorViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* PAPAN TULIS / FLIPCHART CANVAS MODAL (LOKAL PRESENTASI) */}
+      <FlipchartCanvasModal
+        isOpen={isFlipchartOpen}
+        onClose={() => setIsFlipchartOpen(false)}
+        seminarTitle={seminarTitle}
+      />
     </div>
   );
 };

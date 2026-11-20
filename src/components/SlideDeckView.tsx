@@ -20,6 +20,7 @@ import {
 import { printSlideDeckHandout } from '../utils/handoutExport';
 import { exportCurriculumToPowerPoint } from '../utils/pptxExport';
 import { exportFacilitatorDeepDivePdf } from '../utils/facilitatorPdfExport';
+import { FlipchartCanvasModal, loadFlipchartStateLocal } from './FlipchartCanvasModal';
 import { downloadQrCodeAsPng, downloadQrCodeAsSvg, buildQrWhatsAppShareUrl } from '../utils/qrExport';
 import { QRCodeSVG } from 'qrcode.react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -55,6 +56,7 @@ import {
   Check,
   Lock,
   Unlock,
+  PenTool,
 } from 'lucide-react';
 
 interface SlideStepInfo {
@@ -153,6 +155,10 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [presenterDualMode, setPresenterDualMode] = useState(false);
   const [showRemoteQrModal, setShowRemoteQrModal] = useState(false);
+  const [isFlipchartOpen, setIsFlipchartOpen] = useState(false);
+  const [isExtendFlipchartOpen, setIsExtendFlipchartOpen] = useState<boolean>(() =>
+    isAudienceExtendWindow ? loadFlipchartStateLocal().isOpen : false
+  );
   const [slideDirection, setSlideDirection] = useState<1 | -1>(1);
   const prevSlideRef = useRef<number>(activeSlideIndex);
 
@@ -180,6 +186,41 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
     }, 1000);
     return () => clearInterval(interval);
   }, [timerRunning]);
+
+  // Sync Flipchart open state locally to 2nd-screen Extend Projector window (?view=extend)
+  useEffect(() => {
+    if (!isAudienceExtendWindow) return;
+    let ch: BroadcastChannel | null = null;
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        ch = new BroadcastChannel('partnerup_flipchart_local_v1');
+        ch.onmessage = (e) => {
+          if (e.data && typeof e.data.isOpen === 'boolean') {
+            setIsExtendFlipchartOpen(e.data.isOpen);
+          }
+        };
+      }
+    } catch {
+      // ignore
+    }
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'partnerup_flipchart_state_v1' && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (typeof parsed.isOpen === 'boolean') {
+            setIsExtendFlipchartOpen(parsed.isOpen);
+          }
+        } catch {
+          // ignore
+        }
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      if (ch) ch.close();
+    };
+  }, [isAudienceExtendWindow]);
 
   const formatTimer = (totalSec: number) => {
     const mins = Math.floor(totalSec / 60);
@@ -472,6 +513,14 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
 
+      if (isFlipchartOpen) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          setIsFlipchartOpen(false);
+        }
+        return;
+      }
+
       if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
         e.preventDefault();
         handleStepNext();
@@ -500,6 +549,7 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
     handleStepPrev,
     handleRevealAllCurrentSlide,
     isFullscreen,
+    isFlipchartOpen,
     activeSlideDrawer,
     onUpdateSlideState,
   ]);
@@ -1308,6 +1358,15 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                   )}
 
                   <button
+                    onClick={() => setIsFlipchartOpen(true)}
+                    className="px-2.5 py-1 rounded-lg bg-[#2A9D8F] text-white text-xs font-bold flex items-center gap-1 cursor-pointer hover:bg-[#218276]"
+                    title="Buka Papan Tulis / Flipchart untuk menulis contoh hitungan spontan"
+                  >
+                    <PenTool className="w-3.5 h-3.5" />
+                    <span>Papan Tulis</span>
+                  </button>
+
+                  <button
                     onClick={() => handleToggleDrawer('qr')}
                     className="px-2.5 py-1 rounded-lg bg-[#1F3A5F] text-white text-xs font-bold flex items-center gap-1 cursor-pointer hover:bg-[#162944]"
                   >
@@ -1796,7 +1855,17 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
 
   // If this window is the dedicated 2nd-screen Audience Extend Display (?view=extend)
   if (isAudienceExtendWindow) {
-    return renderSlideStageCanvas(false);
+    return (
+      <>
+        {renderSlideStageCanvas(false)}
+        <FlipchartCanvasModal
+          isOpen={isExtendFlipchartOpen}
+          onClose={() => setIsExtendFlipchartOpen(false)}
+          readOnlyMirror
+          seminarTitle={seminarTitle}
+        />
+      </>
+    );
   }
 
   return (
@@ -1893,6 +1962,17 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
               <ExternalLink className="w-3.5 h-3.5 text-[#F28C28]" />
               <span>Layar ke-2 (Proyektor)</span>
             </a>
+
+            {/* Open Papan Tulis / Flipchart Canvas */}
+            <button
+              type="button"
+              onClick={() => setIsFlipchartOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold bg-[#2A9D8F] text-white hover:bg-[#218276] transition-colors cursor-pointer whitespace-nowrap shadow-xs"
+              title="Buka Papan Tulis / Flipchart lokal untuk menulis simulasi hitungan di Laptop atau Tab (tidak tampil di HP peserta)"
+            >
+              <PenTool className="w-3.5 h-3.5" />
+              <span>Papan Tulis</span>
+            </button>
 
             {/* Open QR Code for Presenter's Smartphone Remote Clicker */}
             <button
@@ -2535,6 +2615,13 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* PAPAN TULIS / FLIPCHART CANVAS MODAL (LOKAL PRESENTASI) */}
+      <FlipchartCanvasModal
+        isOpen={isFlipchartOpen}
+        onClose={() => setIsFlipchartOpen(false)}
+        seminarTitle={seminarTitle}
+      />
     </div>
   );
 };
