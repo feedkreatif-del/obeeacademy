@@ -860,7 +860,7 @@ export default function App() {
         </header>
       ) : (
         /* Strict 3-Zone Top Navigation Bar for Presenter / Developer / Moderator */
-        <header className="w-full max-w-full flex items-center justify-between gap-2.5 sm:gap-6 px-3 sm:px-8 py-3.5 sm:py-4 bg-[#1F3A5F] text-white border-b border-white/10 sticky top-0 z-30">
+        <header className="w-full max-w-full flex items-center justify-between gap-2.5 sm:gap-4 px-3 sm:px-6 py-3 bg-[#1F3A5F] text-white border-b border-white/10 sticky top-0 z-30">
           {/* Zone 1: Brand Wordmark */}
           <a
             href="#top"
@@ -868,13 +868,13 @@ export default function App() {
               e.preventDefault();
               setViewRole('projector');
             }}
-            className="font-display text-base sm:text-xl font-extrabold tracking-tight text-white whitespace-nowrap shrink-0"
+            className="font-display text-base sm:text-lg font-extrabold tracking-tight text-white whitespace-nowrap shrink-0"
           >
             PartnerUp Live
           </a>
 
-          {/* Zone 2: Concise Single-Line Navigation Links */}
-          <nav className="flex-1 min-w-0 flex items-center md:justify-center gap-3.5 sm:gap-6 text-xs sm:text-sm font-medium text-white/80 overflow-x-auto no-scrollbar py-0.5">
+          {/* Zone 2: Concise Single-Line Navigation Links (Anchored left so Layar Proyektor & Materi Slide never clip) */}
+          <nav className="flex-1 min-w-0 flex items-center justify-start gap-3 sm:gap-4 lg:gap-5 text-xs sm:text-[13px] font-medium text-white/85 overflow-x-auto no-scrollbar py-1">
             <button
               onClick={() => setViewRole('projector')}
               className={`hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer pb-0.5 ${
@@ -936,41 +936,17 @@ export default function App() {
             >
               Editor Materi
             </button>
-
-            <button
-              onClick={() => setIsBankModalOpen(true)}
-              className="hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer pb-0.5 flex items-center gap-1.5 text-white/80"
-              title="Bank Materi & Kurikulum Seminar"
-            >
-              <Layers className="w-3.5 h-3.5 text-[#F28C28]" />
-              <span>Bank Materi</span>
-              <span className="text-[10px] font-extrabold bg-[#F28C28] text-white px-1.5 py-0.2 rounded-full">
-                {materials.length}
-              </span>
-            </button>
-
-            <button
-              onClick={() => setIsGuideModalOpen(true)}
-              className={`hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer pb-0.5 flex items-center gap-1.5 ${
-                isGuideModalOpen || viewRole === 'guide'
-                  ? 'text-[#F28C28] font-bold border-b-2 border-[#F28C28]'
-                  : 'text-white/80'
-              }`}
-            >
-              <BookOpen className="w-3.5 h-3.5 text-[#F28C28]" />
-              <span>Buku Panduan</span>
-            </button>
           </nav>
 
-          {/* Zone 3: 2 Primary Action Buttons + Presenter Lock */}
-          <div className="flex items-center gap-2 shrink-0">
+          {/* Zone 3: Primary Action Buttons + Presenter Lock */}
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <button
               onClick={() => setIsBankModalOpen(true)}
-              className="px-3 py-2 text-xs font-bold text-white bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer shadow-xs"
+              className="px-2.5 py-1.5 text-xs font-bold text-white bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer shadow-xs"
               title="Kelola Bank Materi, buat modul baru, atau beralih sesi"
             >
               <Layers className="w-3.5 h-3.5 text-[#F28C28]" />
-              <span className="hidden sm:inline">Bank Materi</span>
+              <span className="hidden md:inline">Bank Materi</span>
               <span className="text-[10px] font-extrabold bg-[#2A9D8F] text-white px-1.5 py-0.5 rounded">
                 {materials.length}
               </span>
@@ -978,26 +954,26 @@ export default function App() {
 
             <button
               onClick={() => setIsGuideModalOpen(true)}
-              className="px-3 py-2 text-xs font-bold text-white bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer shadow-xs"
+              className="px-2.5 py-1.5 text-xs font-bold text-white bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer shadow-xs"
               title="Buku Panduan Teknis, Glosarium & Duplikasi (PDF)"
             >
               <BookOpen className="w-3.5 h-3.5 text-[#F28C28]" />
-              <span className="hidden sm:inline">Buku Panduan</span>
+              <span className="hidden lg:inline">Buku Panduan</span>
               <span className="text-[10px] font-extrabold bg-[#F28C28] text-white px-1.5 py-0.5 rounded">PDF</span>
             </button>
 
             <button
               onClick={handleDownloadCsv}
-              className="px-3.5 py-2 text-xs font-bold text-white bg-[#F28C28] rounded-lg hover:bg-[#d97719] transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer"
+              className="px-2.5 sm:px-3 py-1.5 text-xs font-bold text-white bg-[#F28C28] rounded-lg hover:bg-[#d97719] transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer"
             >
               <Download className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Unduh Rekap CSV</span>
-              <span className="sm:hidden">CSV</span>
+              <span className="hidden xl:inline">Unduh Rekap CSV</span>
+              <span className="xl:hidden">CSV</span>
             </button>
 
             <button
               onClick={handleLockPresenter}
-              className="p-2 text-white/70 hover:text-white bg-white/5 hover:bg-white/15 border border-white/15 rounded-lg transition-colors cursor-pointer"
+              className="p-1.5 text-white/70 hover:text-white bg-white/5 hover:bg-white/15 border border-white/15 rounded-lg transition-colors cursor-pointer"
               title="Kunci Akses Presenter & Kembali ke Tampilan Peserta"
             >
               <Lock className="w-3.5 h-3.5" />
