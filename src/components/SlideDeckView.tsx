@@ -16,6 +16,7 @@ import {
   SlideTransitionStyle,
   SlideDrawerMode,
   BrandThemeConfig,
+  FlipchartBoardDoc,
 } from '../types';
 import { printSlideDeckHandout } from '../utils/handoutExport';
 import { exportCurriculumToPowerPoint } from '../utils/pptxExport';
@@ -113,6 +114,14 @@ interface SlideDeckViewProps {
   allAnswers: AnswerDoc[];
   approvedQna: QnaDoc[];
   activeMode: InteractiveMode;
+  flipchartRemote?: FlipchartBoardDoc | null;
+  boardDeviceId?: string;
+  onPublishFlipchart?: (payload: {
+    isOpen: boolean;
+    syncToProjector: boolean;
+    activePageIndex: number;
+    pagesJson: string;
+  }) => void;
 }
 
 export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
@@ -151,14 +160,24 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
   allAnswers,
   approvedQna,
   activeMode,
+  flipchartRemote = null,
+  boardDeviceId = '',
+  onPublishFlipchart,
 }) => {
   const stageRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [presenterDualMode, setPresenterDualMode] = useState(false);
   const [showRemoteQrModal, setShowRemoteQrModal] = useState(false);
   const [isFlipchartOpen, setIsFlipchartOpen] = useState(false);
+  const [dismissedRemoteTs, setDismissedRemoteTs] = useState<number>(0);
   const [isExtendFlipchartOpen, setIsExtendFlipchartOpen] = useState<boolean>(() =>
     isAudienceExtendWindow ? loadFlipchartStateLocal().isOpen : false
+  );
+  const isRemoteMirrorActive = Boolean(
+    flipchartRemote?.isOpen &&
+      flipchartRemote?.syncToProjector &&
+      flipchartRemote?.sourceDeviceId !== boardDeviceId &&
+      flipchartRemote.updatedAt > dismissedRemoteTs
   );
   const [slideDirection, setSlideDirection] = useState<1 | -1>(1);
   const prevSlideRef = useRef<number>(activeSlideIndex);
@@ -1938,10 +1957,18 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
       <>
         {renderSlideStageCanvas(false)}
         <FlipchartCanvasModal
-          isOpen={isExtendFlipchartOpen}
-          onClose={() => setIsExtendFlipchartOpen(false)}
+          isOpen={isExtendFlipchartOpen || isRemoteMirrorActive}
+          onClose={() => {
+            if (isExtendFlipchartOpen) {
+              setIsExtendFlipchartOpen(false);
+            } else if (flipchartRemote) {
+              setDismissedRemoteTs(flipchartRemote.updatedAt);
+            }
+          }}
           readOnlyMirror
           seminarTitle={seminarTitle}
+          flipchartRemote={flipchartRemote}
+          boardDeviceId={boardDeviceId}
         />
       </>
     );
@@ -2695,11 +2722,21 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
         </div>
       )}
 
-      {/* PAPAN TULIS / FLIPCHART CANVAS MODAL (LOKAL PRESENTASI) */}
+      {/* PAPAN TULIS / FLIPCHART CANVAS MODAL (LOKAL PRESENTASI & MIRROR REMOTE TABLET) */}
       <FlipchartCanvasModal
-        isOpen={isFlipchartOpen}
-        onClose={() => setIsFlipchartOpen(false)}
+        isOpen={isFlipchartOpen || isRemoteMirrorActive}
+        readOnlyMirror={!isFlipchartOpen && isRemoteMirrorActive}
+        onClose={() => {
+          if (isFlipchartOpen) {
+            setIsFlipchartOpen(false);
+          } else if (flipchartRemote) {
+            setDismissedRemoteTs(flipchartRemote.updatedAt);
+          }
+        }}
         seminarTitle={seminarTitle}
+        flipchartRemote={flipchartRemote}
+        boardDeviceId={boardDeviceId}
+        onPublishFlipchart={onPublishFlipchart}
       />
     </div>
   );

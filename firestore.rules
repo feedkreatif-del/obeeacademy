@@ -216,6 +216,31 @@ service cloud.firestore {
       data.ts is int;
     }
 
+    function isValidFlipchartBoard(data) {
+      return data.keys().hasAll([
+        'isOpen',
+        'syncToProjector',
+        'activePageIndex',
+        'pagesJson',
+        'sourceDeviceId',
+        'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'isOpen',
+        'syncToProjector',
+        'activePageIndex',
+        'pagesJson',
+        'sourceDeviceId',
+        'updatedAt'
+      ]) &&
+      data.isOpen is bool &&
+      data.syncToProjector is bool &&
+      data.activePageIndex is int && data.activePageIndex >= 0 && data.activePageIndex <= 25 &&
+      data.pagesJson is string && data.pagesJson.size() >= 2 && data.pagesJson.size() <= 450000 &&
+      data.sourceDeviceId is string && data.sourceDeviceId.size() >= 1 && data.sourceDeviceId.size() <= 64 && data.sourceDeviceId.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.updatedAt is int;
+    }
+
     // Connection test path
     match /test/{docId} {
       allow get: if isValidId(docId);
@@ -316,6 +341,25 @@ service cloud.firestore {
          incoming().diff(existing()).affectedKeys().hasOnly(['optionId', 'customWord', 'businessName', 'ts']))
       );
       allow delete: if isValidId(voteId);
+    }
+
+    // Live Flipchart / Whiteboard sync between presenter remote tablet & projector stage
+    match /flipchart/{boardId} {
+      allow get: if isValidId(boardId);
+      allow list: if resource.data.updatedAt is int || true;
+      allow create: if isValidId(boardId) && isValidFlipchartBoard(incoming());
+      allow update: if isValidId(boardId) && isValidFlipchartBoard(incoming()) && (
+        isAdmin() ||
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'isOpen',
+          'syncToProjector',
+          'activePageIndex',
+          'pagesJson',
+          'sourceDeviceId',
+          'updatedAt'
+        ])
+      );
+      allow delete: if isValidId(boardId);
     }
   }
 }

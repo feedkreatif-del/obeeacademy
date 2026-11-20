@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   doc,
   collection,
@@ -39,6 +39,7 @@ import {
   InteractiveMode,
   ViewRole,
   SavedMaterial,
+  FlipchartBoardDoc,
 } from './types';
 import { ProjectorView } from './components/ProjectorView';
 import { ParticipantView } from './components/ParticipantView';
@@ -245,6 +246,20 @@ export default function App() {
   const [answers, setAnswers] = useState<AnswerDoc[]>([]);
   const [qnaList, setQnaList] = useState<QnaDoc[]>([]);
   const [pollVotes, setPollVotes] = useState<PollVoteDoc[]>([]);
+  const [flipchartRemote, setFlipchartRemote] = useState<FlipchartBoardDoc | null>(null);
+  const [boardDeviceId] = useState<string>(() => {
+    const fallback = `board_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    try {
+      const existing = window.sessionStorage.getItem('partnerup_board_device_id_v1');
+      if (existing && /^[a-zA-Z0-9_-]+$/.test(existing)) {
+        return existing;
+      }
+      window.sessionStorage.setItem('partnerup_board_device_id_v1', fallback);
+      return fallback;
+    } catch {
+      return fallback;
+    }
+  });
   const [hasSeededInitial, setHasSeededInitial] = useState<boolean>(false);
   const [hasRemoteState, setHasRemoteState] = useState<boolean>(false);
   const [hasRemoteContent, setHasRemoteContent] = useState<boolean>(false);
@@ -546,6 +561,62 @@ export default function App() {
       unsubVotes();
     };
   }, []);
+
+  // Subscribe to shared Flipchart board ONLY on host/presenter/remote/extend screens (NEVER participant phones)
+  useEffect(() => {
+    if (viewRole === 'participant' || viewRole === 'preview' || viewRole === 'guide') {
+      setFlipchartRemote(null);
+      return;
+    }
+    const boardRef = doc(db, 'flipchart', 'active');
+    const unsubBoard = onSnapshot(
+      boardRef,
+      (snap) => {
+        if (snap.exists()) {
+          const data = snap.data() as FlipchartBoardDoc;
+          setFlipchartRemote({
+            isOpen: Boolean(data.isOpen),
+            syncToProjector:
+              typeof data.syncToProjector === 'boolean' ? data.syncToProjector : true,
+            activePageIndex: typeof data.activePageIndex === 'number' ? data.activePageIndex : 0,
+            pagesJson: typeof data.pagesJson === 'string' ? data.pagesJson : '[]',
+            sourceDeviceId: typeof data.sourceDeviceId === 'string' ? data.sourceDeviceId : '',
+            updatedAt: typeof data.updatedAt === 'number' ? data.updatedAt : Date.now(),
+          });
+        } else {
+          setFlipchartRemote(null);
+        }
+      },
+      (err) => {
+        console.warn('Flipchart board listener warning:', err);
+      }
+    );
+    return () => unsubBoard();
+  }, [viewRole]);
+
+  const handlePublishFlipchart = useCallback(
+    async (payload: {
+      isOpen: boolean;
+      syncToProjector: boolean;
+      activePageIndex: number;
+      pagesJson: string;
+    }) => {
+      const nextDoc: FlipchartBoardDoc = {
+        isOpen: payload.isOpen,
+        syncToProjector: payload.syncToProjector,
+        activePageIndex: Math.max(0, Math.min(25, payload.activePageIndex)),
+        pagesJson: payload.pagesJson.slice(0, 450000),
+        sourceDeviceId: boardDeviceId,
+        updatedAt: Date.now(),
+      };
+      try {
+        await setDoc(doc(db, 'flipchart', 'active'), nextDoc);
+      } catch (error) {
+        handleFirestoreError(error, OperationType.WRITE, 'flipchart/active');
+      }
+    },
+    [boardDeviceId]
+  );
 
   // Auto-seed & auto-heal simulation answers ONLY on host/presenter roles after remote snapshots resolve.
   // Participant/extend/preview phones NEVER overwrite custom_content/active or state/session.
@@ -1091,6 +1162,9 @@ export default function App() {
         allAnswers={answers}
         approvedQna={approvedQna}
         activeMode={sessionState.activeMode}
+        flipchartRemote={flipchartRemote}
+        boardDeviceId={boardDeviceId}
+        onPublishFlipchart={handlePublishFlipchart}
       />
     );
   }
@@ -1298,6 +1372,9 @@ export default function App() {
                 ...(notice ? { lockedNotice: notice } : {}),
               })
             }
+            flipchartRemote={flipchartRemote}
+            boardDeviceId={boardDeviceId}
+            onPublishFlipchart={handlePublishFlipchart}
           />
         )}
 
@@ -1354,6 +1431,9 @@ export default function App() {
             allAnswers={answers}
             approvedQna={approvedQna}
             activeMode={sessionState.activeMode}
+            flipchartRemote={flipchartRemote}
+            boardDeviceId={boardDeviceId}
+            onPublishFlipchart={handlePublishFlipchart}
           />
         )}
 
@@ -1500,6 +1580,9 @@ export default function App() {
             onApproveAnswer={handleApproveAnswer}
             onToggleStarQna={handleToggleStarQna}
             onOpenGuide={() => setIsGuideModalOpen(true)}
+            flipchartRemote={flipchartRemote}
+            boardDeviceId={boardDeviceId}
+            onPublishFlipchart={handlePublishFlipchart}
           />
         )}
       </main>

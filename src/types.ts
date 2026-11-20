@@ -99,3 +99,12 @@ export interface PollVoteDoc {
   participantId: string;
   ts: number;
 }
+
+export interface FlipchartBoardDoc {
+  isOpen: boolean;
+  syncToProjector: boolean;
+  activePageIndex: number;
+  pagesJson: string;
+  sourceDeviceId: string;
+  updatedAt: number;
+}

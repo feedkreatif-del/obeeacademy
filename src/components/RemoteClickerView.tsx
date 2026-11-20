@@ -13,7 +13,9 @@ import {
   InteractiveMode,
   SlideTransitionStyle,
   SlideDrawerMode,
+  FlipchartBoardDoc,
 } from '../types';
+import { FlipchartCanvasModal } from './FlipchartCanvasModal';
 import {
   ChevronLeft,
   ChevronRight,
@@ -35,6 +37,7 @@ import {
   Presentation,
   ThumbsUp,
   Share2,
+  PenTool,
 } from 'lucide-react';
 
 interface RemoteStepDetail {
@@ -83,6 +86,14 @@ interface RemoteClickerViewProps {
   onApproveAnswer: (ans: AnswerDoc) => Promise<void>;
   onToggleStarQna: (qna: QnaDoc) => Promise<void>;
   onOpenGuide?: () => void;
+  flipchartRemote?: FlipchartBoardDoc | null;
+  boardDeviceId?: string;
+  onPublishFlipchart?: (payload: {
+    isOpen: boolean;
+    syncToProjector: boolean;
+    activePageIndex: number;
+    pagesJson: string;
+  }) => void;
 }
 
 const DEFAULT_PIN = '2026';
@@ -112,9 +123,13 @@ export const RemoteClickerView: React.FC<RemoteClickerViewProps> = ({
   onApproveAnswer,
   onToggleStarQna,
   onOpenGuide,
+  flipchartRemote = null,
+  boardDeviceId = '',
+  onPublishFlipchart,
 }) => {
   // Control Target Mode: 'slides' (17 Slides + PPT Points) vs 'interactive' (Direct 7 Questions / Polls / Q&A like Projector < >)
   const [remoteControlTab, setRemoteControlTab] = useState<'slides' | 'interactive'>('slides');
+  const [isFlipchartOpen, setIsFlipchartOpen] = useState<boolean>(false);
 
   // PIN Security State
   const [savedPin, setSavedPin] = useState<string>(() => {
@@ -569,7 +584,7 @@ export const RemoteClickerView: React.FC<RemoteClickerViewProps> = ({
   }
 
   return (
-    <div className="max-w-lg mx-auto px-3.5 sm:px-5 py-4 pb-24 space-y-4 select-none">
+    <div className="max-w-2xl mx-auto px-3.5 sm:px-5 py-4 pb-24 space-y-4 select-none">
       {/* 1. Top Status & Security Strip */}
       <div className="bg-[#1F3A5F] text-white rounded-2xl p-3.5 flex items-center justify-between gap-2 shadow-sm">
         <div className="flex items-center gap-2.5 min-w-0">
@@ -589,6 +604,18 @@ export const RemoteClickerView: React.FC<RemoteClickerViewProps> = ({
 
         <div className="flex items-center gap-1.5 shrink-0">
           <button
+            type="button"
+            onClick={() => {
+              triggerHaptic(30);
+              setIsFlipchartOpen(true);
+            }}
+            className="px-2.5 sm:px-3 py-2 rounded-xl bg-[#F28C28] hover:bg-[#d97719] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+            title="Buka Papan Tulis / Flipchart di Tablet (bisa tampil langsung di Layar Proyektor Laptop)"
+          >
+            <PenTool className="w-3.5 h-3.5" />
+            <span>Papan Tulis</span>
+          </button>
+          <button
             onClick={() => setShowChangePin(!showChangePin)}
             className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold cursor-pointer"
             title="Ubah PIN Pengaman"
@@ -601,7 +628,7 @@ export const RemoteClickerView: React.FC<RemoteClickerViewProps> = ({
             title="Kunci Remote HP"
           >
             <Unlock className="w-3.5 h-3.5 text-[#F28C28]" />
-            <span>Kunci</span>
+            <span className="hidden sm:inline">Kunci</span>
           </button>
         </div>
       </div>
@@ -1082,6 +1109,19 @@ export const RemoteClickerView: React.FC<RemoteClickerViewProps> = ({
           </button>
         </div>
 
+        {/* Tombol Papan Tulis / Flipchart khusus Tablet & Remote */}
+        <button
+          type="button"
+          onClick={() => {
+            triggerHaptic(30);
+            setIsFlipchartOpen(true);
+          }}
+          className="w-full py-3.5 px-4 rounded-xl bg-[#2A9D8F] hover:bg-[#218276] text-white text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-sm cursor-pointer transition-colors"
+        >
+          <PenTool className="w-4 h-4 shrink-0" />
+          <span>Buka Papan Tulis / Flipchart (Tulis di Tab → Tampil di Proyektor)</span>
+        </button>
+
         {/* Saklar Bagikan Slide Materi ke HP Peserta */}
         <div className="pt-2 border-t border-[#1F3A5F]/10 flex items-center justify-between gap-3">
           <div className="min-w-0">
@@ -1457,6 +1497,16 @@ export const RemoteClickerView: React.FC<RemoteClickerViewProps> = ({
           </button>
         </div>
       )}
+
+      {/* PAPAN TULIS / FLIPCHART CANVAS MODAL (BISA DI-CORET DI TABLET & TAMPIL KE PROYEKTOR) */}
+      <FlipchartCanvasModal
+        isOpen={isFlipchartOpen}
+        onClose={() => setIsFlipchartOpen(false)}
+        seminarTitle={seminarTitle}
+        flipchartRemote={flipchartRemote}
+        boardDeviceId={boardDeviceId}
+        onPublishFlipchart={onPublishFlipchart}
+      />
     </div>
   );
 };

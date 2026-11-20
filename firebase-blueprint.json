@@ -339,6 +339,49 @@
         "participantId",
         "ts"
       ]
+    },
+    "FlipchartBoard": {
+      "title": "FlipchartBoard",
+      "description": "Live whiteboard/flipchart state synchronized between presenter remote tablet and projector/slide stage",
+      "type": "object",
+      "properties": {
+        "isOpen": {
+          "type": "boolean",
+          "description": "Whether the flipchart board is currently open"
+        },
+        "syncToProjector": {
+          "type": "boolean",
+          "description": "Whether the active board should display on the main projector/slide screens"
+        },
+        "activePageIndex": {
+          "type": "integer",
+          "description": "Zero-based index of the currently active flipchart sheet"
+        },
+        "pagesJson": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 450000,
+          "description": "JSON-serialized array of FlipchartPage strokes and text annotations"
+        },
+        "sourceDeviceId": {
+          "type": "string",
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Device ID that last published an update"
+        },
+        "updatedAt": {
+          "type": "integer",
+          "description": "Last update timestamp in ms"
+        }
+      },
+      "required": [
+        "isOpen",
+        "syncToProjector",
+        "activePageIndex",
+        "pagesJson",
+        "sourceDeviceId",
+        "updatedAt"
+      ]
     }
   },
   "firestore": {
@@ -361,6 +404,10 @@
     "/poll_votes/{voteId}": {
       "schema": { "$ref": "#/entities/PollVote" },
       "description": "Live poll and word cloud votes"
+    },
+    "/flipchart/{boardId}": {
+      "schema": { "$ref": "#/entities/FlipchartBoard" },
+      "description": "Live flipchart whiteboard sync between presenter remote tablet and projector/slide stage"
     }
   }
 }

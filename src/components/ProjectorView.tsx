@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { WorksheetQuestion, LivePollConfig } from '../data/seminarData';
-import { AnswerDoc, QnaDoc, PollVoteDoc, SessionStateDoc, InteractiveMode } from '../types';
+import { AnswerDoc, QnaDoc, PollVoteDoc, SessionStateDoc, InteractiveMode, FlipchartBoardDoc } from '../types';
 import { QRCodeSVG } from 'qrcode.react';
 import { PWAInstallModalTrigger } from './PWAInstallButton';
 import { downloadQrCodeAsPng, downloadQrCodeAsSvg, buildQrWhatsAppShareUrl } from '../utils/qrExport';
@@ -51,6 +51,14 @@ interface ProjectorViewProps {
   onDownloadCsv: () => void;
   onSwitchToParticipantPreview: () => void;
   onToggleLockAnswers?: (locked: boolean, notice?: string) => void;
+  flipchartRemote?: FlipchartBoardDoc | null;
+  boardDeviceId?: string;
+  onPublishFlipchart?: (payload: {
+    isOpen: boolean;
+    syncToProjector: boolean;
+    activePageIndex: number;
+    pagesJson: string;
+  }) => void;
 }
 
 export const ProjectorView: React.FC<ProjectorViewProps> = ({
@@ -73,12 +81,23 @@ export const ProjectorView: React.FC<ProjectorViewProps> = ({
   onDownloadCsv,
   onSwitchToParticipantPreview,
   onToggleLockAnswers,
+  flipchartRemote = null,
+  boardDeviceId = '',
+  onPublishFlipchart,
 }) => {
   const [showQrModal, setShowQrModal] = useState(false);
   const [isFlipchartOpen, setIsFlipchartOpen] = useState(false);
+  const [dismissedRemoteTs, setDismissedRemoteTs] = useState<number>(0);
   const [isFullscreenStage, setIsFullscreenStage] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [downloadingQr, setDownloadingQr] = useState(false);
+
+  const isRemoteMirrorActive = Boolean(
+    flipchartRemote?.isOpen &&
+      flipchartRemote?.syncToProjector &&
+      flipchartRemote?.sourceDeviceId !== boardDeviceId &&
+      flipchartRemote.updatedAt > dismissedRemoteTs
+  );
 
   const isAnswersLocked = Boolean(sessionState.answersLocked);
   const totalQuestions = questions.length;
@@ -1207,11 +1226,21 @@ export const ProjectorView: React.FC<ProjectorViewProps> = ({
         </div>
       )}
 
-      {/* PAPAN TULIS / FLIPCHART CANVAS MODAL (LOKAL PRESENTASI) */}
+      {/* PAPAN TULIS / FLIPCHART CANVAS MODAL (LOKAL PRESENTASI & MIRROR REMOTE TABLET) */}
       <FlipchartCanvasModal
-        isOpen={isFlipchartOpen}
-        onClose={() => setIsFlipchartOpen(false)}
+        isOpen={isFlipchartOpen || isRemoteMirrorActive}
+        readOnlyMirror={!isFlipchartOpen && isRemoteMirrorActive}
+        onClose={() => {
+          if (isFlipchartOpen) {
+            setIsFlipchartOpen(false);
+          } else if (flipchartRemote) {
+            setDismissedRemoteTs(flipchartRemote.updatedAt);
+          }
+        }}
         seminarTitle={seminarTitle}
+        flipchartRemote={flipchartRemote}
+        boardDeviceId={boardDeviceId}
+        onPublishFlipchart={onPublishFlipchart}
       />
     </div>
   );

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { jsPDF } from 'jspdf';
+import { FlipchartBoardDoc } from '../types';
 import {
   PenTool,
   Highlighter,
@@ -20,6 +21,7 @@ import {
   AlignJustify,
   Maximize2,
   Minimize2,
+  Monitor,
 } from 'lucide-react';
 
 export type FlipchartTool =
@@ -328,6 +330,14 @@ interface FlipchartCanvasModalProps {
   onClose: () => void;
   readOnlyMirror?: boolean;
   seminarTitle?: string;
+  flipchartRemote?: FlipchartBoardDoc | null;
+  boardDeviceId?: string;
+  onPublishFlipchart?: (payload: {
+    isOpen: boolean;
+    syncToProjector: boolean;
+    activePageIndex: number;
+    pagesJson: string;
+  }) => void;
 }
 
 export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
@@ -335,11 +345,15 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
   onClose,
   readOnlyMirror = false,
   seminarTitle = 'Simulasi Kelas UMKM',
+  flipchartRemote = null,
+  boardDeviceId = '',
+  onPublishFlipchart,
 }) => {
   const [pages, setPages] = useState<FlipchartPage[]>(() => loadFlipchartStateLocal().pages);
   const [activePageIndex, setActivePageIndex] = useState<number>(
     () => loadFlipchartStateLocal().activePageIndex
   );
+  const [syncToProjector, setSyncToProjector] = useState<boolean>(true);
 
   // Drawing Tool States
   const [tool, setTool] = useState<FlipchartTool>('pen');
@@ -365,21 +379,85 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const draftStrokeRef = useRef<FlipchartStroke | null>(null);
   const isDrawingRef = useRef<boolean>(false);
+  const lastLocalWriteTsRef = useRef<number>(0);
+  const lastAppliedRemoteTsRef = useRef<number>(0);
+  const wasOpenRef = useRef<boolean>(false);
 
   const safeIndex = Math.min(activePageIndex, Math.max(0, pages.length - 1));
   const currentPage = pages[safeIndex] || pages[0];
 
-  // Broadcast local state whenever presenter modifies pages / open status
+  const publishSnapshot = useCallback(
+    (nextOpen: boolean, nextSync: boolean, nextPages: FlipchartPage[], nextIdx: number) => {
+      if (readOnlyMirror) return;
+      const now = Date.now();
+      lastLocalWriteTsRef.current = now;
+      saveAndBroadcastFlipchartState({
+        isOpen: nextOpen,
+        pages: nextPages,
+        activePageIndex: nextIdx,
+      });
+
+      if (onPublishFlipchart) {
+        try {
+          const serialized = JSON.stringify(nextPages);
+          if (serialized.length <= 440000) {
+            onPublishFlipchart({
+              isOpen: nextOpen,
+              syncToProjector: nextSync,
+              activePageIndex: Math.min(Math.max(0, nextIdx), 25),
+              pagesJson: serialized,
+            });
+          }
+        } catch {
+          // ignore serialization errors
+        }
+      }
+    },
+    [readOnlyMirror, onPublishFlipchart]
+  );
+
+  // Apply incoming remote updates from Firestore (e.g. Tablet Remote -> Laptop Projector, or shared board edits)
+  useEffect(() => {
+    if (!flipchartRemote) return;
+    if (
+      flipchartRemote.sourceDeviceId === boardDeviceId &&
+      !readOnlyMirror
+    ) {
+      return;
+    }
+    if (flipchartRemote.updatedAt <= lastAppliedRemoteTsRef.current) return;
+    if (!readOnlyMirror && flipchartRemote.updatedAt <= lastLocalWriteTsRef.current) return;
+
+    try {
+      const parsed = JSON.parse(flipchartRemote.pagesJson);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        lastAppliedRemoteTsRef.current = flipchartRemote.updatedAt;
+        setPages(parsed);
+        setActivePageIndex(
+          Math.min(
+            typeof flipchartRemote.activePageIndex === 'number' ? flipchartRemote.activePageIndex : 0,
+            parsed.length - 1
+          )
+        );
+      }
+    } catch {
+      // ignore malformed remote JSON
+    }
+  }, [flipchartRemote, boardDeviceId, readOnlyMirror]);
+
+  // Publish on open/close transitions and local edits when interactive
   useEffect(() => {
     if (readOnlyMirror) return;
-    saveAndBroadcastFlipchartState({
-      isOpen,
-      pages,
-      activePageIndex: safeIndex,
-    });
-  }, [isOpen, pages, safeIndex, readOnlyMirror]);
+    if (isOpen) {
+      wasOpenRef.current = true;
+      publishSnapshot(true, syncToProjector, pages, safeIndex);
+    } else if (wasOpenRef.current) {
+      wasOpenRef.current = false;
+      publishSnapshot(false, syncToProjector, pages, safeIndex);
+    }
+  }, [isOpen, syncToProjector, pages, safeIndex, readOnlyMirror, publishSnapshot]);
 
-  // Listen to BroadcastChannel in Extend Projector Mirror mode
+  // Listen to BroadcastChannel in same-browser Extend Projector Mirror mode (zero latency)
   useEffect(() => {
     if (!readOnlyMirror) return;
     const handleSync = (data: FlipchartSyncPayload) => {
@@ -514,7 +592,16 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
   const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (readOnlyMirror || !isDrawingRef.current || !draftStrokeRef.current) return;
     const pt = getVirtualCoords(e);
-    draftStrokeRef.current.points.push(pt);
+    const pts = draftStrokeRef.current.points;
+    const last = pts[pts.length - 1];
+    if (last) {
+      const dx = pt.x - last.x;
+      const dy = pt.y - last.y;
+      if (dx * dx + dy * dy < 6.25 && draftStrokeRef.current.tool !== 'line' && draftStrokeRef.current.tool !== 'arrow' && draftStrokeRef.current.tool !== 'rect') {
+        return;
+      }
+    }
+    pts.push(pt);
     redrawCanvas();
   };
 
@@ -757,7 +844,27 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
               </div>
             </div>
 
-            <div className="flex items-center gap-1.5">
+            <div className="flex flex-wrap items-center gap-1.5">
+              {onPublishFlipchart && (
+                <button
+                  type="button"
+                  onClick={() => setSyncToProjector(!syncToProjector)}
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors ${
+                    syncToProjector
+                      ? 'bg-[#2A9D8F] hover:bg-[#218276] text-white shadow-xs'
+                      : 'bg-white/15 hover:bg-white/25 text-white/85'
+                  }`}
+                  title={
+                    syncToProjector
+                      ? 'Coretan di perangkat ini langsung tampil live di layar Proyektor/Slide utama'
+                      : 'Mode catatan pribadi lokal (tidak disiarkan ke layar Proyektor)'
+                  }
+                >
+                  <Monitor className="w-3.5 h-3.5" />
+                  <span>{syncToProjector ? 'Proyektor: LIVE' : 'Hanya Lokal'}</span>
+                </button>
+              )}
+
               <button
                 type="button"
                 onClick={handleDownloadPng}
@@ -995,10 +1102,21 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
             className="relative w-full h-full max-w-full max-h-full aspect-video rounded-xl shadow-lg overflow-hidden border border-[#1F3A5F]/15"
             style={paperBgStyle}
           >
-            {/* Read-only indicator for 2nd Screen Projector */}
+            {/* Read-only indicator for 2nd Screen Projector or Remote Tablet Sync */}
             {readOnlyMirror && (
-              <div className="absolute top-3 left-4 z-10 px-3 py-1 rounded-full bg-[#1F3A5F]/80 text-white text-xs font-bold pointer-events-none">
-                Papan Simulasi Kelas · {currentPage.title}
+              <div className="absolute top-3 left-4 right-4 z-10 flex items-center justify-between gap-2 pointer-events-none">
+                <div className="px-3 py-1 rounded-full bg-[#1F3A5F]/85 text-white text-xs font-bold shadow-xs">
+                  Papan Simulasi Kelas · {currentPage.title}
+                </div>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="pointer-events-auto px-3 py-1 rounded-full bg-rose-600/90 hover:bg-rose-700 text-white text-xs font-bold flex items-center gap-1 shadow-xs cursor-pointer"
+                  title="Tutup tampilan papan tulis di layar ini"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  <span>Tutup</span>
+                </button>
               </div>
             )}
 
