@@ -1322,7 +1322,7 @@ export default function App() {
         </header>
       ) : (
         /* Strict 3-Zone Top Navigation Bar for Presenter / Developer / Moderator */
-        <header className="w-full max-w-full flex items-center justify-between gap-2.5 sm:gap-4 px-3 sm:px-6 py-3 bg-[#1F3A5F] text-white border-b border-white/10 sticky top-0 z-30">
+        <header className="w-full max-w-full flex items-center justify-between gap-1.5 sm:gap-4 px-2.5 sm:px-6 py-2.5 sm:py-3 bg-[#1F3A5F] text-white border-b border-white/10 sticky top-0 z-30">
           {/* Zone 1: Brand Wordmark */}
           <a
             href="#top"
@@ -1330,7 +1330,7 @@ export default function App() {
               e.preventDefault();
               setViewRole('projector');
             }}
-            className="font-display text-base sm:text-lg font-extrabold tracking-tight text-white whitespace-nowrap shrink-0"
+            className="font-display text-sm sm:text-lg font-extrabold tracking-tight text-white whitespace-nowrap shrink-0"
           >
             PartnerUp Live
           </a>
@@ -1401,10 +1401,10 @@ export default function App() {
           </nav>
 
           {/* Zone 3: Primary Action Buttons + Presenter Lock */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
             <button
               onClick={() => setIsBankModalOpen(true)}
-              className="px-2.5 py-1.5 text-xs font-bold text-white bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer shadow-xs"
+              className="px-2 sm:px-2.5 py-1.5 text-xs font-bold text-white bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg transition-colors whitespace-nowrap shrink-0 flex items-center gap-1 sm:gap-1.5 cursor-pointer shadow-xs"
               title="Kelola Bank Materi, buat modul baru, atau beralih sesi"
             >
               <Layers className="w-3.5 h-3.5 text-[#F28C28]" />
@@ -1416,7 +1416,7 @@ export default function App() {
 
             <button
               onClick={() => setIsGuideModalOpen(true)}
-              className="px-2.5 py-1.5 text-xs font-bold text-white bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer shadow-xs"
+              className="px-2 sm:px-2.5 py-1.5 text-xs font-bold text-white bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg transition-colors whitespace-nowrap shrink-0 flex items-center gap-1 sm:gap-1.5 cursor-pointer shadow-xs"
               title="Buku Panduan Teknis, Glosarium & Duplikasi (PDF)"
             >
               <BookOpen className="w-3.5 h-3.5 text-[#F28C28]" />
@@ -1426,7 +1426,7 @@ export default function App() {
 
             <button
               onClick={handleDownloadCsv}
-              className="px-2.5 sm:px-3 py-1.5 text-xs font-bold text-white bg-[#F28C28] rounded-lg hover:bg-[#d97719] transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer"
+              className="px-2 sm:px-3 py-1.5 text-xs font-bold text-white bg-[#F28C28] rounded-lg hover:bg-[#d97719] transition-colors whitespace-nowrap shrink-0 flex items-center gap-1 sm:gap-1.5 cursor-pointer"
             >
               <Download className="w-3.5 h-3.5" />
               <span className="hidden xl:inline">Unduh Rekap CSV</span>
@@ -1435,7 +1435,7 @@ export default function App() {
 
             <button
               onClick={handleLockPresenter}
-              className="p-1.5 text-white/70 hover:text-white bg-white/5 hover:bg-white/15 border border-white/15 rounded-lg transition-colors cursor-pointer"
+              className="p-1.5 text-white/70 hover:text-white bg-white/5 hover:bg-white/15 border border-white/15 rounded-lg transition-colors cursor-pointer shrink-0"
               title="Kunci Akses Presenter & Kembali ke Tampilan Peserta"
             >
               <Lock className="w-3.5 h-3.5" />
