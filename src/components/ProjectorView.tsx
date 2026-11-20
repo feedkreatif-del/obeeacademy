@@ -1005,10 +1005,23 @@ export const ProjectorView: React.FC<ProjectorViewProps> = ({
                 {organizerName.toUpperCase()}
               </span>
               <h3 className="font-display text-2xl sm:text-3xl font-extrabold text-[#1F3A5F] mt-1">
-                Scan HP untuk Menjawab
+                {sessionState.activeMode === 'poll'
+                  ? 'Scan HP untuk Ikut Polling'
+                  : sessionState.activeMode === 'qna'
+                  ? 'Scan HP untuk Tanya Jawab'
+                  : 'Scan HP untuk Menjawab'}
               </h3>
               <p className="text-sm font-semibold text-[#2A9D8F] mt-1">{seminarTitle}</p>
-              <p className="text-xs text-[#1F3A5F]/75 mt-1">
+              <div className="mt-2 inline-block bg-white border border-[#2A9D8F]/35 rounded-xl px-3.5 py-1.5 text-xs font-bold text-[#1F3A5F] shadow-2xs">
+                {sessionState.activeMode === 'poll' && currentPoll
+                  ? `Terhubung ke Polling: ${currentPoll.title}`
+                  : sessionState.activeMode === 'qna'
+                  ? 'Terhubung ke Papan Tanya Jawab (Q&A Anonim)'
+                  : currentQuestion
+                  ? `Terhubung ke Pertanyaan ${activeQIndex + 1}: ${currentQuestion.sectionTitle}`
+                  : 'Terhubung ke Sesi Aktif'}
+              </div>
+              <p className="text-xs text-[#1F3A5F]/75 mt-1.5">
                 Langsung masuk tanpa perlu instal aplikasi dan tanpa perlu buat akun.
               </p>
             </div>

@@ -268,6 +268,12 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
   const [customEmotionWord, setCustomEmotionWord] = useState<string>('');
   const [pollSubmitted, setPollSubmitted] = useState(false);
 
+  useEffect(() => {
+    setSelectedOption('');
+    setCustomEmotionWord('');
+    setPollSubmitted(false);
+  }, [currentPoll?.id]);
+
   const myExistingVote = currentPoll
     ? pollVotes.find((v) => v.pollId === currentPoll.id && v.participantId === participantId)
     : undefined;
@@ -305,7 +311,17 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
     : `${umkmTitle.toUpperCase()}\n"${emotionalFeeling}"\n• ${rationalProof} •`;
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 pb-24">
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-5 pb-24">
+      {/* Active Curriculum Context Banner */}
+      <div className="mb-3 px-3.5 py-2 rounded-xl bg-[#E3F5F2]/80 border border-[#2A9D8F]/30 flex items-center justify-between gap-2 text-xs">
+        <span className="font-bold text-[#1F3A5F] truncate">
+          Materi Aktif: <span className="text-[#2A9D8F]">{seminarTitle}</span>
+        </span>
+        <span className="text-[11px] font-bold text-[#F28C28] whitespace-nowrap shrink-0">
+          Sync Live
+        </span>
+      </div>
+
       {/* Top Mode Selector Bar for Participant */}
       <div className="bg-white border border-[#1F3A5F]/15 rounded-2xl p-2 mb-6 flex items-center justify-between gap-1 overflow-x-auto shadow-xs">
         <button

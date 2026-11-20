@@ -150,6 +150,7 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
   approvedAnswers,
   allAnswers,
   approvedQna,
+  activeMode,
 }) => {
   const stageRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -293,6 +294,24 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
   const sortedQna = [...approvedQna].sort((a, b) =>
     a.star !== b.star ? (a.star ? -1 : 1) : b.upvotes - a.upvotes
   );
+
+  const effectiveQrJoinUrl = useMemo(() => {
+    try {
+      const urlObj = new URL(joinUrl);
+      if (slide?.linkedQuestionIndex !== undefined) {
+        urlObj.searchParams.set('mode', 'worksheet');
+        urlObj.searchParams.set('q', String(slide.linkedQuestionIndex));
+      } else if (slide?.linkedPollId) {
+        urlObj.searchParams.set('mode', 'poll');
+        urlObj.searchParams.set('poll', slide.linkedPollId);
+      } else if (slide?.type === 'closing') {
+        urlObj.searchParams.set('mode', 'qna');
+      }
+      return urlObj.toString();
+    } catch {
+      return joinUrl;
+    }
+  }, [joinUrl, slide]);
 
   // Calculate all sequential animation steps and human-readable descriptions for Presenter View
   const slideStepAssignments = useMemo(() => {
@@ -481,10 +500,35 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
 
   const handleToggleDrawer = (drawer: SlideDrawerMode) => {
     const nextDrawer = activeSlideDrawer === drawer ? 'none' : drawer;
-    if (nextDrawer === 'answers' && slide?.linkedQuestionIndex !== undefined) {
-      onSyncQuestionOnly(slide.linkedQuestionIndex);
-    } else if (nextDrawer === 'poll' && slide?.linkedPollId) {
-      onSyncPollOnly(slide.linkedPollId);
+    if (nextDrawer === 'answers') {
+      onUpdateSlideState({
+        activeSlideDrawer: 'answers',
+        activeQuestion: effectiveQuestionIndex,
+        activeMode: 'worksheet',
+      });
+      return;
+    }
+    if (nextDrawer === 'poll' && drawerPoll) {
+      onUpdateSlideState({
+        activeSlideDrawer: 'poll',
+        activePollId: drawerPoll.id,
+        activeMode: 'poll',
+      });
+      return;
+    }
+    if (nextDrawer === 'qna') {
+      onUpdateSlideState({
+        activeSlideDrawer: 'qna',
+        activeMode: 'qna',
+      });
+      return;
+    }
+    if (nextDrawer === 'qr') {
+      onUpdateSlideState({
+        activeSlideDrawer: 'qr',
+        ...buildSlideSyncState(slide),
+      });
+      return;
     }
     onUpdateSlideState({ activeSlideDrawer: nextDrawer });
   };
@@ -1485,10 +1529,30 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
 
             {activeSlideDrawer === 'qr' && (
               <div className="text-center py-6 space-y-4 max-w-lg mx-auto">
+                <div className="bg-white border border-[#2A9D8F]/35 rounded-xl px-4 py-2.5 text-left space-y-0.5 shadow-2xs">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-[#2A9D8F]">
+                    Terhubung Langsung ke Sesi Aktif:
+                  </p>
+                  <p className="text-xs sm:text-sm font-bold text-[#1F3A5F] truncate">
+                    {seminarTitle}
+                  </p>
+                  <p className="text-xs font-semibold text-[#F28C28]">
+                    {slide?.linkedPollId && drawerPoll
+                      ? `Live Polling: ${drawerPoll.title}`
+                      : slide?.linkedQuestionIndex !== undefined
+                      ? `Pertanyaan ${slide.linkedQuestionIndex + 1}: ${drawerQuestion?.sectionTitle || drawerQuestion?.questionText || ''}`
+                      : activeMode === 'poll' && drawerPoll
+                      ? `Live Polling: ${drawerPoll.title}`
+                      : activeMode === 'qna' || slide?.type === 'closing'
+                      ? 'Sesi Tanya Jawab (Q&A Anonim)'
+                      : `Pertanyaan ${effectiveQuestionIndex + 1}: ${drawerQuestion?.sectionTitle || ''}`}
+                  </p>
+                </div>
+
                 <div className={`p-6 rounded-2xl border-2 inline-block mx-auto shadow-md relative ${
                   answersLocked ? 'bg-amber-50/70 border-amber-400' : 'bg-white border-[#1F3A5F]/15'
                 }`}>
-                  <QRCodeSVG id="slide-drawer-qr-svg" value={joinUrl} size={250} fgColor="#1F3A5F" />
+                  <QRCodeSVG id="slide-drawer-qr-svg" value={effectiveQrJoinUrl} size={250} fgColor="#1F3A5F" />
                   {answersLocked && (
                     <div className="absolute inset-0 bg-[#1F3A5F]/75 backdrop-blur-[2px] rounded-2xl flex flex-col items-center justify-center p-4 text-white">
                       <Lock className="w-10 h-10 text-amber-300 mb-2" />
@@ -1562,7 +1626,7 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
 
                 <div className="bg-white rounded-xl p-3 border border-[#1F3A5F]/15 text-left">
                   <p className="text-xs text-[#1F3A5F]/60 mb-0.5 font-semibold">Tautan Langsung Peserta:</p>
-                  <p className="font-mono text-xs sm:text-sm font-bold text-[#1F3A5F] break-all select-all">{joinUrl}</p>
+                  <p className="font-mono text-xs sm:text-sm font-bold text-[#1F3A5F] break-all select-all">{effectiveQrJoinUrl}</p>
                 </div>
 
                 {!isAudienceExtendWindow && (
@@ -1575,7 +1639,7 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                         type="button"
                         onClick={async () => {
                           await downloadQrCodeAsPng('slide-drawer-qr-svg', {
-                            joinUrl,
+                            joinUrl: effectiveQrJoinUrl,
                             seminarTitle,
                             organizerName,
                             variant: 'poster',
@@ -1593,7 +1657,7 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                         type="button"
                         onClick={async () => {
                           await downloadQrCodeAsPng('slide-drawer-qr-svg', {
-                            joinUrl,
+                            joinUrl: effectiveQrJoinUrl,
                             variant: 'qr-only',
                             filename: 'QR-Code-Peserta.png',
                           });
@@ -1608,7 +1672,7 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                       <button
                         type="button"
                         onClick={() => {
-                          navigator.clipboard?.writeText(joinUrl);
+                          navigator.clipboard?.writeText(effectiveQrJoinUrl);
                           setCopiedDrawerLink(true);
                           setTimeout(() => setCopiedDrawerLink(false), 2500);
                         }}
@@ -1628,7 +1692,7 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                       </button>
 
                       <a
-                        href={buildQrWhatsAppShareUrl(joinUrl, seminarTitle)}
+                        href={buildQrWhatsAppShareUrl(effectiveQrJoinUrl, seminarTitle)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="px-3 py-2 rounded-xl bg-[#25D366] hover:bg-[#1EBE5D] text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs cursor-pointer transition-colors"

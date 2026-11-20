@@ -91,6 +91,7 @@ const DEFAULT_CUSTOM_CONTENT: CustomContentDoc = {
   slides: SEMINAR_SLIDES,
   qnaTopics: DEFAULT_QNA_TOPICS,
   brandTheme: DEFAULT_BRAND_THEME,
+  materialId: 'partnerup_sesi_1_curriculum',
   updatedAt: Date.now(),
 };
 
@@ -170,19 +171,102 @@ export default function App() {
     setViewRole('participant');
   };
 
-  const [participantId] = useState<string>(() => getOrCreateParticipantId());
-  const [sessionState, setSessionState] = useState<SessionStateDoc>(DEFAULT_SESSION_STATE);
-  const [customContent, setCustomContent] = useState<CustomContentDoc>(DEFAULT_CUSTOM_CONTENT);
+  const initialQrTargetRef = useRef<{
+    materialId: string | null;
+    mode: InteractiveMode | null;
+    questionIndex: number | null;
+    pollId: string | null;
+  }>(
+    (() => {
+      const params = new URLSearchParams(window.location.search);
+      const mid = params.get('mid');
+      const modeParam = params.get('mode');
+      const qParam = params.get('q');
+      const pollParam = params.get('poll');
+      const validMode: InteractiveMode | null =
+        modeParam === 'worksheet' ||
+        modeParam === 'poll' ||
+        modeParam === 'qna' ||
+        modeParam === 'external'
+          ? modeParam
+          : null;
+      const parsedQ =
+        qParam !== null && qParam.trim() !== '' && !Number.isNaN(Number(qParam))
+          ? Math.max(0, parseInt(qParam, 10))
+          : null;
+      return {
+        materialId: mid,
+        mode: validMode,
+        questionIndex: parsedQ,
+        pollId: pollParam,
+      };
+    })()
+  );
+
   const [materials, setMaterials] = useState<SavedMaterial[]>(() => getSavedMaterialsLocal());
-  const [activeMaterialId, setActiveMaterialId] = useState<string>(() => getActiveMaterialIdLocal());
+  const [activeMaterialId, setActiveMaterialId] = useState<string>(() => {
+    const qrMid = initialQrTargetRef.current.materialId;
+    return qrMid || getActiveMaterialIdLocal();
+  });
+
+  const [participantId] = useState<string>(() => getOrCreateParticipantId());
+  const [sessionState, setSessionState] = useState<SessionStateDoc>(() => {
+    const target = initialQrTargetRef.current;
+    return {
+      ...DEFAULT_SESSION_STATE,
+      ...(target.mode ? { activeMode: target.mode } : {}),
+      ...(target.questionIndex !== null ? { activeQuestion: target.questionIndex } : {}),
+      ...(target.pollId ? { activePollId: target.pollId } : {}),
+    };
+  });
+  const sessionStateRef = useRef<SessionStateDoc>(sessionState);
+  sessionStateRef.current = sessionState;
+
+  const [customContent, setCustomContent] = useState<CustomContentDoc>(() => {
+    const qrMid = initialQrTargetRef.current.materialId;
+    if (qrMid) {
+      const matched = getSavedMaterialsLocal().find((m) => m.id === qrMid);
+      if (matched) {
+        return {
+          ...matched.content,
+          seminarTitle: matched.seminarTitle,
+          organizerName: matched.organizerName,
+          materialId: matched.id,
+          description: matched.description,
+          category: matched.category,
+          isDefault: matched.isDefault,
+        };
+      }
+    }
+    return DEFAULT_CUSTOM_CONTENT;
+  });
+
   const [isBankModalOpen, setIsBankModalOpen] = useState<boolean>(false);
   const [answers, setAnswers] = useState<AnswerDoc[]>([]);
   const [qnaList, setQnaList] = useState<QnaDoc[]>([]);
   const [pollVotes, setPollVotes] = useState<PollVoteDoc[]>([]);
   const [hasSeededInitial, setHasSeededInitial] = useState<boolean>(false);
+  const [hasRemoteState, setHasRemoteState] = useState<boolean>(false);
+  const [hasRemoteContent, setHasRemoteContent] = useState<boolean>(false);
+  const [hasRemoteCollectionsLoaded, setHasRemoteCollectionsLoaded] = useState<boolean>(false);
+  const [syncWaitTimedOut, setSyncWaitTimedOut] = useState<boolean>(false);
+
+  const remoteStateExistsRef = useRef<boolean | null>(null);
+  const remoteContentExistsRef = useRef<boolean | null>(null);
+  const answersLoadedRef = useRef<boolean>(false);
+  const qnaLoadedRef = useRef<boolean>(false);
   const seedSyncLockRef = useRef<boolean>(false);
   const sesiSeedHealDoneRef = useRef<boolean>(false);
   const sesi2ContentUpgradeDoneRef = useRef<boolean>(false);
+
+  const isHostRole =
+    viewRole === 'projector' ||
+    viewRole === 'slides' ||
+    viewRole === 'editor' ||
+    viewRole === 'moderation' ||
+    viewRole === 'remote';
+  const isHostRoleRef = useRef<boolean>(isHostRole);
+  isHostRoleRef.current = isHostRole;
 
   const replaceSimulationSeeds = async (
     materialId?: string,
@@ -251,18 +335,47 @@ export default function App() {
   // Dynamically apply organization brand color theme across all views (default: PartnerUp | Obeecreatives)
   useApplyBrandTheme(customContent.brandTheme);
 
-  const joinUrl = `${window.location.origin}${window.location.pathname}?view=participant`;
+  const buildJoinUrl = (opts?: {
+    mode?: InteractiveMode;
+    questionIndex?: number;
+    pollId?: string;
+  }) => {
+    const params = new URLSearchParams();
+    params.set('view', 'participant');
+    const activeMat =
+      customContent.materialId || activeMaterialId || DEFAULT_PARTNERUP_CURRICULUM.id;
+    if (activeMat) {
+      params.set('mid', activeMat);
+    }
+    const targetMode = opts?.mode ?? sessionState.activeMode;
+    const targetQ = opts?.questionIndex ?? sessionState.activeQuestion;
+    const targetPoll = opts?.pollId ?? sessionState.activePollId;
+    params.set('mode', targetMode);
+    params.set('q', String(Math.max(0, targetQ)));
+    if (targetPoll) {
+      params.set('poll', targetPoll);
+    }
+    return `${window.location.origin}${window.location.pathname}?${params.toString()}`;
+  };
+
+  const joinUrl = buildJoinUrl();
   const extendUrl = `${window.location.origin}${window.location.pathname}?view=extend`;
 
   // Subscribe once to Session State, Custom Content, Answers, Q&A, and Poll Votes
   useEffect(() => {
+    const syncFailsafeTimer = setTimeout(() => {
+      setSyncWaitTimedOut(true);
+    }, 2500);
+
     const stateRef = doc(db, 'state', 'session');
     const unsubState = onSnapshot(
       stateRef,
       (snap) => {
+        remoteStateExistsRef.current = snap.exists();
+        setHasRemoteState(true);
         if (snap.exists()) {
           const data = snap.data() as SessionStateDoc;
-          setSessionState({
+          const nextState: SessionStateDoc = {
             activeQuestion: typeof data.activeQuestion === 'number' ? data.activeQuestion : 0,
             activeSlide: typeof data.activeSlide === 'number' ? data.activeSlide : 0,
             activeSlideStep: typeof data.activeSlideStep === 'number' ? data.activeSlideStep : 0,
@@ -283,10 +396,13 @@ export default function App() {
             externalPlatform: data.externalPlatform || 'slido',
             sessionName: data.sessionName || DEFAULT_SESSION_STATE.sessionName,
             updatedAt: data.updatedAt || Date.now(),
-          });
+          };
+          sessionStateRef.current = nextState;
+          setSessionState(nextState);
         }
       },
       (err) => {
+        setHasRemoteState(true);
         console.warn('Session listener warning:', err);
       }
     );
@@ -295,6 +411,8 @@ export default function App() {
     const unsubContent = onSnapshot(
       contentRef,
       (snap) => {
+        remoteContentExistsRef.current = snap.exists();
+        setHasRemoteContent(true);
         if (snap.exists()) {
           const data = snap.data() as CustomContentDoc;
           setCustomContent({
@@ -331,11 +449,12 @@ export default function App() {
             setActiveMaterialId(data.materialId);
             setActiveMaterialIdLocal(data.materialId);
           }
-          // Auto-upgrade active Sesi 2 curriculum once if missing the 5 new slide visuals
+          // Auto-upgrade active Sesi 2 curriculum once if missing the 5 new slide visuals (HOST ONLY - never run from participant phones!)
           const isSesi2ActiveDoc =
             data.materialId === SESI_2_ACTION_PLAN_CURRICULUM.id ||
             (data.seminarTitle || '').toLowerCase().includes('target penjualan');
           if (
+            isHostRoleRef.current &&
             isSesi2ActiveDoc &&
             !sesi2ContentUpgradeDoneRef.current &&
             (!data.slides?.[1]?.imageUrl || (data.updatedAt || 0) < 1732500000000)
@@ -352,6 +471,7 @@ export default function App() {
         }
       },
       (err) => {
+        setHasRemoteContent(true);
         console.warn('Custom content listener warning:', err);
       }
     );
@@ -365,8 +485,16 @@ export default function App() {
           ...(d.data() as Omit<AnswerDoc, 'id'>),
         }));
         setAnswers(list);
+        answersLoadedRef.current = true;
+        if (qnaLoadedRef.current) {
+          setHasRemoteCollectionsLoaded(true);
+        }
       },
       (err) => {
+        answersLoadedRef.current = true;
+        if (qnaLoadedRef.current) {
+          setHasRemoteCollectionsLoaded(true);
+        }
         console.warn('Answers listener warning:', err);
       }
     );
@@ -380,8 +508,16 @@ export default function App() {
           ...(d.data() as Omit<QnaDoc, 'id'>),
         }));
         setQnaList(list);
+        qnaLoadedRef.current = true;
+        if (answersLoadedRef.current) {
+          setHasRemoteCollectionsLoaded(true);
+        }
       },
       (err) => {
+        qnaLoadedRef.current = true;
+        if (answersLoadedRef.current) {
+          setHasRemoteCollectionsLoaded(true);
+        }
         console.warn('QnA listener warning:', err);
       }
     );
@@ -402,6 +538,7 @@ export default function App() {
     );
 
     return () => {
+      clearTimeout(syncFailsafeTimer);
       unsubState();
       unsubContent();
       unsubAnswers();
@@ -410,54 +547,45 @@ export default function App() {
     };
   }, []);
 
-  // Auto-seed & auto-heal simulation answers if empty, duplicated, or mismatched with active curriculum
+  // Auto-seed & auto-heal simulation answers ONLY on host/presenter roles after remote snapshots resolve.
+  // Participant/extend/preview phones NEVER overwrite custom_content/active or state/session.
   useEffect(() => {
+    if (!isHostRole || !hasRemoteState || !hasRemoteContent || !hasRemoteCollectionsLoaded) {
+      return;
+    }
+
     const checkAndSeed = async () => {
       if (!hasSeededInitial) {
-        const seededFlag = window.localStorage.getItem('partnerup_initial_seeded_v1');
-        const upgradedV2Flag = window.localStorage.getItem('partnerup_curriculum_v2_8page');
-
-        if (!upgradedV2Flag) {
-          window.localStorage.setItem('partnerup_curriculum_v2_8page', 'true');
-          if (
-            !customContent.materialId ||
-            customContent.materialId === DEFAULT_PARTNERUP_CURRICULUM.id
-          ) {
-            try {
-              await setDoc(doc(db, 'custom_content', 'active'), {
-                ...DEFAULT_CUSTOM_CONTENT,
-                updatedAt: Date.now(),
-              });
-            } catch (e) {
-              console.warn('Curriculum v2 sync skipped:', e);
-            }
-          }
-        }
-
-        if (seededFlag) {
-          setHasSeededInitial(true);
-        } else if (answers.length === 0 && qnaList.length === 0) {
-          setHasSeededInitial(true);
-          window.localStorage.setItem('partnerup_initial_seeded_v1', 'true');
-          try {
+        setHasSeededInitial(true);
+        try {
+          if (remoteStateExistsRef.current === false) {
+            const firstPollId = customContent.polls[0]?.id || DEFAULT_SESSION_STATE.activePollId;
             await setDoc(doc(db, 'state', 'session'), {
               ...DEFAULT_SESSION_STATE,
+              activePollId: firstPollId,
+              sessionName: (customContent.seminarTitle || DEFAULT_SESSION_STATE.sessionName).slice(0, 120),
               updatedAt: Date.now(),
             });
+          }
+
+          if (remoteContentExistsRef.current === false) {
             await setDoc(doc(db, 'custom_content', 'active'), {
               ...DEFAULT_CUSTOM_CONTENT,
               updatedAt: Date.now(),
             });
-            await replaceSimulationSeeds(
-              DEFAULT_CUSTOM_CONTENT.materialId,
-              DEFAULT_CUSTOM_CONTENT.seminarTitle
-            );
-          } catch (e) {
-            console.warn('Initial seed skipped:', e);
           }
-          return;
-        } else {
-          setHasSeededInitial(true);
+
+          const seededFlag = window.localStorage.getItem('partnerup_initial_seeded_v1');
+          if (!seededFlag && answers.length === 0 && qnaList.length === 0) {
+            window.localStorage.setItem('partnerup_initial_seeded_v1', 'true');
+            await replaceSimulationSeeds(
+              customContent.materialId,
+              customContent.seminarTitle
+            );
+            return;
+          }
+        } catch (e) {
+          console.warn('Initial seed check skipped:', e);
         }
       }
 
@@ -523,16 +651,28 @@ export default function App() {
         }
       }
     };
-    const timer = setTimeout(checkAndSeed, 1000);
+    const timer = setTimeout(checkAndSeed, 400);
     return () => clearTimeout(timer);
-  }, [answers, qnaList.length, hasSeededInitial, customContent.materialId, customContent.seminarTitle]);
+  }, [
+    isHostRole,
+    hasRemoteState,
+    hasRemoteContent,
+    hasRemoteCollectionsLoaded,
+    answers,
+    qnaList.length,
+    hasSeededInitial,
+    customContent.materialId,
+    customContent.seminarTitle,
+    customContent.polls,
+  ]);
 
   const updateSessionState = async (partial: Partial<SessionStateDoc>) => {
     const nextState: SessionStateDoc = {
-      ...sessionState,
+      ...sessionStateRef.current,
       ...partial,
       updatedAt: Date.now(),
     };
+    sessionStateRef.current = nextState;
     setSessionState(nextState);
     try {
       await setDoc(doc(db, 'state', 'session'), nextState);
@@ -1232,24 +1372,40 @@ export default function App() {
                 </button>
               </div>
             )}
-            <ParticipantView
-              questions={customContent.questions}
-              polls={customContent.polls}
-              slides={customContent.slides}
-              seminarTitle={customContent.seminarTitle}
-              organizerName={customContent.organizerName}
-              brandTheme={customContent.brandTheme}
-              qnaTopics={customContent.qnaTopics}
-              sessionState={sessionState}
-              participantId={participantId}
-              myAnswers={myAnswers}
-              approvedQna={approvedQna}
-              pollVotes={pollVotes}
-              onSubmitAnswer={handleSubmitAnswer}
-              onSubmitQna={handleSubmitQna}
-              onUpvoteQna={handleUpvoteQna}
-              onSubmitPollVote={handleSubmitPollVote}
-            />
+            {(!hasRemoteState || !hasRemoteContent) && !syncWaitTimedOut ? (
+              <div className="max-w-xl mx-auto px-4 py-14 text-center space-y-4">
+                <div className="w-12 h-12 rounded-2xl bg-[#1F3A5F] text-white flex items-center justify-center mx-auto shadow-md">
+                  <div className="w-5 h-5 border-2 border-[#F28C28] border-t-transparent rounded-full animate-spin" />
+                </div>
+                <div className="space-y-1">
+                  <h2 className="font-display text-lg font-extrabold text-[#1F3A5F]">
+                    Menyambungkan ke Materi Aktif...
+                  </h2>
+                  <p className="text-xs sm:text-sm text-[#1F3A5F]/70">
+                    Sedang menyinkronkan pertanyaan dan polling langsung dari layar presenter.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <ParticipantView
+                questions={customContent.questions}
+                polls={customContent.polls}
+                slides={customContent.slides}
+                seminarTitle={customContent.seminarTitle}
+                organizerName={customContent.organizerName}
+                brandTheme={customContent.brandTheme}
+                qnaTopics={customContent.qnaTopics}
+                sessionState={sessionState}
+                participantId={participantId}
+                myAnswers={myAnswers}
+                approvedQna={approvedQna}
+                pollVotes={pollVotes}
+                onSubmitAnswer={handleSubmitAnswer}
+                onSubmitQna={handleSubmitQna}
+                onUpvoteQna={handleUpvoteQna}
+                onSubmitPollVote={handleSubmitPollVote}
+              />
+            )}
           </div>
         )}
 

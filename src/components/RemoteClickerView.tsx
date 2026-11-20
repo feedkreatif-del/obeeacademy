@@ -480,6 +480,11 @@ export const RemoteClickerView: React.FC<RemoteClickerViewProps> = ({
         activeSlideDrawer: 'qna',
         activeMode: 'qna',
       });
+    } else if (nextDrawer === 'qr') {
+      onUpdateSlideState({
+        activeSlideDrawer: 'qr',
+        ...buildSlideSyncState(slide),
+      });
     } else {
       onUpdateSlideState({ activeSlideDrawer: nextDrawer });
     }
