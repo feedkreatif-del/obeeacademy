@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react';
 import {
   SlideDefinition,
   WorksheetQuestion,
@@ -65,6 +65,99 @@ interface SlideStepInfo {
   label: string;
   previewText: string;
 }
+
+interface AutoFitStageContainerProps {
+  children: React.ReactNode;
+  outerClassName?: string;
+  innerClassName?: string;
+  resetKey: string;
+}
+
+const AutoFitStageContainer: React.FC<AutoFitStageContainerProps> = ({
+  children,
+  outerClassName = '',
+  innerClassName = '',
+  resetKey,
+}) => {
+  const outerRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
+  const [fitScale, setFitScale] = useState(1);
+
+  const measureFit = useCallback(() => {
+    const outer = outerRef.current;
+    const inner = innerRef.current;
+    if (!outer || !inner) return;
+
+    // On narrow portrait mobile viewports (<640px), allow natural vertical scrolling rather than shrinking text too small
+    if (typeof window !== 'undefined' && window.innerWidth < 640) {
+      setFitScale(1);
+      return;
+    }
+
+    const availableHeight = outer.clientHeight;
+    const naturalHeight = inner.scrollHeight;
+    if (availableHeight <= 40 || naturalHeight <= 40) return;
+
+    const nextScale =
+      naturalHeight > availableHeight + 2
+        ? Math.max(0.55, Math.min(1, (availableHeight - 2) / naturalHeight))
+        : 1;
+
+    setFitScale((prev) => (Math.abs(prev - nextScale) > 0.01 ? nextScale : prev));
+  }, []);
+
+  useLayoutEffect(() => {
+    setFitScale(1);
+    const rafId = window.requestAnimationFrame(() => {
+      measureFit();
+    });
+    return () => window.cancelAnimationFrame(rafId);
+  }, [resetKey, measureFit]);
+
+  useEffect(() => {
+    const outer = outerRef.current;
+    const inner = innerRef.current;
+    if (!outer || !inner || typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', measureFit);
+      return () => window.removeEventListener('resize', measureFit);
+    }
+
+    const observer = new ResizeObserver(() => {
+      measureFit();
+    });
+    observer.observe(outer);
+    observer.observe(inner);
+    window.addEventListener('resize', measureFit);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', measureFit);
+    };
+  }, [measureFit]);
+
+  return (
+    <div
+      ref={outerRef}
+      onLoadCapture={measureFit}
+      className={`flex-1 min-h-0 max-sm:overflow-y-auto sm:overflow-hidden relative ${outerClassName}`}
+    >
+      <div
+        ref={innerRef}
+        style={
+          fitScale < 0.995
+            ? {
+                transform: `scale(${fitScale})`,
+                transformOrigin: 'top center',
+              }
+            : undefined
+        }
+        className={`w-full min-h-full flex flex-col ${innerClassName}`}
+      >
+        {children}
+      </div>
+    </div>
+  );
+};
 
 interface SlideDeckViewProps {
   slides: SlideDefinition[];
@@ -694,19 +787,60 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
     (isPromptVisible ? 1 : 0);
 
   const totalCardsCount = slide.cards?.length || 0;
+  const hasSlideImage = Boolean(slide.imageUrl);
+  const isSlideTopImage = hasSlideImage && slide.imagePosition === 'top';
+  const isSlideSideImage = hasSlideImage && slide.imagePosition !== 'top';
 
-  // 'jumbo' = Only cards (1-3) or only comparison visible -> EXTRA LARGE text for elderly/back-row participants
-  // 'medium' = Cards + 1 secondary block or 4 cards -> LARGE readable text
-  // 'compact' = Cards + 2+ secondary blocks or 5 cards -> PROPORTIONAL readable text that fits the screen
+  const slideTextWeight = useMemo(() => {
+    let total = (slide.title?.length || 0) + (slide.subtitle?.length || 0);
+    slide.cards?.forEach((c) => {
+      total += (c.title?.length || 0) + (c.body?.length || 0) + (c.extra?.length || 0);
+    });
+    if (slide.comparison) {
+      total +=
+        (slide.comparison.leftTitle?.length || 0) +
+        (slide.comparison.leftBody?.length || 0) +
+        (slide.comparison.rightTitle?.length || 0) +
+        (slide.comparison.rightBody?.length || 0);
+    }
+    slide.promptLines?.forEach((p) => {
+      total += p.length;
+    });
+    return total;
+  }, [slide]);
+
+  // 'jumbo' = Only cards (1-3) without images or heavy text -> EXTRA LARGE text for back-row participants
+  // 'medium' = Moderate content (e.g. cards + 1 block, or image with light cards) -> LARGE readable text
+  // 'compact' = Top/side image combined with cards/comparison/prompt or 5 cards -> PROPORTIONAL sizing that fits full screen
   const dynamicDensity: 'jumbo' | 'medium' | 'compact' =
-    visibleSecondaryBlocks === 0 && totalCardsCount <= 3
+    !hasSlideImage &&
+    visibleSecondaryBlocks === 0 &&
+    totalCardsCount <= 3 &&
+    slideTextWeight <= 420
       ? 'jumbo'
-      : visibleSecondaryBlocks <= 1 && totalCardsCount <= 4 && !isDictVisible
+      : isSlideTopImage
+      ? visibleSecondaryBlocks === 0 && totalCardsCount <= 2 && slideTextWeight <= 340
+        ? 'medium'
+        : 'compact'
+      : isSlideSideImage
+      ? totalCardsCount <= 3 && visibleSecondaryBlocks === 0 && slideTextWeight <= 450
+        ? 'medium'
+        : 'compact'
+      : visibleSecondaryBlocks <= 1 &&
+        totalCardsCount <= 4 &&
+        !isDictVisible &&
+        slideTextWeight <= 560
       ? 'medium'
       : 'compact';
 
+  const hasHeavyTopImage =
+    isSlideTopImage && (totalCardsCount >= 2 || visibleSecondaryBlocks >= 1);
+
   // Reusable Slide Stage Renderer (used in Standard Mode, Fullscreen Mode, Extend Window, and Presenter Live Preview)
-  const renderSlideStageCanvas = (isCompactPreview = false) => (
+  const renderSlideStageCanvas = (isCompactPreview = false) => {
+    const autoFitResetKey = `${safeSlideIndex}-${revealedStep}-${isFullscreen}-${isAudienceExtendWindow}-${isCompactPreview}-${slide.imageUrl || ''}-${slide.imagePosition || ''}`;
+
+    return (
     <div
       ref={isCompactPreview ? undefined : stageRef}
       className={
@@ -714,7 +848,7 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
           ? 'fixed inset-0 z-50 h-screen max-h-screen overflow-hidden bg-[#FFF7EC] flex flex-col justify-between select-none'
           : isCompactPreview
           ? 'rounded-2xl overflow-hidden border-2 border-[#1F3A5F]/25 shadow-sm bg-[#FFF7EC] h-[460px] sm:h-[500px] flex flex-col justify-between relative select-none'
-          : 'rounded-2xl overflow-hidden border border-[#1F3A5F]/20 shadow-md bg-[#FFF7EC] h-[calc(100vh-195px)] min-h-[540px] max-h-[780px] flex flex-col justify-between relative select-none'
+          : 'rounded-2xl overflow-hidden border border-[#1F3A5F]/20 shadow-md bg-[#FFF7EC] h-[calc(100vh-185px)] min-h-[420px] max-h-[820px] flex flex-col justify-between relative select-none'
       }
     >
       <AnimatePresence mode="wait" initial={false}>
@@ -740,8 +874,22 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
           title="Klik area kosong atau tekan Panah Kanan (→) untuk memunculkan poin berikutnya"
         >
           {slide.type === 'cover' ? (
-            <div className="flex-1 min-h-0 bg-[#1F3A5F] text-white p-8 sm:p-14 lg:p-16 flex flex-col justify-center overflow-y-auto">
-              <div className={slide.imageUrl ? 'grid grid-cols-1 lg:grid-cols-12 gap-8 items-center max-w-7xl' : ''}>
+            <AutoFitStageContainer
+              resetKey={autoFitResetKey}
+              outerClassName="bg-[#1F3A5F] text-white"
+              innerClassName={
+                isCompactPreview
+                  ? 'p-5 sm:p-8 justify-center'
+                  : 'p-6 sm:p-10 lg:p-14 justify-center'
+              }
+            >
+              <div
+                className={
+                  slide.imageUrl
+                    ? 'grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-center max-w-7xl mx-auto w-full my-auto'
+                    : 'my-auto'
+                }
+              >
                 <div className={slide.imageUrl ? 'lg:col-span-7' : ''}>
                   <motion.p
                     initial={{ opacity: 0, y: 12 }}
@@ -757,7 +905,9 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                     transition={{ duration: 0.35, delay: 0.06 }}
                     className={`font-display font-bold tracking-tight leading-tight max-w-5xl mb-4 ${
                       isCompactPreview
-                        ? 'text-2xl sm:text-4xl'
+                        ? 'text-2xl sm:text-3xl'
+                        : slide.imageUrl
+                        ? 'text-2xl sm:text-4xl lg:text-5xl'
                         : 'text-3xl sm:text-5xl lg:text-6xl'
                     }`}
                   >
@@ -769,7 +919,7 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.35, delay: 0.12 }}
                       className={`text-white/85 max-w-4xl font-normal ${
-                        isCompactPreview ? 'text-sm sm:text-lg' : 'text-base sm:text-2xl'
+                        isCompactPreview ? 'text-sm sm:text-base' : 'text-base sm:text-xl lg:text-2xl'
                       }`}
                     >
                       {slide.subtitle}
@@ -781,38 +931,54 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.4, delay: 0.15 }}
-                    className="lg:col-span-5 rounded-2xl overflow-hidden border-2 border-white/20 shadow-2xl bg-white/5"
+                    className="lg:col-span-5 rounded-2xl overflow-hidden border-2 border-white/20 shadow-2xl bg-white/5 flex flex-col"
                   >
-                    <img
-                      src={
-                        slide.imageUrl.startsWith('/src/assets/images/')
-                          ? slide.imageUrl.replace('/src/assets/images/', '/assets/images/')
-                          : slide.imageUrl
-                      }
-                      alt={slide.imageCaption || slide.title}
-                      className="w-full h-64 sm:h-80 lg:h-96 object-cover"
-                      referrerPolicy="no-referrer"
-                      onError={(e) => {
-                        const target = e.currentTarget;
-                        if (target.src.includes('/assets/images/')) {
-                          target.src = target.src.replace('/assets/images/', '/src/assets/images/');
+                    <div
+                      className={`w-full flex items-center justify-center overflow-hidden bg-black/15 ${
+                        isCompactPreview
+                          ? 'h-[170px]'
+                          : 'h-[clamp(180px,36vh,360px)]'
+                      }`}
+                    >
+                      <img
+                        src={
+                          slide.imageUrl.startsWith('/src/assets/images/')
+                            ? slide.imageUrl.replace('/src/assets/images/', '/assets/images/')
+                            : slide.imageUrl
                         }
-                      }}
-                    />
+                        alt={slide.imageCaption || slide.title}
+                        className="w-full h-full object-contain"
+                        referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          const target = e.currentTarget;
+                          if (target.src.includes('/assets/images/')) {
+                            target.src = target.src.replace('/assets/images/', '/src/assets/images/');
+                          }
+                        }}
+                      />
+                    </div>
                     {slide.imageCaption && (
-                      <p className="p-3 bg-black/40 text-xs sm:text-sm text-white/90 border-t border-white/10 font-medium">
+                      <p className="px-3.5 py-2 bg-black/40 text-xs sm:text-sm text-white/90 border-t border-white/10 font-medium">
                         {slide.imageCaption}
                       </p>
                     )}
                   </motion.div>
                 )}
               </div>
-            </div>
+            </AutoFitStageContainer>
           ) : slide.type === 'closing' ? (
-            <div className="flex-1 min-h-0 bg-[#1F3A5F] text-white p-6 sm:p-10 flex flex-col justify-between overflow-y-auto">
+            <AutoFitStageContainer
+              resetKey={autoFitResetKey}
+              outerClassName="bg-[#1F3A5F] text-white"
+              innerClassName={
+                isCompactPreview
+                  ? 'p-4 sm:p-6 justify-between'
+                  : 'p-5 sm:p-8 lg:p-10 justify-between'
+              }
+            >
               <div className="my-auto">
-                <p className="text-[#F28C28] font-bold text-xl sm:text-3xl mb-5">{slide.title}</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-6xl items-stretch">
+                <p className="text-[#F28C28] font-bold text-xl sm:text-3xl mb-4">{slide.title}</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 max-w-6xl items-stretch">
                   {slide.cards?.map((card, idx) => {
                     const stepNum = slideStepAssignments.cardSteps[idx];
                     if (!isStepVisible(stepNum)) return null;
@@ -820,18 +986,18 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                       <motion.div
                         key={idx}
                         {...itemRevealProps}
-                        className={`flex items-start gap-4 bg-white/10 border border-white/15 rounded-2xl p-4 sm:p-5 h-full ${
+                        className={`flex items-start gap-3.5 bg-white/10 border border-white/15 rounded-2xl p-3.5 sm:p-4.5 h-full ${
                           idx === 4 ? 'md:col-span-2' : ''
                         }`}
                       >
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#F28C28] text-white font-display font-bold text-base sm:text-xl flex items-center justify-center shrink-0 tabular-nums">
+                        <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-[#F28C28] text-white font-display font-bold text-base sm:text-lg flex items-center justify-center shrink-0 tabular-nums">
                           {idx + 1}
                         </div>
                         <div className="min-w-0">
-                          <h3 className="font-display text-lg sm:text-2xl font-bold text-white leading-snug">
+                          <h3 className="font-display text-base sm:text-xl font-bold text-white leading-snug">
                             {card.title.replace(/^\d+\.\s*/, '')}
                           </h3>
-                          <p className="text-white/85 text-sm sm:text-lg mt-1 leading-relaxed">
+                          <p className="text-white/85 text-xs sm:text-base mt-1 leading-relaxed">
                             {card.body}
                           </p>
                         </div>
@@ -840,9 +1006,9 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                   })}
                 </div>
               </div>
-              <div className="pt-4 mt-3 border-t border-white/15 flex flex-wrap items-center justify-between gap-3 shrink-0">
+              <div className="pt-3.5 mt-3 border-t border-white/15 flex flex-wrap items-center justify-between gap-3 shrink-0">
                 <div>
-                  <p className="text-base sm:text-xl font-medium text-white">
+                  <p className="text-sm sm:text-xl font-medium text-white">
                     {slide.subtitle || 'Terima kasih! Tanya jawab dipersilakan.'}
                   </p>
                 </div>
@@ -860,46 +1026,57 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                   </button>
                 )}
               </div>
-            </div>
+            </AutoFitStageContainer>
           ) : (
             <>
               {/* Slide Header Bar (Locked at Top of Slide) */}
-              <div className="bg-[#1F3A5F] text-white px-5 sm:px-8 py-3.5 sm:py-4 flex items-center justify-between gap-4 shrink-0">
+              <div
+                className={`bg-[#1F3A5F] text-white px-5 sm:px-8 flex items-center justify-between gap-4 shrink-0 ${
+                  isCompactPreview || dynamicDensity === 'compact'
+                    ? 'py-2.5 sm:py-3'
+                    : 'py-3 sm:py-4'
+                }`}
+              >
                 <h2
                   className={`font-display font-bold tracking-tight leading-snug ${
                     isCompactPreview
-                      ? 'text-lg sm:text-xl'
+                      ? 'text-base sm:text-lg'
                       : dynamicDensity === 'jumbo'
                       ? 'text-2xl sm:text-4xl lg:text-5xl'
                       : dynamicDensity === 'medium'
-                      ? 'text-xl sm:text-3xl lg:text-4xl'
-                      : 'text-xl sm:text-2xl lg:text-3xl'
+                      ? 'text-xl sm:text-2xl lg:text-4xl'
+                      : 'text-lg sm:text-xl lg:text-2xl'
                   }`}
                 >
                   {slide.title}
                 </h2>
-                <span className="px-4 py-1.5 rounded-full bg-[#F28C28] text-white text-xs sm:text-sm font-bold tracking-wide shrink-0">
+                <span className="px-3.5 py-1 rounded-full bg-[#F28C28] text-white text-xs sm:text-sm font-bold tracking-wide shrink-0">
                   {slide.badge}
                 </span>
               </div>
 
-              {/* Slide Body Content (Dynamic sizing based on visible cards & blocks) */}
-              <div
-                className={`flex-1 min-h-0 overflow-y-auto px-5 sm:px-8 ${
-                  dynamicDensity === 'compact' ? 'py-3 sm:py-4 gap-3' : 'py-4 sm:py-6 gap-5'
-                } flex flex-col justify-between`}
+              {/* Slide Body Content (Auto-fit & Dynamic sizing based on image + visible cards & blocks) */}
+              <AutoFitStageContainer
+                resetKey={autoFitResetKey}
+                innerClassName={`px-5 sm:px-8 justify-between ${
+                  isCompactPreview || dynamicDensity === 'compact'
+                    ? 'py-2.5 sm:py-3 gap-2.5'
+                    : dynamicDensity === 'medium'
+                    ? 'py-3 sm:py-4 gap-3.5'
+                    : 'py-4 sm:py-6 gap-5'
+                }`}
               >
                 <div className="shrink-0">
                   {slide.subtitle && (
                     <p
                       className={`font-bold text-[#1F3A5F] max-w-5xl leading-snug ${
                         isCompactPreview
-                          ? 'text-sm sm:text-base'
+                          ? 'text-xs sm:text-sm'
                           : dynamicDensity === 'jumbo'
                           ? 'text-lg sm:text-2xl lg:text-3xl'
                           : dynamicDensity === 'medium'
                           ? 'text-base sm:text-xl lg:text-2xl'
-                          : 'text-base sm:text-lg lg:text-xl'
+                          : 'text-sm sm:text-base lg:text-lg'
                       }`}
                     >
                       {slide.subtitle}
@@ -911,7 +1088,7 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                     stepByStepEnabled &&
                     revealedStep === 0 &&
                     maxSteps > 0 && (
-                      <div className="mt-4 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#1F3A5F]/5 border border-[#1F3A5F]/15 text-xs sm:text-sm font-semibold text-[#1F3A5F]/75">
+                      <div className="mt-2.5 inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#1F3A5F]/5 border border-[#1F3A5F]/15 text-xs sm:text-sm font-semibold text-[#1F3A5F]/75">
                         <Layers className="w-4 h-4 text-[#F28C28] shrink-0" />
                         <span>
                           Klik layar atau tekan <strong>Panah Kanan (→) / Spasi</strong> untuk memunculkan poin pertama (1 dari {maxSteps})
@@ -927,18 +1104,32 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                   const isSideImage = hasImage && slide.imagePosition !== 'top';
                   const isLeftImage = isSideImage && slide.imagePosition === 'left';
 
+                  const topImageHeightClass = isCompactPreview
+                    ? totalCardsCount > 0 || visibleSecondaryBlocks > 0
+                      ? 'h-[105px]'
+                      : 'h-[160px]'
+                    : totalCardsCount === 0 && visibleSecondaryBlocks === 0
+                    ? 'h-[clamp(180px,42vh,380px)]'
+                    : visibleSecondaryBlocks >= 2 || totalCardsCount >= 4
+                    ? 'h-[clamp(95px,18vh,180px)]'
+                    : 'h-[clamp(115px,22vh,225px)]';
+
+                  const sideImageHeightClass = isCompactPreview
+                    ? 'h-[190px]'
+                    : 'h-[clamp(160px,38vh,380px)] lg:h-[clamp(190px,44vh,430px)]';
+
                   const slideImageBlock = hasImage ? (
                     <motion.div
                       {...itemRevealProps}
-                      className={`rounded-2xl bg-white border-2 border-[#1F3A5F]/20 overflow-hidden shadow-md flex flex-col justify-between ${
+                      className={`rounded-2xl bg-white border-2 border-[#1F3A5F]/20 overflow-hidden shadow-sm flex flex-col justify-between ${
                         isTopImage
-                          ? 'w-full max-h-[220px] sm:max-h-[300px] mb-3 shrink-0'
-                          : 'h-full min-h-[240px] max-h-[520px]'
+                          ? 'w-full shrink-0'
+                          : 'w-full my-auto'
                       }`}
                     >
                       <div
-                        className={`relative overflow-hidden bg-slate-900/5 flex items-center justify-center ${
-                          isTopImage ? 'h-full min-h-[140px]' : 'flex-1 min-h-[180px]'
+                        className={`relative overflow-hidden bg-[#1F3A5F]/[0.03] flex items-center justify-center ${
+                          isTopImage ? topImageHeightClass : sideImageHeightClass
                         }`}
                       >
                         <img
@@ -948,7 +1139,7 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                               : slide.imageUrl || ''
                           }
                           alt={slide.imageCaption || slide.title}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-contain"
                           referrerPolicy="no-referrer"
                           onError={(e) => {
                             const target = e.currentTarget;
@@ -959,9 +1150,9 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                         />
                       </div>
                       {slide.imageCaption && (
-                        <div className="px-4 py-2.5 bg-white border-t border-[#1F3A5F]/15 flex items-center gap-2 shrink-0">
-                          <span className="w-2.5 h-2.5 rounded-full bg-[#F28C28] shrink-0" />
-                          <span className="text-xs sm:text-sm font-bold text-[#1F3A5F] leading-snug line-clamp-2">
+                        <div className="px-3.5 py-1.5 bg-white border-t border-[#1F3A5F]/15 flex items-center gap-2 shrink-0">
+                          <span className="w-2 h-2 rounded-full bg-[#F28C28] shrink-0" />
+                          <span className="text-[11px] sm:text-xs font-bold text-[#1F3A5F] leading-snug line-clamp-2">
                             {slide.imageCaption}
                           </span>
                         </div>
@@ -1049,12 +1240,14 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                           </div>
                         )}
 
-                      {/* Dynamic Multi-Column Kanban Cards (Large when few items, proportional when many) */}
+                      {/* Dynamic Multi-Column Kanban Cards (Large when few items, proportional when many/image present) */}
                       {slide.cards &&
                         slide.type !== 'agenda' &&
                         slide.cards[0]?.title !== 'ARTINYA' && (
                           <div
-                            className={`grid grid-cols-1 gap-4 items-stretch ${
+                            className={`grid grid-cols-1 ${
+                              dynamicDensity === 'compact' ? 'gap-2.5 sm:gap-3' : 'gap-4'
+                            } items-stretch ${
                               dynamicDensity === 'jumbo' ? 'my-auto' : ''
                             } ${
                               isSideImage
@@ -1071,30 +1264,40 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                             {slide.cards.map((card, i) => {
                               const stepNum = slideStepAssignments.cardSteps[i];
                               if (!isStepVisible(stepNum)) return null;
+                              const isUltraDenseCard =
+                                isCompactPreview ||
+                                hasHeavyTopImage ||
+                                (isSideImage && (slide.cards?.length || 0) >= 4);
                               return (
                                 <motion.div
                                   key={i}
                                   {...itemRevealProps}
                                   className={`h-full rounded-2xl bg-white ${
-                                    dynamicDensity === 'jumbo'
-                                      ? 'p-6 sm:p-7 min-h-[220px]'
+                                    isUltraDenseCard
+                                      ? 'p-3 sm:p-3.5'
+                                      : dynamicDensity === 'jumbo'
+                                      ? 'p-6 sm:p-7 min-h-[175px]'
                                       : dynamicDensity === 'medium'
-                                      ? 'p-5 sm:p-6'
-                                      : 'p-4 sm:p-5'
+                                      ? 'p-4 sm:p-5'
+                                      : 'p-3.5 sm:p-4'
                                   } border-2 flex flex-col justify-between shadow-xs ${
                                     card.accent === 'orange' ? 'border-[#F28C28]' : 'border-[#2A9D8F]'
                                   }`}
                                 >
                                   <div>
                                     <div
-                                      className={`w-10 h-2 rounded-full mb-3 ${
+                                      className={`w-10 ${
+                                        isUltraDenseCard ? 'h-1.5 mb-2' : 'h-2 mb-2.5'
+                                      } rounded-full ${
                                         card.accent === 'orange' ? 'bg-[#F28C28]' : 'bg-[#2A9D8F]'
                                       }`}
                                     />
                                     <h3
-                                      className={`font-display font-bold text-[#1F3A5F] mb-2 leading-snug ${
+                                      className={`font-display font-bold text-[#1F3A5F] mb-1.5 leading-snug ${
                                         isCompactPreview
-                                          ? 'text-base sm:text-lg'
+                                          ? 'text-sm sm:text-base'
+                                          : isUltraDenseCard
+                                          ? 'text-sm sm:text-base lg:text-lg'
                                           : dynamicDensity === 'jumbo'
                                           ? 'text-xl sm:text-2xl lg:text-3xl'
                                           : dynamicDensity === 'medium'
@@ -1105,14 +1308,16 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                                       {card.title}
                                     </h3>
                                     <p
-                                      className={`text-[#1F3A5F]/90 leading-relaxed font-medium ${
+                                      className={`text-[#1F3A5F]/90 leading-snug font-medium ${
                                         isCompactPreview
-                                          ? 'text-xs sm:text-sm'
+                                          ? 'text-xs'
+                                          : isUltraDenseCard
+                                          ? 'text-xs sm:text-sm lg:text-base'
                                           : dynamicDensity === 'jumbo'
                                           ? 'text-base sm:text-xl lg:text-2xl'
                                           : dynamicDensity === 'medium'
                                           ? 'text-sm sm:text-lg lg:text-xl'
-                                          : 'text-sm sm:text-base lg:text-lg'
+                                          : 'text-xs sm:text-sm lg:text-base'
                                       }`}
                                     >
                                       {card.body}
@@ -1120,10 +1325,10 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                                   </div>
                                   {card.extra && (
                                     <p
-                                      className={`font-semibold text-[#1F3A5F]/80 mt-3 pt-2.5 border-t border-[#1F3A5F]/15 leading-snug ${
+                                      className={`font-semibold text-[#1F3A5F]/80 mt-2 pt-2 border-t border-[#1F3A5F]/15 leading-snug ${
                                         dynamicDensity === 'jumbo'
                                           ? 'text-sm sm:text-lg'
-                                          : 'text-xs sm:text-base'
+                                          : 'text-xs sm:text-sm'
                                       }`}
                                     >
                                       {card.extra}
@@ -1138,7 +1343,9 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                       {/* Comparison boxes (Dynamic Large / Proportional Height) */}
                       {slide.comparison && (
                         <div
-                          className={`grid grid-cols-1 ${isSideImage ? 'gap-3.5' : 'md:grid-cols-2 gap-4'} items-stretch ${
+                          className={`grid grid-cols-1 ${
+                            isSideImage ? 'gap-3' : 'md:grid-cols-2 gap-3.5'
+                          } items-stretch ${
                             !slide.cards || slide.cards.length === 0 ? 'my-auto' : ''
                           }`}
                         >
@@ -1146,23 +1353,35 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                             <motion.div
                               {...itemRevealProps}
                               className={`h-full rounded-2xl ${
-                                !slide.cards || slide.cards.length === 0
-                                  ? 'p-6 sm:p-8 min-h-[220px]'
-                                  : dynamicDensity === 'medium'
-                                  ? 'p-4 sm:p-6'
-                                  : 'p-4 sm:p-5'
+                                !hasSlideImage &&
+                                (!slide.cards || slide.cards.length === 0) &&
+                                !isPromptVisible &&
+                                !isBannerVisible &&
+                                !isCompactPreview
+                                  ? 'p-6 sm:p-8 min-h-[190px]'
+                                  : dynamicDensity === 'medium' && !isCompactPreview
+                                  ? 'p-4 sm:p-5'
+                                  : 'p-3.5 sm:p-4'
                               } bg-[#FDE8E8] border-2 border-red-200 flex flex-col justify-between`}
                             >
-                              <p className="text-sm sm:text-lg font-bold text-red-800 mb-1.5">
+                              <p
+                                className={`font-bold text-red-800 mb-1 ${
+                                  isCompactPreview || dynamicDensity === 'compact'
+                                    ? 'text-xs sm:text-base'
+                                    : 'text-sm sm:text-lg'
+                                }`}
+                              >
                                 {slide.comparison.leftTitle}
                               </p>
                               <p
                                 className={`${
-                                  !slide.cards || slide.cards.length === 0
+                                  isCompactPreview
+                                    ? 'text-xs sm:text-sm'
+                                    : !hasSlideImage && (!slide.cards || slide.cards.length === 0) && !isPromptVisible
                                     ? 'text-lg sm:text-2xl lg:text-3xl'
                                     : dynamicDensity === 'medium'
-                                    ? 'text-base sm:text-xl lg:text-2xl'
-                                    : 'text-sm sm:text-lg lg:text-xl'
+                                    ? 'text-sm sm:text-lg lg:text-xl'
+                                    : 'text-xs sm:text-sm lg:text-base'
                                 } font-semibold text-[#1F3A5F] whitespace-pre-line leading-snug`}
                               >
                                 {slide.comparison.leftBody}
@@ -1173,23 +1392,35 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                             <motion.div
                               {...itemRevealProps}
                               className={`h-full rounded-2xl ${
-                                !slide.cards || slide.cards.length === 0
-                                  ? 'p-6 sm:p-8 min-h-[220px]'
-                                  : dynamicDensity === 'medium'
-                                  ? 'p-4 sm:p-6'
-                                  : 'p-4 sm:p-5'
+                                !hasSlideImage &&
+                                (!slide.cards || slide.cards.length === 0) &&
+                                !isPromptVisible &&
+                                !isBannerVisible &&
+                                !isCompactPreview
+                                  ? 'p-6 sm:p-8 min-h-[190px]'
+                                  : dynamicDensity === 'medium' && !isCompactPreview
+                                  ? 'p-4 sm:p-5'
+                                  : 'p-3.5 sm:p-4'
                               } bg-[#E3F5F2] border-2 border-[#2A9D8F]/40 flex flex-col justify-between`}
                             >
-                              <p className="text-sm sm:text-lg font-bold text-[#1d6f65] mb-1.5">
+                              <p
+                                className={`font-bold text-[#1d6f65] mb-1 ${
+                                  isCompactPreview || dynamicDensity === 'compact'
+                                    ? 'text-xs sm:text-base'
+                                    : 'text-sm sm:text-lg'
+                                }`}
+                              >
                                 {slide.comparison.rightTitle}
                               </p>
                               <p
                                 className={`${
-                                  !slide.cards || slide.cards.length === 0
+                                  isCompactPreview
+                                    ? 'text-xs sm:text-sm'
+                                    : !hasSlideImage && (!slide.cards || slide.cards.length === 0) && !isPromptVisible
                                     ? 'text-lg sm:text-2xl lg:text-3xl'
                                     : dynamicDensity === 'medium'
-                                    ? 'text-base sm:text-xl lg:text-2xl'
-                                    : 'text-sm sm:text-lg lg:text-xl'
+                                    ? 'text-sm sm:text-lg lg:text-xl'
+                                    : 'text-xs sm:text-sm lg:text-base'
                                 } font-semibold text-[#1F3A5F] whitespace-pre-line leading-snug`}
                               >
                                 {slide.comparison.rightBody}
@@ -1205,17 +1436,17 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                     <>
                       {isTopImage && slideImageBlock}
                       {isSideImage ? (
-                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch my-auto">
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center my-auto min-h-0">
                           {isLeftImage && (
-                            <div className="lg:col-span-5 flex flex-col justify-center">
+                            <div className="lg:col-span-5 flex flex-col justify-center min-h-0">
                               {slideImageBlock}
                             </div>
                           )}
-                          <div className="lg:col-span-7 flex flex-col justify-center space-y-4">
+                          <div className="lg:col-span-7 flex flex-col justify-center space-y-2.5 sm:space-y-3 min-h-0">
                             {mainContentCards}
                           </div>
                           {!isLeftImage && (
-                            <div className="lg:col-span-5 flex flex-col justify-center">
+                            <div className="lg:col-span-5 flex flex-col justify-center min-h-0">
                               {slideImageBlock}
                             </div>
                           )}
@@ -1231,7 +1462,11 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                 {slide.bottomBanner && isStepVisible(slideStepAssignments.bannerStep) && (
                   <motion.div
                     {...itemRevealProps}
-                    className="rounded-xl bg-[#1F3A5F] text-white px-5 py-3.5 text-center font-display text-sm sm:text-xl lg:text-2xl font-bold shrink-0"
+                    className={`rounded-xl bg-[#1F3A5F] text-white px-4 sm:px-5 text-center font-display font-bold shrink-0 ${
+                      isCompactPreview || dynamicDensity === 'compact'
+                        ? 'py-2 sm:py-2.5 text-xs sm:text-base lg:text-lg'
+                        : 'py-3 text-sm sm:text-lg lg:text-xl'
+                    }`}
                   >
                     {slide.bottomBanner}
                   </motion.div>
@@ -1310,19 +1545,30 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                     <motion.div
                       {...itemRevealProps}
                       onClick={(e) => e.stopPropagation()}
-                      className="rounded-xl bg-[#FDE6C4]/70 border-2 border-dashed border-[#F28C28] p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-default shrink-0"
+                      className={`rounded-xl bg-[#FDE6C4]/70 border-2 border-dashed border-[#F28C28] flex flex-col md:flex-row md:items-center justify-between gap-3 cursor-default shrink-0 ${
+                        isCompactPreview || dynamicDensity === 'compact'
+                          ? 'p-3 sm:p-3.5'
+                          : 'p-4 sm:p-5'
+                      }`}
                     >
-                      <div className="space-y-1">
-                        <p className="text-xs sm:text-sm font-bold tracking-wider text-[#F28C28] uppercase">
+                      <div className="space-y-0.5 min-w-0">
+                        <p className="text-[11px] sm:text-xs font-bold tracking-wider text-[#F28C28] uppercase">
                           TULIS DI SINI (TERHUBUNG KE HP PESERTA)
                         </p>
                         {slide.promptLines?.map((line, idx) => (
-                          <p key={idx} className="text-sm sm:text-xl font-bold text-[#1F3A5F]">
+                          <p
+                            key={idx}
+                            className={`font-bold text-[#1F3A5F] leading-snug ${
+                              isCompactPreview || dynamicDensity === 'compact'
+                                ? 'text-xs sm:text-base lg:text-lg'
+                                : 'text-sm sm:text-xl'
+                            }`}
+                          >
                             {line}
                           </p>
                         ))}
                         {linkedQuestion && (
-                          <p className="text-xs sm:text-sm text-[#1F3A5F]/80">
+                          <p className="text-[11px] sm:text-xs text-[#1F3A5F]/80 leading-snug">
                             Pertanyaan Aktif: <strong>{linkedQuestion.questionText}</strong> — Contoh:{' '}
                             <span className="italic">{linkedQuestion.exampleAnswer}</span>
                           </p>
@@ -1330,7 +1576,7 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                       </div>
 
                       {!isAudienceExtendWindow && (
-                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 shrink-0">
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0">
                           {slide.linkedQuestionIndex !== undefined && (
                             <button
                               onClick={() => {
@@ -1340,7 +1586,7 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                                   onLaunchWorksheetQuestion(slide.linkedQuestionIndex!);
                                 }
                               }}
-                              className="px-4 py-2.5 rounded-xl bg-[#F28C28] text-white font-bold text-xs sm:text-sm hover:bg-[#d97719] transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                              className="px-3.5 py-2 rounded-xl bg-[#F28C28] text-white font-bold text-xs sm:text-sm hover:bg-[#d97719] transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
                             >
                               <CheckCircle2 className="w-4 h-4" />
                               <span>
@@ -1359,7 +1605,7 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                                   onLaunchPoll(slide.linkedPollId!);
                                 }
                               }}
-                              className="px-4 py-2.5 rounded-xl bg-[#2A9D8F] text-white font-bold text-xs sm:text-sm hover:bg-[#218276] transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                              className="px-3.5 py-2 rounded-xl bg-[#2A9D8F] text-white font-bold text-xs sm:text-sm hover:bg-[#218276] transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
                             >
                               <BarChart3 className="w-4 h-4" />
                               <span>Buka Grafik Polling Live</span>
@@ -1369,7 +1615,7 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                       )}
                     </motion.div>
                   )}
-              </div>
+              </AutoFitStageContainer>
             </>
           )}
         </motion.div>
@@ -1952,7 +2198,8 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
         </div>
       )}
     </div>
-  );
+    );
+  };
 
   // If this window is the dedicated 2nd-screen Audience Extend Display (?view=extend)
   if (isAudienceExtendWindow) {
