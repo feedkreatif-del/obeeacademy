@@ -279,6 +279,16 @@ export const RemoteClickerView: React.FC<RemoteClickerViewProps> = ({
     return {};
   }, []);
 
+  const isVpSesi1Curriculum = useMemo(
+    () =>
+      questions.some(
+        (q) =>
+          q.sectionTitle.includes('Rational Value') ||
+          q.sectionTitle.includes('Apa Itu Value Proposition?')
+      ),
+    [questions]
+  );
+
   // Calculate step details for current slide
   const slideStepAssignments = useMemo(() => {
     if (!slide || slide.type === 'cover') {
@@ -324,7 +334,9 @@ export const RemoteClickerView: React.FC<RemoteClickerViewProps> = ({
       });
     }
 
-    const hasDictionary = slide.linkedQuestionIndex === 2 || slide.linkedQuestionIndex === 3;
+    const hasDictionary =
+      isVpSesi1Curriculum &&
+      (slide.linkedQuestionIndex === 2 || slide.linkedQuestionIndex === 3);
     if (hasDictionary) {
       const dStep = ++counter;
       stepDetails.push({
@@ -362,7 +374,7 @@ export const RemoteClickerView: React.FC<RemoteClickerViewProps> = ({
       totalSteps: counter,
       stepDetails,
     };
-  }, [slide, questions]);
+  }, [slide, questions, isVpSesi1Curriculum]);
 
   const maxSteps = slideStepAssignments.totalSteps;
   const revealedStep = stepByStepEnabled

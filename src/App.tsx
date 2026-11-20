@@ -484,24 +484,32 @@ export default function App() {
           const isPackaging =
             customContent.materialId === 'desain_kemasan_pemasaran_umkm' ||
             titleLower.includes('desain kemasan');
+          const isCopywriting =
+            customContent.materialId === 'copywriting_foto_sosmed_umkm' ||
+            titleLower.includes('caption & foto produk');
 
-          const hasSesi1Seed = seedAnswers.some(
-            (sa) =>
-              sa.participantId === 'seed_busari' ||
-              sa.participantId === 'seed_kemuning' ||
-              sa.participantId === 'seed_berkah'
-          );
-          const hasSesi2Seed = seedAnswers.some((sa) =>
-            sa.participantId?.startsWith('seed_s2_')
-          );
-          const hasPkgSeed = seedAnswers.some((sa) =>
-            sa.participantId?.startsWith('seed_pkg_')
+          const hasSesi1Seed =
+            seedAnswers.some(
+              (sa) =>
+                sa.participantId === 'seed_busari' ||
+                sa.participantId === 'seed_kemuning' ||
+                sa.participantId === 'seed_berkah'
+            ) && seedAnswers.some((sa) => sa.q === 6);
+          const hasSesi2Seed =
+            seedAnswers.some((sa) => sa.participantId?.startsWith('seed_s2_')) &&
+            seedAnswers.some((sa) => sa.q === 6 && sa.participantId === 'seed_s2_dita');
+          const hasPkgSeed =
+            seedAnswers.some((sa) => sa.participantId?.startsWith('seed_pkg_')) &&
+            seedAnswers.some((sa) => sa.q === 4);
+          const hasCwSeed = seedAnswers.some((sa) =>
+            sa.participantId?.startsWith('seed_cw_')
           );
 
           const isMismatched =
             (isSesi2 && !hasSesi2Seed) ||
             (isPackaging && !hasPkgSeed) ||
-            (!isSesi2 && !isPackaging && !hasSesi1Seed);
+            (isCopywriting && !hasCwSeed) ||
+            (!isSesi2 && !isPackaging && !isCopywriting && !hasSesi1Seed);
 
           if (hasDuplicates || isMismatched) {
             sesiSeedHealDoneRef.current = true;

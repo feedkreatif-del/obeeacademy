@@ -612,7 +612,8 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
     slide.bottomBanner && isStepVisible(slideStepAssignments.bannerStep)
   );
   const isDictVisible = Boolean(
-    (slide.linkedQuestionIndex === 2 || slide.linkedQuestionIndex === 3) &&
+    isVpSesi1Curriculum &&
+      (slide.linkedQuestionIndex === 2 || slide.linkedQuestionIndex === 3) &&
       isStepVisible(slideStepAssignments.dictionaryStep)
   );
   const isPromptVisible = Boolean(

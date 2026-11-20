@@ -929,6 +929,18 @@ export const INITIAL_SEED_ANSWERS = [
     ts: Date.now() - 3000000,
   },
   {
+    q: 2,
+    text: 'Kue kering tanpa pengawet untuk hantaran keluarga, tahan 2 bulan, kemasan box tebal bebas penyok.',
+    subText: 'Bukan sekadar slogan atau berat gram, tapi alasan kenapa pembeli memilih produk kami.',
+    businessName: 'Dapur Hampers Sari',
+    participantId: 'seed_dapurhampers',
+    status: 'approved' as const,
+    star: false,
+    likes: 5,
+    mentorNote: '',
+    ts: Date.now() - 2800000,
+  },
+  {
     q: 3,
     text: '1. Tanpa pengawet & tahan 3 bulan. 2. Kemasan zip 150 gram Rp15 ribu (garansi ganti baru jika melempem).',
     subText: 'Ada video proses penggorengan vakum bersih di highlight Instagram.',
@@ -965,6 +977,19 @@ export const INITIAL_SEED_ANSWERS = [
     likes: 14,
     mentorNote: 'Kalimat Versi 3 yang sempurna — menjawab siapa pembelinya, perasaannya, dan buktinya dalam satu napas!',
     ts: Date.now() - 1500000,
+  },
+  {
+    q: 6,
+    text: 'Pasang di Bio Instagram, foto pertama katalog WA, & salam pembuka chat malam ini. Minggu depan tanya 5 pembeli baru alasan mereka memilih kami.',
+    subText: 'Fokus uji coba 7 hari untuk melihat kenaikan jumlah chat yang bertanya.',
+    businessName: 'Keripik Apel Bu Sari',
+    participantId: 'seed_busari',
+    status: 'approved' as const,
+    star: true,
+    spotlightSize: 'kecil' as const,
+    likes: 8,
+    mentorNote: 'Langkah eksekusi yang jelas dan langsung menguji apakah VP bekerja di lapangan.',
+    ts: Date.now() - 1200000,
   },
 ];
 
@@ -1288,6 +1313,18 @@ export const SESI_2_SEED_ANSWERS = [
     mentorNote: 'Komitmen yang terukur dengan jam dan hari eksekusi yang pasti!',
     ts: Date.now() - 800000,
   },
+  {
+    q: 6,
+    text: '1. Tiap Selasa & Jumat upload Reels proses rajutan tangan + box kado. 2. Follow up 10 pembeli lama untuk paket hampers akhir bulan.',
+    subText: 'Kriya — fokus menaikkan pesanan Paket Kado Sahabat.',
+    businessName: 'Tas Rajut Kreasi Mbak Dita',
+    participantId: 'seed_s2_dita',
+    status: 'approved' as const,
+    star: false,
+    likes: 7,
+    mentorNote: '',
+    ts: Date.now() - 700000,
+  },
 ];
 
 export const SESI_2_SEED_QNA = [
@@ -1327,7 +1364,7 @@ export const SESI_2_SEED_QNA = [
 ];
 
 // ============================================================================
-// SIMULASI KHUSUS MATERI DESAIN KEMASAN UMKM
+// SIMULASI KHUSUS MATERI DESAIN KEMASAN UMKM (Lengkap Q0–Q6)
 // ============================================================================
 
 export const PACKAGING_SEED_ANSWERS = [
@@ -1342,7 +1379,7 @@ export const PACKAGING_SEED_ANSWERS = [
     spotlightSize: 'besar' as const,
     likes: 8,
     mentorNote: 'Audit yang sangat jujur! Mengganti stiker HVS ke vinyl anti minyak langsung menaikkan kesan higienis.',
-    ts: Date.now() - 3200000,
+    ts: Date.now() - 3600000,
   },
   {
     q: 1,
@@ -1351,10 +1388,11 @@ export const PACKAGING_SEED_ANSWERS = [
     businessName: 'Dapoer Mak Renyah',
     participantId: 'seed_pkg_makrenyah',
     status: 'approved' as const,
-    star: false,
-    likes: 6,
-    mentorNote: '',
-    ts: Date.now() - 2600000,
+    star: true,
+    spotlightSize: 'kecil' as const,
+    likes: 7,
+    mentorNote: 'Warna kontras adalah pemenang hukum 3 detik pertama di rak toko oleh-oleh.',
+    ts: Date.now() - 3200000,
   },
   {
     q: 2,
@@ -1364,10 +1402,60 @@ export const PACKAGING_SEED_ANSWERS = [
     participantId: 'seed_pkg_makrenyah',
     status: 'approved' as const,
     star: true,
-    spotlightSize: 'kecil' as const,
+    spotlightSize: 'besar' as const,
     likes: 9,
     mentorNote: 'Hierarki ukuran huruf sudah tepat dan terbaca dalam 3 detik!',
+    ts: Date.now() - 2800000,
+  },
+  {
+    q: 3,
+    text: 'Sudah ada Logo Halal & nomor WhatsApp pesanan. Target bulan ini: melengkapi nomor P-IRT resmi & kotak stempel rapi untuk Tanggal Kedaluwarsa.',
+    subText: 'Siap masuk etalase toko oleh-oleh modern & pusat wisata Blitar.',
+    businessName: 'Dapoer Mak Renyah',
+    participantId: 'seed_pkg_makrenyah',
+    status: 'approved' as const,
+    star: false,
+    likes: 6,
+    mentorNote: 'P-IRT dan tanggal expired yang rapi membuka pintu masuk ke jaringan toko modern.',
+    ts: Date.now() - 2400000,
+  },
+  {
+    q: 4,
+    text: 'Kemasan lama plastik klip Rp10.000 (margin Rp3.000). Pakai standing pouch foil matte + stiker vinyl harga naik jadi Rp18.000 — biaya naik Rp1.200 tapi untung melonjak jadi Rp8.800/pcs!',
+    subText: 'Pembeli tidak menawar karena tampilan terlihat higienis dan pantas untuk oleh-oleh.',
+    businessName: 'Dapoer Mak Renyah',
+    participantId: 'seed_pkg_makrenyah',
+    status: 'approved' as const,
+    star: true,
+    spotlightSize: 'besar' as const,
+    likes: 12,
+    mentorNote: 'Pricing power nyata: tambah modal kemasan Rp1.200 menaikkan untung bersih hampir 3x lipat!',
     ts: Date.now() - 2000000,
+  },
+  {
+    q: 5,
+    text: 'Warna terakota (merah bata) kombinasi emas tua — menampilkan kesan sambal resep warisan keluarga yang kaya rempah, pedas mantap, & mewah untuk bingkisan.',
+    subText: 'Dibatasi 2 warna dominan + putih agar tulisan tetap bersih dibaca.',
+    businessName: 'Sambal Mbok Darmi',
+    participantId: 'seed_pkg_mbokdarmi',
+    status: 'approved' as const,
+    star: false,
+    likes: 8,
+    mentorNote: 'Psikologi warna hangat sangat efektif memicu selera makan.',
+    ts: Date.now() - 1600000,
+  },
+  {
+    q: 6,
+    text: '1. Cetak 100 lembar stiker vinyl anti minyak di percetakan digital minggu ini. 2. Ganti wadah plastik klip ke standing pouch kraft berjendela.',
+    subText: 'Eksekusi bertahap tanpa harus keluar modal jutaan cetak kemasan massal.',
+    businessName: 'Dapoer Mak Renyah',
+    participantId: 'seed_pkg_makrenyah',
+    status: 'approved' as const,
+    star: true,
+    spotlightSize: 'kecil' as const,
+    likes: 10,
+    mentorNote: 'Langkah paling realistis dan cepat dieksekusi UMKM tanpa beban MOQ ribuan!',
+    ts: Date.now() - 1200000,
   },
 ];
 
@@ -1376,12 +1464,83 @@ export const PACKAGING_SEED_QNA = [
     text: 'Untuk UMKM pemula yang modal cetaknya masih terbatas, apakah wajib langsung cetak kemasan full printing ribuan pcs atau boleh pakai pouch polos + stiker vinyl dulu?',
     authorName: 'Anonim (UMKM Camilan)',
     isAnonymous: true,
-    topicTag: 'Biaya & MOQ Cetak',
+    topicTag: 'Solusi Cetak Tanpa MOQ Ribuan',
     upvotes: 12,
     status: 'approved' as const,
     star: true,
     participantId: 'seed_qna_pkg_1',
     ts: Date.now() - 1500000,
+  },
+  {
+    text: 'Supaya foto produk ber-kemasan baru terlihat profesional untuk Instagram/WA meski cuma pakai HP, pencahayaan dan sudut foto apa yang paling aman?',
+    authorName: 'Kue Basah Bu Sri',
+    isAnonymous: false,
+    topicTag: 'Foto Produk untuk Display Sosmed',
+    upvotes: 9,
+    status: 'approved' as const,
+    star: false,
+    participantId: 'seed_qna_pkg_2',
+    ts: Date.now() - 1100000,
+  },
+];
+
+// ============================================================================
+// SIMULASI KHUSUS MATERI COPYWRITING & FOTO PRODUK SOSMED (Q0–Q2)
+// ============================================================================
+
+export const COPYWRITING_SEED_ANSWERS = [
+  {
+    q: 0,
+    text: 'Sedia aneka kue basah & tumpeng mini segar tanpa pengawet · Area Sidoarjo–Surabaya · Pesan H-1 klik link WA di bio.',
+    subText: 'Sudah menyebutkan jenis produk, keunggulan, lokasi, dan cara pesan dalam 3 detik.',
+    businessName: 'Pawon Kue Bu Rina',
+    participantId: 'seed_cw_burina',
+    status: 'approved' as const,
+    star: true,
+    spotlightSize: 'besar' as const,
+    likes: 9,
+    mentorNote: 'Bio sangat jernih! Pembeli baru langsung tahu jualan apa, lokasinya di mana, dan cara pesannya.',
+    ts: Date.now() - 2400000,
+  },
+  {
+    q: 1,
+    text: 'Bingung cari hantaran arisan atau rapat kantor yang tampil mewah tapi budget tetap hemat di bawah Rp35 ribu per kotak?',
+    subText: 'Menyentuh situasi panitia acara daripada langsung menulis "Ready kue enak murah".',
+    businessName: 'Pawon Kue Bu Rina',
+    participantId: 'seed_cw_burina',
+    status: 'approved' as const,
+    star: true,
+    spotlightSize: 'kecil' as const,
+    likes: 11,
+    mentorNote: 'Hook pertanyaan ini langsung menghentikan jempol ibu-ibu panitia arisan saat scroll!',
+    ts: Date.now() - 1800000,
+  },
+  {
+    q: 2,
+    text: 'Amankan kuota pengiriman Jumat pagi sekarang (tersisa 6 box paket hemat gratis ongkir dalam kota) — balas "MAU HANTARAN" ke WA di bio!',
+    subText: 'Ada alasan jelas untuk segera chat hari ini + perintah ketik yang mudah.',
+    businessName: 'Pawon Kue Bu Rina',
+    participantId: 'seed_cw_burina',
+    status: 'approved' as const,
+    star: true,
+    spotlightSize: 'besar' as const,
+    likes: 10,
+    mentorNote: 'CTA yang sangat kuat: memberi alasan kuota terbatas dan kata kunci balasan WA.',
+    ts: Date.now() - 1200000,
+  },
+];
+
+export const COPYWRITING_SEED_QNA = [
+  {
+    text: 'Kalau sudah tulis hook & CTA di caption Instagram tapi yang like sedikit, apakah sebaiknya tetap posting rutin di jam yang sama atau ubah gaya fotonya dulu?',
+    authorName: 'Anonim (Kuliner Rumahan)',
+    isAnonymous: true,
+    topicTag: 'Copywriting Caption',
+    upvotes: 10,
+    status: 'approved' as const,
+    star: true,
+    participantId: 'seed_qna_cw_1',
+    ts: Date.now() - 1400000,
   },
 ];
 
@@ -1414,9 +1573,19 @@ export function getSeedDataForCurriculum(
       qna: PACKAGING_SEED_QNA,
     };
   }
+  if (
+    materialId === 'copywriting_foto_sosmed_umkm' ||
+    titleLower.includes('caption & foto produk')
+  ) {
+    return {
+      answers: COPYWRITING_SEED_ANSWERS,
+      qna: COPYWRITING_SEED_QNA,
+    };
+  }
   return {
     answers: INITIAL_SEED_ANSWERS,
     qna: INITIAL_SEED_QNA,
   };
 }
+
 
