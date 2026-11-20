@@ -10,6 +10,7 @@ import {
 import { CustomContentDoc, SavedMaterial, BrandThemeConfig } from '../types';
 export type { SavedMaterial };
 import { DEFAULT_BRAND_THEME, sanitizeBrandTheme } from '../brandTheme';
+import { sanitizeForFirestore } from '../firebase';
 import {
   collection,
   doc,
@@ -1366,7 +1367,7 @@ export async function persistMaterial(
   // Simpan ke Firestore
   try {
     // Simpan ke doc ID materi di custom_content/{material.id}
-    await setDoc(doc(db, 'custom_content', material.id), {
+    const cleanDocPayload = sanitizeForFirestore({
       seminarTitle: updatedMaterial.seminarTitle,
       organizerName: updatedMaterial.organizerName,
       questions: updatedMaterial.content.questions,
@@ -1381,24 +1382,11 @@ export async function persistMaterial(
       isDefault: Boolean(updatedMaterial.isDefault),
       createdAt: updatedMaterial.createdAt || Date.now(),
     });
+    await setDoc(doc(db, 'custom_content', material.id), cleanDocPayload);
 
     // Jika diminta aktifkan, perbarui juga custom_content/active
     if (setAsActive) {
-      await setDoc(doc(db, 'custom_content', 'active'), {
-        seminarTitle: updatedMaterial.seminarTitle,
-        organizerName: updatedMaterial.organizerName,
-        questions: updatedMaterial.content.questions,
-        polls: updatedMaterial.content.polls,
-        slides: updatedMaterial.content.slides,
-        qnaTopics: updatedMaterial.content.qnaTopics,
-        brandTheme: sanitizeBrandTheme(updatedMaterial.content.brandTheme),
-        updatedAt: updatedMaterial.updatedAt,
-        materialId: updatedMaterial.id,
-        description: updatedMaterial.description || '',
-        category: updatedMaterial.category || 'Materi Kustom',
-        isDefault: Boolean(updatedMaterial.isDefault),
-        createdAt: updatedMaterial.createdAt || Date.now(),
-      });
+      await setDoc(doc(db, 'custom_content', 'active'), cleanDocPayload);
     }
   } catch (err) {
     console.warn('Gagal menyimpan materi ke Firestore, data aman di lokal:', err);

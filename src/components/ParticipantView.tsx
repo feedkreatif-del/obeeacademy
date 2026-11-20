@@ -102,7 +102,11 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
 
   useEffect(() => {
     setLocalTab(sessionState.activeMode);
-  }, [sessionState.activeMode, sessionState.activeQuestion, sessionState.activePollId]);
+  }, [sessionState.activeMode, sessionState.activeQuestion, sessionState.activePollId, seminarTitle]);
+
+  useEffect(() => {
+    setReaderSlideIdx(0);
+  }, [seminarTitle]);
 
   const [businessName, setBusinessName] = useState<string>(() => {
     try {
@@ -142,7 +146,7 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
     setSubmitSuccess(false);
     setSubmitError(false);
     setShowSubAnswer(false);
-  }, [activeQIndex]);
+  }, [activeQIndex, seminarTitle]);
 
   const isVpSesi1 = questions.some(
     (q) =>

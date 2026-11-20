@@ -113,3 +113,94 @@ export function getOrCreateParticipantId(): string {
     return 'umkm_guest_' + Math.random().toString(36).substring(2, 10);
   }
 }
+
+/**
+ * Recursively strips `undefined` properties so Firestore setDoc never rejects optional fields.
+ */
+export function sanitizeForFirestore<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value.map((item) => sanitizeForFirestore(item)) as unknown as T;
+  }
+  if (value !== null && typeof value === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      if (v !== undefined) {
+        out[k] = sanitizeForFirestore(v);
+      }
+    }
+    return out as T;
+  }
+  return value;
+}
+
+interface FirestoreRestValue {
+  stringValue?: string;
+  integerValue?: string | number;
+  doubleValue?: number;
+  booleanValue?: boolean;
+  nullValue?: null;
+  timestampValue?: string;
+  arrayValue?: { values?: FirestoreRestValue[] };
+  mapValue?: { fields?: Record<string, FirestoreRestValue> };
+}
+
+function decodeFirestoreRestValue(val: FirestoreRestValue): unknown {
+  if ('stringValue' in val) return val.stringValue;
+  if ('booleanValue' in val) return val.booleanValue;
+  if ('integerValue' in val) {
+    const n = Number(val.integerValue);
+    return Number.isNaN(n) ? 0 : n;
+  }
+  if ('doubleValue' in val) return val.doubleValue;
+  if ('nullValue' in val) return null;
+  if ('timestampValue' in val) return val.timestampValue;
+  if ('arrayValue' in val) {
+    return (val.arrayValue?.values || []).map((item) => decodeFirestoreRestValue(item));
+  }
+  if ('mapValue' in val) {
+    const res: Record<string, unknown> = {};
+    const fields = val.mapValue?.fields || {};
+    for (const [k, v] of Object.entries(fields)) {
+      res[k] = decodeFirestoreRestValue(v);
+    }
+    return res;
+  }
+  return undefined;
+}
+
+/**
+ * Direct HTTP server read (cache: 'no-store') as zero-cache fallback for mobile QR WebViews.
+ */
+export async function fetchFirestoreDocRest<T>(
+  collectionPath: string,
+  docId: string
+): Promise<T | null> {
+  if (!docId || !/^[a-zA-Z0-9_\-]+$/.test(docId)) return null;
+  try {
+    const url = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(
+      firebaseConfig.projectId
+    )}/databases/${encodeURIComponent(
+      firebaseConfig.firestoreDatabaseId
+    )}/documents/${encodeURIComponent(collectionPath)}/${encodeURIComponent(
+      docId
+    )}?_t=${Date.now()}`;
+    const resp = await fetch(url, {
+      method: 'GET',
+      cache: 'no-store',
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        Pragma: 'no-cache',
+      },
+    });
+    if (!resp.ok) return null;
+    const json = (await resp.json()) as { fields?: Record<string, FirestoreRestValue> };
+    if (!json?.fields) return null;
+    const decoded: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(json.fields)) {
+      decoded[k] = decodeFirestoreRestValue(v);
+    }
+    return decoded as T;
+  } catch {
+    return null;
+  }
+}

@@ -7,6 +7,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   doc,
   collection,
+  getDocFromServer,
   getDocs,
   onSnapshot,
   setDoc,
@@ -22,6 +23,8 @@ import {
   OperationType,
   handleFirestoreError,
   getOrCreateParticipantId,
+  sanitizeForFirestore,
+  fetchFirestoreDocRest,
 } from './firebase';
 import {
   PARTNERUP_QUESTIONS,
@@ -207,7 +210,9 @@ export default function App() {
   const [materials, setMaterials] = useState<SavedMaterial[]>(() => getSavedMaterialsLocal());
   const [activeMaterialId, setActiveMaterialId] = useState<string>(() => {
     const qrMid = initialQrTargetRef.current.materialId;
-    return qrMid || getActiveMaterialIdLocal();
+    if (qrMid) return qrMid;
+    if (viewRole === 'participant') return '';
+    return getActiveMaterialIdLocal();
   });
 
   const [participantId] = useState<string>(() => getOrCreateParticipantId());
@@ -357,10 +362,13 @@ export default function App() {
   }) => {
     const params = new URLSearchParams();
     params.set('view', 'participant');
-    const activeMat =
-      customContent.materialId || activeMaterialId || DEFAULT_PARTNERUP_CURRICULUM.id;
-    if (activeMat) {
-      params.set('mid', activeMat);
+    const inferredMatId =
+      customContent.materialId ||
+      materials.find((m) => m.seminarTitle === customContent.seminarTitle)?.id ||
+      activeMaterialId ||
+      DEFAULT_PARTNERUP_CURRICULUM.id;
+    if (inferredMatId) {
+      params.set('mid', inferredMatId);
     }
     const targetMode = opts?.mode ?? sessionState.activeMode;
     const targetQ = opts?.questionIndex ?? sessionState.activeQuestion;
@@ -370,6 +378,10 @@ export default function App() {
     if (targetPoll) {
       params.set('poll', targetPoll);
     }
+    const versionStamp = Math.floor(
+      Math.max(customContent.updatedAt || 0, sessionState.updatedAt || 0, 1) / 1000
+    ).toString(36);
+    params.set('v', versionStamp);
     return `${window.location.origin}${window.location.pathname}?${params.toString()}`;
   };
 
@@ -377,43 +389,184 @@ export default function App() {
   const extendUrl = `${window.location.origin}${window.location.pathname}?view=extend`;
 
   // Subscribe once to Session State, Custom Content, Answers, Q&A, and Poll Votes
+  // Plus direct getDocFromServer + zero-cache REST fallback so mobile QR scans never use stale cache
   useEffect(() => {
+    let isMounted = true;
+    let resolvedStateFromNetwork = false;
+    let resolvedContentFromNetwork = false;
+
+    const applyRemoteSession = (data: Partial<SessionStateDoc>) => {
+      if (!isMounted) return;
+      const nextState: SessionStateDoc = {
+        activeQuestion: typeof data.activeQuestion === 'number' ? data.activeQuestion : 0,
+        activeSlide: typeof data.activeSlide === 'number' ? data.activeSlide : 0,
+        activeSlideStep: typeof data.activeSlideStep === 'number' ? data.activeSlideStep : 0,
+        stepByStepEnabled:
+          typeof data.stepByStepEnabled === 'boolean' ? data.stepByStepEnabled : true,
+        transitionStyle: data.transitionStyle || 'slide',
+        activeSlideDrawer: data.activeSlideDrawer || 'none',
+        allowParticipantSlideAccess: Boolean(data.allowParticipantSlideAccess),
+        answersLocked: Boolean(data.answersLocked),
+        lockedNotice:
+          typeof data.lockedNotice === 'string'
+            ? data.lockedNotice
+            : DEFAULT_SESSION_STATE.lockedNotice,
+        activeMode: data.activeMode || 'worksheet',
+        activePollId: data.activePollId || 'rational_4types',
+        moderationEnabled: Boolean(data.moderationEnabled),
+        externalEmbedUrl: data.externalEmbedUrl || '',
+        externalPlatform: data.externalPlatform || 'slido',
+        sessionName: data.sessionName || DEFAULT_SESSION_STATE.sessionName,
+        updatedAt: typeof data.updatedAt === 'number' ? data.updatedAt : Date.now(),
+      };
+      sessionStateRef.current = nextState;
+      setSessionState(nextState);
+    };
+
+    const applyRemoteContent = (data: Partial<CustomContentDoc>) => {
+      if (!isMounted) return;
+      setCustomContent({
+        seminarTitle: data.seminarTitle || DEFAULT_CUSTOM_CONTENT.seminarTitle,
+        organizerName: data.organizerName || DEFAULT_CUSTOM_CONTENT.organizerName,
+        questions:
+          Array.isArray(data.questions) && data.questions.length > 0
+            ? data.questions
+            : PARTNERUP_QUESTIONS,
+        polls:
+          Array.isArray(data.polls) && data.polls.length > 0 ? data.polls : LIVE_POLLS,
+        slides:
+          Array.isArray(data.slides) && data.slides.length > 0
+            ? data.slides.map((s) => ({
+                ...s,
+                imageUrl: s.imageUrl?.startsWith('/src/assets/images/')
+                  ? s.imageUrl.replace('/src/assets/images/', '/assets/images/')
+                  : s.imageUrl,
+              }))
+            : SEMINAR_SLIDES,
+        qnaTopics:
+          Array.isArray(data.qnaTopics) && data.qnaTopics.length > 0
+            ? data.qnaTopics
+            : DEFAULT_QNA_TOPICS,
+        brandTheme: sanitizeBrandTheme(data.brandTheme),
+        updatedAt: typeof data.updatedAt === 'number' ? data.updatedAt : Date.now(),
+        materialId: data.materialId,
+        description: data.description,
+        category: data.category,
+        isDefault: Boolean(data.isDefault),
+        createdAt: data.createdAt,
+      });
+      if (data.materialId) {
+        setActiveMaterialId(data.materialId);
+        // Only host roles persist activeMaterialId to localStorage; participants always follow live server
+        if (isHostRoleRef.current) {
+          setActiveMaterialIdLocal(data.materialId);
+        }
+      }
+      // Auto-upgrade active Sesi 2 curriculum once if missing the 5 new slide visuals (HOST ONLY - never run from participant phones!)
+      const isSesi2ActiveDoc =
+        data.materialId === SESI_2_ACTION_PLAN_CURRICULUM.id ||
+        (data.seminarTitle || '').toLowerCase().includes('target penjualan');
+      if (
+        isHostRoleRef.current &&
+        isSesi2ActiveDoc &&
+        !sesi2ContentUpgradeDoneRef.current &&
+        (!data.slides?.[1]?.imageUrl || (data.updatedAt || 0) < 1732500000000)
+      ) {
+        sesi2ContentUpgradeDoneRef.current = true;
+        setDoc(
+          doc(db, 'custom_content', 'active'),
+          sanitizeForFirestore({
+            ...SESI_2_ACTION_PLAN_CURRICULUM.content,
+            brandTheme: sanitizeBrandTheme(data.brandTheme),
+            updatedAt: Date.now(),
+          })
+        ).catch((err) => {
+          console.warn('Sesi 2 visual upgrade skipped:', err);
+        });
+      }
+    };
+
     const syncFailsafeTimer = setTimeout(() => {
-      setSyncWaitTimedOut(true);
-    }, 2500);
+      if (isMounted) setSyncWaitTimedOut(true);
+    }, 5500);
 
     const stateRef = doc(db, 'state', 'session');
+    const contentRef = doc(db, 'custom_content', 'active');
+
+    // Direct zero-cache server fetch (SDK getDocFromServer + REST fallback) so QR scans never stall on cache
+    const fetchServerDirect = async () => {
+      try {
+        const [srvStateSnap, srvContentSnap] = await Promise.all([
+          getDocFromServer(stateRef).catch(() => null),
+          getDocFromServer(contentRef).catch(() => null),
+        ]);
+
+        if (srvStateSnap?.exists()) {
+          resolvedStateFromNetwork = true;
+          remoteStateExistsRef.current = true;
+          setHasRemoteState(true);
+          applyRemoteSession(srvStateSnap.data() as SessionStateDoc);
+        }
+        if (srvContentSnap?.exists()) {
+          resolvedContentFromNetwork = true;
+          remoteContentExistsRef.current = true;
+          setHasRemoteContent(true);
+          applyRemoteContent(srvContentSnap.data() as CustomContentDoc);
+        }
+      } catch {
+        // Fallback to REST below
+      }
+
+      if (!resolvedStateFromNetwork || !resolvedContentFromNetwork) {
+        const [restState, restContent] = await Promise.all([
+          resolvedStateFromNetwork
+            ? Promise.resolve(null)
+            : fetchFirestoreDocRest<SessionStateDoc>('state', 'session'),
+          resolvedContentFromNetwork
+            ? Promise.resolve(null)
+            : fetchFirestoreDocRest<CustomContentDoc>('custom_content', 'active'),
+        ]);
+
+        if (restState && !resolvedStateFromNetwork) {
+          resolvedStateFromNetwork = true;
+          remoteStateExistsRef.current = true;
+          setHasRemoteState(true);
+          applyRemoteSession(restState);
+        }
+        if (restContent && !resolvedContentFromNetwork) {
+          resolvedContentFromNetwork = true;
+          remoteContentExistsRef.current = true;
+          setHasRemoteContent(true);
+          applyRemoteContent(restContent);
+        } else if (!restContent && !resolvedContentFromNetwork && initialQrTargetRef.current.materialId) {
+          const qrMatRest = await fetchFirestoreDocRest<CustomContentDoc>(
+            'custom_content',
+            initialQrTargetRef.current.materialId
+          );
+          if (qrMatRest) {
+            resolvedContentFromNetwork = true;
+            setHasRemoteContent(true);
+            applyRemoteContent(qrMatRest);
+          }
+        }
+      }
+    };
+
+    fetchServerDirect();
+    const restRetryTimer = setTimeout(() => {
+      if (!resolvedStateFromNetwork || !resolvedContentFromNetwork) {
+        fetchServerDirect();
+      }
+    }, 1200);
+
     const unsubState = onSnapshot(
       stateRef,
       (snap) => {
         remoteStateExistsRef.current = snap.exists();
         setHasRemoteState(true);
         if (snap.exists()) {
-          const data = snap.data() as SessionStateDoc;
-          const nextState: SessionStateDoc = {
-            activeQuestion: typeof data.activeQuestion === 'number' ? data.activeQuestion : 0,
-            activeSlide: typeof data.activeSlide === 'number' ? data.activeSlide : 0,
-            activeSlideStep: typeof data.activeSlideStep === 'number' ? data.activeSlideStep : 0,
-            stepByStepEnabled:
-              typeof data.stepByStepEnabled === 'boolean' ? data.stepByStepEnabled : true,
-            transitionStyle: data.transitionStyle || 'slide',
-            activeSlideDrawer: data.activeSlideDrawer || 'none',
-            allowParticipantSlideAccess: Boolean(data.allowParticipantSlideAccess),
-            answersLocked: Boolean(data.answersLocked),
-            lockedNotice:
-              typeof data.lockedNotice === 'string'
-                ? data.lockedNotice
-                : DEFAULT_SESSION_STATE.lockedNotice,
-            activeMode: data.activeMode || 'worksheet',
-            activePollId: data.activePollId || 'rational_4types',
-            moderationEnabled: Boolean(data.moderationEnabled),
-            externalEmbedUrl: data.externalEmbedUrl || '',
-            externalPlatform: data.externalPlatform || 'slido',
-            sessionName: data.sessionName || DEFAULT_SESSION_STATE.sessionName,
-            updatedAt: data.updatedAt || Date.now(),
-          };
-          sessionStateRef.current = nextState;
-          setSessionState(nextState);
+          resolvedStateFromNetwork = true;
+          applyRemoteSession(snap.data() as SessionStateDoc);
         }
       },
       (err) => {
@@ -422,67 +575,14 @@ export default function App() {
       }
     );
 
-    const contentRef = doc(db, 'custom_content', 'active');
     const unsubContent = onSnapshot(
       contentRef,
       (snap) => {
         remoteContentExistsRef.current = snap.exists();
         setHasRemoteContent(true);
         if (snap.exists()) {
-          const data = snap.data() as CustomContentDoc;
-          setCustomContent({
-            seminarTitle: data.seminarTitle || DEFAULT_CUSTOM_CONTENT.seminarTitle,
-            organizerName: data.organizerName || DEFAULT_CUSTOM_CONTENT.organizerName,
-            questions:
-              Array.isArray(data.questions) && data.questions.length > 0
-                ? data.questions
-                : PARTNERUP_QUESTIONS,
-            polls:
-              Array.isArray(data.polls) && data.polls.length > 0 ? data.polls : LIVE_POLLS,
-            slides:
-              Array.isArray(data.slides) && data.slides.length > 0
-                ? data.slides.map((s) => ({
-                    ...s,
-                    imageUrl: s.imageUrl?.startsWith('/src/assets/images/')
-                      ? s.imageUrl.replace('/src/assets/images/', '/assets/images/')
-                      : s.imageUrl,
-                  }))
-                : SEMINAR_SLIDES,
-            qnaTopics:
-              Array.isArray(data.qnaTopics) && data.qnaTopics.length > 0
-                ? data.qnaTopics
-                : DEFAULT_QNA_TOPICS,
-            brandTheme: sanitizeBrandTheme(data.brandTheme),
-            updatedAt: data.updatedAt || Date.now(),
-            materialId: data.materialId,
-            description: data.description,
-            category: data.category,
-            isDefault: Boolean(data.isDefault),
-            createdAt: data.createdAt,
-          });
-          if (data.materialId) {
-            setActiveMaterialId(data.materialId);
-            setActiveMaterialIdLocal(data.materialId);
-          }
-          // Auto-upgrade active Sesi 2 curriculum once if missing the 5 new slide visuals (HOST ONLY - never run from participant phones!)
-          const isSesi2ActiveDoc =
-            data.materialId === SESI_2_ACTION_PLAN_CURRICULUM.id ||
-            (data.seminarTitle || '').toLowerCase().includes('target penjualan');
-          if (
-            isHostRoleRef.current &&
-            isSesi2ActiveDoc &&
-            !sesi2ContentUpgradeDoneRef.current &&
-            (!data.slides?.[1]?.imageUrl || (data.updatedAt || 0) < 1732500000000)
-          ) {
-            sesi2ContentUpgradeDoneRef.current = true;
-            setDoc(doc(db, 'custom_content', 'active'), {
-              ...SESI_2_ACTION_PLAN_CURRICULUM.content,
-              brandTheme: sanitizeBrandTheme(data.brandTheme),
-              updatedAt: Date.now(),
-            }).catch((err) => {
-              console.warn('Sesi 2 visual upgrade skipped:', err);
-            });
-          }
+          resolvedContentFromNetwork = true;
+          applyRemoteContent(snap.data() as CustomContentDoc);
         }
       },
       (err) => {
@@ -553,7 +653,9 @@ export default function App() {
     );
 
     return () => {
+      isMounted = false;
       clearTimeout(syncFailsafeTimer);
+      clearTimeout(restRetryTimer);
       unsubState();
       unsubContent();
       unsubAnswers();
@@ -738,11 +840,11 @@ export default function App() {
   ]);
 
   const updateSessionState = async (partial: Partial<SessionStateDoc>) => {
-    const nextState: SessionStateDoc = {
+    const nextState: SessionStateDoc = sanitizeForFirestore({
       ...sessionStateRef.current,
       ...partial,
       updatedAt: Date.now(),
-    };
+    });
     sessionStateRef.current = nextState;
     setSessionState(nextState);
     try {
@@ -754,38 +856,39 @@ export default function App() {
 
   // Custom Content Save & Reset Handlers
   const handleSaveCustomContent = async (updated: CustomContentDoc) => {
-    setCustomContent(updated);
+    const cleanUpdated = sanitizeForFirestore(updated);
+    setCustomContent(cleanUpdated);
     try {
-      await setDoc(doc(db, 'custom_content', 'active'), updated);
+      await setDoc(doc(db, 'custom_content', 'active'), cleanUpdated);
       
       // Update saved material entry in Bank Materi as well
-      const currentMatId = updated.materialId || activeMaterialId || DEFAULT_PARTNERUP_CURRICULUM.id;
+      const currentMatId = cleanUpdated.materialId || activeMaterialId || DEFAULT_PARTNERUP_CURRICULUM.id;
       const existingMat = materials.find((m) => m.id === currentMatId);
       const updatedMaterial: SavedMaterial = {
         id: currentMatId,
-        seminarTitle: updated.seminarTitle,
-        organizerName: updated.organizerName,
-        description: updated.description || existingMat?.description || '',
-        category: updated.category || existingMat?.category || 'Materi Kustom',
+        seminarTitle: cleanUpdated.seminarTitle,
+        organizerName: cleanUpdated.organizerName,
+        description: cleanUpdated.description || existingMat?.description || '',
+        category: cleanUpdated.category || existingMat?.category || 'Materi Kustom',
         isDefault: existingMat?.isDefault ?? false,
         createdAt: existingMat?.createdAt || Date.now(),
         updatedAt: Date.now(),
-        content: updated,
+        content: cleanUpdated,
       };
       const nextList = await persistMaterial(db, updatedMaterial, false);
       setMaterials(nextList);
 
       // Ensure activeQuestion and activeSlide are within new bounds
-      const maxQ = Math.max(0, updated.questions.length - 1);
-      const maxSlide = Math.max(0, updated.slides.length - 1);
-      const firstPollId = updated.polls[0]?.id || 'rational_4types';
+      const maxQ = Math.max(0, cleanUpdated.questions.length - 1);
+      const maxSlide = Math.max(0, cleanUpdated.slides.length - 1);
+      const firstPollId = cleanUpdated.polls[0]?.id || 'rational_4types';
       await updateSessionState({
         activeQuestion: Math.min(sessionState.activeQuestion, maxQ),
         activeSlide: Math.min(sessionState.activeSlide, maxSlide),
-        activePollId: updated.polls.some((p) => p.id === sessionState.activePollId)
+        activePollId: cleanUpdated.polls.some((p) => p.id === sessionState.activePollId)
           ? sessionState.activePollId
           : firstPollId,
-        sessionName: updated.seminarTitle.slice(0, 120),
+        sessionName: cleanUpdated.seminarTitle.slice(0, 120),
       });
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, 'custom_content/active');
@@ -796,16 +899,17 @@ export default function App() {
     setActiveMaterialId(material.id);
     setActiveMaterialIdLocal(material.id);
 
-    const contentToApply: CustomContentDoc = {
+    const contentToApply: CustomContentDoc = sanitizeForFirestore({
       ...material.content,
       seminarTitle: material.seminarTitle,
       organizerName: material.organizerName,
       materialId: material.id,
-      description: material.description,
-      category: material.category,
-      isDefault: material.isDefault,
+      description: (material.description || material.content.description || '').slice(0, 300),
+      category: (material.category || material.content.category || 'Materi Kustom').slice(0, 60),
+      isDefault: Boolean(material.isDefault),
+      createdAt: material.createdAt || material.content.createdAt || Date.now(),
       updatedAt: Date.now(),
-    };
+    });
     setCustomContent(contentToApply);
 
     try {
@@ -815,6 +919,8 @@ export default function App() {
         activeQuestion: 0,
         activeSlide: 0,
         activeSlideStep: 0,
+        activeSlideDrawer: 'none',
+        activeMode: 'worksheet',
         activePollId: firstPollId,
         sessionName: material.seminarTitle.slice(0, 120),
       });

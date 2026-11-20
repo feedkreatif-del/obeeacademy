@@ -320,17 +320,20 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
       if (slide?.linkedQuestionIndex !== undefined) {
         urlObj.searchParams.set('mode', 'worksheet');
         urlObj.searchParams.set('q', String(slide.linkedQuestionIndex));
+        urlObj.searchParams.delete('poll');
       } else if (slide?.linkedPollId) {
         urlObj.searchParams.set('mode', 'poll');
         urlObj.searchParams.set('poll', slide.linkedPollId);
       } else if (slide?.type === 'closing') {
         urlObj.searchParams.set('mode', 'qna');
       }
+      const baseV = urlObj.searchParams.get('v') || '1';
+      urlObj.searchParams.set('v', `${baseV}_s${safeSlideIndex}`);
       return urlObj.toString();
     } catch {
       return joinUrl;
     }
-  }, [joinUrl, slide]);
+  }, [joinUrl, slide, safeSlideIndex]);
 
   // Calculate all sequential animation steps and human-readable descriptions for Presenter View
   const slideStepAssignments = useMemo(() => {
