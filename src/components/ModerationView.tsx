@@ -118,38 +118,74 @@ export const ModerationView: React.FC<ModerationViewProps> = ({
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
       {/* Top Moderation Control Header */}
-      <div className="bg-white border border-[#1F3A5F]/15 rounded-2xl p-6 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#F28C28]">
-            <Shield className="w-4 h-4" />
-            <span>Meja Kendali Panitia & Moderator Seminar</span>
+      <div className="bg-white border border-[#1F3A5F]/15 rounded-2xl p-5 sm:p-6 shadow-xs space-y-5 overflow-hidden">
+        {/* Row 1: Title + Quick Action Links */}
+        <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-4 pb-5 border-b border-[#1F3A5F]/10">
+          <div className="space-y-1.5 min-w-0 flex-1">
+            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#F28C28]">
+              <Shield className="w-4 h-4 shrink-0" />
+              <span>Meja Kendali Panitia & Moderator Seminar</span>
+            </div>
+            <h1 className="font-display text-2xl sm:text-3xl font-bold text-[#1F3A5F] leading-tight">
+              Dasbor Moderasi & Saringan Jawaban Real-Time
+            </h1>
+            <p className="text-sm text-[#1F3A5F]/75 max-w-3xl leading-relaxed">
+              Saring jawaban atau pertanyaan yang masuk sebelum ditampilkan di proyektor, beri catatan apresiasi hangat, atau buka Editor Materi.
+            </p>
           </div>
-          <h1 className="font-display text-2xl sm:text-3xl font-bold text-[#1F3A5F]">
-            Dasbor Moderasi & Saringan Jawaban Real-Time
-          </h1>
-          <p className="text-sm text-[#1F3A5F]/75">
-            Saring jawaban atau pertanyaan yang masuk sebelum ditampilkan di proyektor, beri catatan apresiasi hangat, atau buka Editor Materi.
-          </p>
+
+          <div className="flex flex-wrap items-center gap-2.5 shrink-0 max-w-full">
+            <a
+              href={`${window.location.pathname}?view=preview`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3.5 py-2.5 rounded-xl bg-emerald-50 border border-emerald-300 hover:bg-emerald-100 text-emerald-900 text-xs font-bold inline-flex items-center gap-2 cursor-pointer transition-colors shadow-2xs whitespace-nowrap"
+              title="Buka tampilan preview materi panitia (baca-saja tanpa akses edit)"
+            >
+              <Eye className="w-4 h-4 text-emerald-700 shrink-0" />
+              <span>Preview Materi Panitia</span>
+            </a>
+
+            <button
+              type="button"
+              onClick={onOpenContentEditor}
+              className="px-3.5 py-2.5 rounded-xl bg-[#1F3A5F] hover:bg-[#162944] text-white text-xs font-bold inline-flex items-center gap-2 cursor-pointer transition-colors whitespace-nowrap"
+            >
+              <Settings className="w-4 h-4 shrink-0" />
+              <span>Ubah Materi / Pertanyaan</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={onDownloadCsv}
+              className="px-3.5 py-2.5 rounded-xl bg-[#2A9D8F] hover:bg-[#218276] text-white text-xs font-bold inline-flex items-center gap-2 cursor-pointer transition-colors whitespace-nowrap"
+            >
+              <Download className="w-4 h-4 shrink-0" />
+              <span>Unduh CSV Rekap</span>
+            </button>
+          </div>
         </div>
 
-        {/* Strict Moderation Gate Switch & Quick Actions */}
-        <div className="flex flex-wrap items-center gap-3 shrink-0">
-          {/* Saklar Jeda Pengiriman Jawaban (Sesi Jeda/Minggu Depan) */}
-          <div className={`border rounded-xl p-3 flex items-center gap-3 transition-colors ${
-            sessionState.answersLocked
-              ? 'bg-amber-500/15 border-amber-500/50'
-              : 'bg-[#FFF7EC] border-[#1F3A5F]/20'
-          }`}>
-            <div>
+        {/* Row 2: Live Gate & Moderation Switches */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+          {/* Saklar Jeda Pengiriman Jawaban */}
+          <div
+            className={`border rounded-xl p-3.5 flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 transition-colors ${
+              sessionState.answersLocked
+                ? 'bg-amber-500/15 border-amber-500/50'
+                : 'bg-[#FFF7EC] border-[#1F3A5F]/20'
+            }`}
+          >
+            <div className="min-w-0 flex-1">
               <p className="text-xs font-bold text-[#1F3A5F] flex items-center gap-1.5">
                 {sessionState.answersLocked ? (
-                  <Lock className="w-3.5 h-3.5 text-amber-700" />
+                  <Lock className="w-3.5 h-3.5 text-amber-700 shrink-0" />
                 ) : (
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                 )}
                 <span>Penerimaan Jawaban</span>
               </p>
-              <p className="text-[11px] text-[#1F3A5F]/70">
+              <p className="text-[11px] text-[#1F3A5F]/75 mt-0.5 leading-snug">
                 {sessionState.answersLocked
                   ? 'DIJEDA: Pengisian lembar kerja dikunci'
                   : 'TERBUKA: Peserta bebas mengirim jawaban'}
@@ -159,7 +195,7 @@ export const ModerationView: React.FC<ModerationViewProps> = ({
               <button
                 type="button"
                 onClick={() => onToggleLockAnswers(!sessionState.answersLocked)}
-                className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+                className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
                   sessionState.answersLocked
                     ? 'bg-amber-600 hover:bg-amber-700 text-white'
                     : 'bg-emerald-600 hover:bg-emerald-700 text-white'
@@ -170,12 +206,13 @@ export const ModerationView: React.FC<ModerationViewProps> = ({
             )}
           </div>
 
-          <div className="bg-[#FFF7EC] border border-[#1F3A5F]/20 rounded-xl p-3 flex items-center gap-3">
-            <div>
+          {/* Saklar Mode Saringan Ketat */}
+          <div className="bg-[#FFF7EC] border border-[#1F3A5F]/20 rounded-xl p-3.5 flex flex-wrap sm:flex-nowrap items-center justify-between gap-3">
+            <div className="min-w-0 flex-1">
               <p className="text-xs font-bold text-[#1F3A5F]">
                 Mode Saringan Ketat (Wajib Setujui Dulu)
               </p>
-              <p className="text-[11px] text-[#1F3A5F]/70">
+              <p className="text-[11px] text-[#1F3A5F]/75 mt-0.5 leading-snug">
                 {sessionState.moderationEnabled
                   ? 'AKTIF: Jawaban masuk ke tab Menunggu Persetujuan'
                   : 'NONAKTIF: Jawaban peserta langsung tampil di proyektor'}
@@ -184,7 +221,7 @@ export const ModerationView: React.FC<ModerationViewProps> = ({
             <button
               type="button"
               onClick={() => onToggleModerationGate(!sessionState.moderationEnabled)}
-              className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+              className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
                 sessionState.moderationEnabled
                   ? 'bg-[#F28C28] text-white'
                   : 'bg-[#1F3A5F] text-white'
@@ -193,34 +230,6 @@ export const ModerationView: React.FC<ModerationViewProps> = ({
               {sessionState.moderationEnabled ? 'Saringan: ON' : 'Langsung Tampil'}
             </button>
           </div>
-
-          <button
-            type="button"
-            onClick={() => {
-              window.open('/?view=preview', '_blank');
-            }}
-            className="px-4 py-3 rounded-xl bg-emerald-50 border border-emerald-300 hover:bg-emerald-100 text-emerald-900 text-xs font-bold flex items-center gap-2 cursor-pointer transition-colors shadow-2xs"
-            title="Buka tampilan preview materi panitia (baca-saja tanpa akses edit)"
-          >
-            <Eye className="w-4 h-4 text-emerald-700" />
-            <span>Preview Materi Panitia</span>
-          </button>
-
-          <button
-            onClick={onOpenContentEditor}
-            className="px-4 py-3 rounded-xl bg-[#1F3A5F] hover:bg-[#162944] text-white text-xs font-bold flex items-center gap-2 cursor-pointer"
-          >
-            <Settings className="w-4 h-4" />
-            <span>Ubah Materi / Pertanyaan</span>
-          </button>
-
-          <button
-            onClick={onDownloadCsv}
-            className="px-4 py-3 rounded-xl bg-[#2A9D8F] hover:bg-[#218276] text-white text-xs font-bold flex items-center gap-2 cursor-pointer"
-          >
-            <Download className="w-4 h-4" />
-            <span>Unduh CSV Rekap</span>
-          </button>
         </div>
       </div>
 
@@ -319,7 +328,7 @@ export const ModerationView: React.FC<ModerationViewProps> = ({
       {activeCategory === 'answers' && (
         <div className="space-y-4">
           <div className="bg-white border border-[#1F3A5F]/15 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-1.5 bg-[#FFF7EC] p-1 rounded-lg border border-[#1F3A5F]/10">
+            <div className="flex flex-wrap items-center gap-1.5 bg-[#FFF7EC] p-1 rounded-lg border border-[#1F3A5F]/10 max-w-full">
               {(['all', 'pending', 'approved', 'hidden'] as const).map((st) => (
                 <button
                   key={st}
