@@ -664,7 +664,7 @@ export const MaterialsBankModal: React.FC<MaterialsBankModalProps> = ({
                     onClick={() => {
                       setCreationSource('template_sesi_2');
                       if (!newTitle) {
-                        setNewTitle('Sesi 2: Rencana Aksi, Strategi Harga & Penjualan UMKM');
+                        setNewTitle('Sesi 2 PartnerUp: Target Penjualan, Margin Ideal & Copywriting Penyampai Value Proposition');
                       }
                     }}
                     className={`p-4 rounded-2xl border-2 transition-all cursor-pointer ${
@@ -676,14 +676,14 @@ export const MaterialsBankModal: React.FC<MaterialsBankModalProps> = ({
                     <div className="flex items-center gap-2 mb-1.5">
                       <FileText className="w-4 h-4 text-[#2A9D8F]" />
                       <span className="font-bold text-sm text-[#1F3A5F]">
-                        Template Kurikulum Sesi 2
+                        Template Sesi 2 PartnerUp (Lanjutan VP)
                       </span>
                     </div>
                     <p className="text-xs text-[#1F3A5F]/70 leading-relaxed">
-                      Dirancang khusus untuk pelatihan minggu depan: 5 soal lembar kerja harga & SOP chat WhatsApp, 10 slide interaktif, dan komitmen aksi 14 hari.
+                      Khusus peserta PartnerUp (F&B, Kriya, Jasa Persewaan): 7 lembar kerja target penjualan & margin sehat, 2 polling live, strategi bundling, 16 slide lengkap, dan rumus copywriting penyampai Value Proposition.
                     </p>
                     <span className="inline-block mt-2 text-[10px] font-extrabold text-[#2A9D8F] bg-white px-2 py-0.5 rounded border border-[#2A9D8F]/30">
-                      Siap Pakai Minggu Depan
+                      Siap Pakai Lanjutan 3 Sesi VP
                     </span>
                   </div>
 
