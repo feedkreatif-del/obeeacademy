@@ -275,7 +275,7 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
   const [slideDirection, setSlideDirection] = useState<1 | -1>(1);
   const prevSlideRef = useRef<number>(activeSlideIndex);
 
-  const remoteUrl = `${window.location.origin}${window.location.pathname}?view=remote`;
+  const remoteUrl = `${window.location.origin}${window.location.pathname}?view=remote&v=${Math.floor(Date.now() / 60000).toString(36)}`;
 
   // Presenter Stopwatch Timer State
   const [timerSeconds, setTimerSeconds] = useState(0);

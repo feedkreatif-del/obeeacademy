@@ -28,8 +28,8 @@ if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
     })
     .catch(() => {});
 
-  // Clean legacy navigation HTML caches when opening participant QR link
-  if (window.location.search.includes('view=participant') && 'caches' in window) {
+  // Clean legacy navigation HTML caches across all views (Participant, Remote HP/Tablet, and Home Screen PWA)
+  if ('caches' in window) {
     caches
       .keys()
       .then((keys) => {

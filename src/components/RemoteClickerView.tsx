@@ -587,7 +587,7 @@ export const RemoteClickerView: React.FC<RemoteClickerViewProps> = ({
     <div className="max-w-2xl mx-auto px-3.5 sm:px-5 py-4 pb-24 space-y-4 select-none">
       {/* 1. Top Status & Security Strip */}
       <div className="bg-[#1F3A5F] text-white rounded-2xl p-3.5 flex flex-wrap items-center justify-between gap-2.5 shadow-sm">
-        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+        <div className="flex items-center gap-2.5 min-w-[180px] flex-1">
           <div className="w-9 h-9 rounded-xl bg-[#2A9D8F] flex items-center justify-center shrink-0">
             <Smartphone className="w-5 h-5 text-white" />
           </div>

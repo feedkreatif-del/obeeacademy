@@ -1322,7 +1322,7 @@ export default function App() {
         </header>
       ) : (
         /* Strict 3-Zone Top Navigation Bar for Presenter / Developer / Moderator */
-        <header className="w-full max-w-full flex items-center justify-between gap-1.5 sm:gap-4 px-2.5 sm:px-6 py-2.5 sm:py-3 bg-[#1F3A5F] text-white border-b border-white/10 sticky top-0 z-30">
+        <header className="w-full max-w-full flex flex-wrap lg:flex-nowrap items-center justify-between gap-x-3 gap-y-2 sm:gap-4 px-3 sm:px-6 py-2.5 sm:py-3 bg-[#1F3A5F] text-white border-b border-white/10 sticky top-0 z-30">
           {/* Zone 1: Brand Wordmark */}
           <a
             href="#top"
@@ -1330,13 +1330,13 @@ export default function App() {
               e.preventDefault();
               setViewRole('projector');
             }}
-            className="font-display text-sm sm:text-lg font-extrabold tracking-tight text-white whitespace-nowrap shrink-0"
+            className="font-display text-sm sm:text-lg font-extrabold tracking-tight text-white whitespace-nowrap shrink-0 order-1"
           >
             PartnerUp Live
           </a>
 
-          {/* Zone 2: Concise Single-Line Navigation Links (Anchored left so Layar Proyektor & Materi Slide never clip) */}
-          <nav className="flex-1 min-w-0 flex items-center justify-start gap-3 sm:gap-4 lg:gap-5 text-xs sm:text-[13px] font-medium text-white/85 overflow-x-auto no-scrollbar py-1">
+          {/* Zone 2: Concise Single-Line Navigation Links (Full row on HP/Tablet, middle row on Desktop) */}
+          <nav className="order-3 lg:order-2 w-full lg:w-auto lg:flex-1 min-w-0 flex items-center justify-start gap-3 sm:gap-4 lg:gap-5 text-xs sm:text-[13px] font-medium text-white/85 overflow-x-auto no-scrollbar py-1 border-t border-white/10 lg:border-t-0">
             <button
               onClick={() => setViewRole('projector')}
               className={`hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer pb-0.5 ${
@@ -1401,7 +1401,7 @@ export default function App() {
           </nav>
 
           {/* Zone 3: Primary Action Buttons + Presenter Lock */}
-          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0 order-2 lg:order-3 ml-auto lg:ml-0">
             <button
               onClick={() => setIsBankModalOpen(true)}
               className="px-2 sm:px-2.5 py-1.5 text-xs font-bold text-white bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg transition-colors whitespace-nowrap shrink-0 flex items-center gap-1 sm:gap-1.5 cursor-pointer shadow-xs"
