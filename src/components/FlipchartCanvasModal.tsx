@@ -7,6 +7,8 @@ import {
   Eraser,
   Type,
   Square,
+  Circle,
+  Shapes,
   ArrowUpRight,
   Minus,
   Undo2,
@@ -36,7 +38,8 @@ export type FlipchartTool =
   | 'text'
   | 'line'
   | 'arrow'
-  | 'rect';
+  | 'rect'
+  | 'ellipse';
 
 export type FlipchartPaperStyle = 'white' | 'grid' | 'lined' | 'chalkboard';
 
@@ -51,6 +54,7 @@ export interface FlipchartStroke {
   color: string;
   size: number;
   points: FlipchartPoint[];
+  isHighlight?: boolean;
 }
 
 export interface FlipchartTextItem {
@@ -205,6 +209,173 @@ function smoothHandwritingPoints(points: FlipchartPoint[]): FlipchartPoint[] {
   return compactStrokePoints(smoothed, 5);
 }
 
+/**
+ * Menyelaraskan ujung garis ke sudut horizontal/vertikal apabila mendekati 0°/90° (±7.5°).
+ */
+function snapLineEndpointAngle(p0: FlipchartPoint, p1: FlipchartPoint): FlipchartPoint {
+  const dx = p1.x - p0.x;
+  const dy = p1.y - p0.y;
+  const dist = Math.hypot(dx, dy);
+  if (dist < 16) return p1;
+  const angleDeg = Math.abs((Math.atan2(dy, dx) * 180) / Math.PI);
+  if (angleDeg <= 7.5 || angleDeg >= 172.5) {
+    return { x: p1.x, y: p0.y };
+  }
+  if (Math.abs(angleDeg - 90) <= 7.5) {
+    return { x: p0.x, y: p1.y };
+  }
+  return p1;
+}
+
+/**
+ * Deteksi & perapi bentuk geometris otomatis (Opsi 2 — Smart Shape Snap, 0 ms):
+ * - Garis lurus (otomatis rata horizontal/vertikal bila mendekati 0°/90°)
+ * - Kotak / Persegi
+ * - Lingkaran / Elips
+ */
+function detectAndSnapShape(
+  points: FlipchartPoint[],
+  isHoldSnap: boolean
+): {
+  tool: 'line' | 'rect' | 'ellipse';
+  label: string;
+  points: [FlipchartPoint, FlipchartPoint];
+} | null {
+  if (points.length < 2) return null;
+
+  let minX = points[0].x;
+  let maxX = points[0].x;
+  let minY = points[0].y;
+  let maxY = points[0].y;
+  let pathLen = 0;
+
+  for (let i = 0; i < points.length; i++) {
+    const p = points[i];
+    if (p.x < minX) minX = p.x;
+    if (p.x > maxX) maxX = p.x;
+    if (p.y < minY) minY = p.y;
+    if (p.y > maxY) maxY = p.y;
+    if (i > 0) {
+      pathLen += Math.hypot(p.x - points[i - 1].x, p.y - points[i - 1].y);
+    }
+  }
+
+  const start = points[0];
+  const end = points[points.length - 1];
+  const directDist = Math.hypot(end.x - start.x, end.y - start.y);
+  const w = maxX - minX;
+  const h = maxY - minY;
+  const diag = Math.hypot(w, h);
+
+  // 1. Cek apakah goresan merupakan Garis Lurus
+  const minLineLen = isHoldSnap ? 32 : 115;
+  if (directDist >= minLineLen && pathLen > 0) {
+    const efficiency = directDist / pathLen;
+    let maxDev = 0;
+    const vx = end.x - start.x;
+    const vy = end.y - start.y;
+    for (let i = 1; i < points.length - 1; i++) {
+      const cross = Math.abs(vx * (start.y - points[i].y) - (start.x - points[i].x) * vy);
+      const dev = cross / directDist;
+      if (dev > maxDev) maxDev = dev;
+    }
+
+    const minEff = isHoldSnap ? 0.88 : 0.94;
+    const maxAllowedDev = Math.max(isHoldSnap ? 14 : 8, directDist * (isHoldSnap ? 0.085 : 0.045));
+
+    if (efficiency >= minEff && maxDev <= maxAllowedDev) {
+      const snappedEnd = snapLineEndpointAngle(start, end);
+      let finalStart = start;
+      let finalEnd = snappedEnd;
+      if (snappedEnd.y === start.y && start.y !== end.y) {
+        const avgY = roundCoord((start.y + end.y) / 2);
+        finalStart = { x: start.x, y: avgY };
+        finalEnd = { x: end.x, y: avgY };
+      } else if (snappedEnd.x === start.x && start.x !== end.x) {
+        const avgX = roundCoord((start.x + end.x) / 2);
+        finalStart = { x: avgX, y: start.y };
+        finalEnd = { x: avgX, y: end.y };
+      }
+      return {
+        tool: 'line',
+        label: 'Garis Lurus',
+        points: [finalStart, finalEnd],
+      };
+    }
+  }
+
+  // 2. Cek apakah goresan merupakan Kurva Tertutup (Lingkaran/Elips atau Kotak)
+  const minLoopBox = isHoldSnap ? 28 : 60;
+  const minLoopDiag = isHoldSnap ? 42 : 85;
+  const maxGap = Math.max(36, diag * (isHoldSnap ? 0.44 : 0.28));
+
+  if (
+    points.length >= 8 &&
+    (w >= minLoopBox || h >= minLoopBox) &&
+    diag >= minLoopDiag &&
+    Math.min(w, h) >= 16 &&
+    directDist <= maxGap &&
+    pathLen >= 2 * (w + h) * 0.55
+  ) {
+    const cx = (minX + maxX) / 2;
+    const cy = (minY + maxY) / 2;
+    const rx = Math.max(1, w / 2);
+    const ry = Math.max(1, h / 2);
+
+    let ellipseErrSum = 0;
+    let rectErrSum = 0;
+
+    for (let i = 0; i < points.length; i++) {
+      const nx = Math.abs(points[i].x - cx) / rx;
+      const ny = Math.abs(points[i].y - cy) / ry;
+      const er = Math.hypot(nx, ny);
+      const rr = Math.max(nx, ny);
+      ellipseErrSum += Math.abs(er - 1);
+      rectErrSum += Math.abs(rr - 1);
+    }
+
+    const ellipseErr = ellipseErrSum / points.length;
+    const rectErr = rectErrSum / points.length;
+    const tol = isHoldSnap ? 0.23 : 0.145;
+
+    if (ellipseErr <= tol && ellipseErr < rectErr) {
+      const aspect = Math.min(w, h) / Math.max(w, h);
+      if (aspect >= 0.85) {
+        const r = (rx + ry) / 2;
+        return {
+          tool: 'ellipse',
+          label: 'Lingkaran',
+          points: [
+            { x: roundCoord(cx - r), y: roundCoord(cy - r) },
+            { x: roundCoord(cx + r), y: roundCoord(cy + r) },
+          ],
+        };
+      }
+      return {
+        tool: 'ellipse',
+        label: 'Elips',
+        points: [
+          { x: roundCoord(minX), y: roundCoord(minY) },
+          { x: roundCoord(maxX), y: roundCoord(maxY) },
+        ],
+      };
+    }
+
+    if (rectErr <= tol && rectErr <= ellipseErr) {
+      return {
+        tool: 'rect',
+        label: 'Kotak',
+        points: [
+          { x: roundCoord(minX), y: roundCoord(minY) },
+          { x: roundCoord(maxX), y: roundCoord(maxY) },
+        ],
+      };
+    }
+  }
+
+  return null;
+}
+
 function serializePagesSafely(pages: FlipchartPage[], maxBytes = 435000): string {
   const raw = JSON.stringify(pages);
   if (raw.length <= maxBytes) return raw;
@@ -214,7 +385,7 @@ function serializePagesSafely(pages: FlipchartPage[], maxBytes = 435000): string
     const compacted = pages.map((pg) => ({
       ...pg,
       strokes: pg.strokes.map((stk) =>
-        stk.tool === 'line' || stk.tool === 'arrow' || stk.tool === 'rect'
+        stk.tool === 'line' || stk.tool === 'arrow' || stk.tool === 'rect' || stk.tool === 'ellipse'
           ? { ...stk, points: stk.points.length >= 2 ? [stk.points[0], stk.points[stk.points.length - 1]] : stk.points }
           : { ...stk, points: compactStrokePoints(stk.points, distSq) }
       ),
@@ -315,7 +486,7 @@ function renderStrokesAndTexts(
         ctx.strokeStyle = 'rgba(0,0,0,1)';
       }
       ctx.lineWidth = stroke.size * 3.2;
-    } else if (stroke.tool === 'highlighter') {
+    } else if (stroke.tool === 'highlighter' || stroke.isHighlight) {
       ctx.globalCompositeOperation = 'source-over';
       ctx.globalAlpha = 0.32;
       ctx.strokeStyle = stroke.color;
@@ -357,6 +528,16 @@ function renderStrokesAndTexts(
       const p1 = pts[pts.length - 1];
       ctx.beginPath();
       ctx.strokeRect(p0.x, p0.y, p1.x - p0.x, p1.y - p0.y);
+    } else if (stroke.tool === 'ellipse' && pts.length >= 2) {
+      const p0 = pts[0];
+      const p1 = pts[pts.length - 1];
+      const cx = (p0.x + p1.x) / 2;
+      const cy = (p0.y + p1.y) / 2;
+      const rx = Math.max(1, Math.abs(p1.x - p0.x) / 2);
+      const ry = Math.max(1, Math.abs(p1.y - p0.y) / 2);
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+      ctx.stroke();
     } else {
       ctx.beginPath();
       ctx.moveTo(pts[0].x, pts[0].y);
@@ -465,6 +646,37 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
     });
   };
 
+  const [shapeSnap, setShapeSnap] = useState<boolean>(() => {
+    try {
+      const saved = window.localStorage.getItem('obee_flipchart_shape_snap_v1');
+      return saved === null ? true : saved === 'true';
+    } catch {
+      return true;
+    }
+  });
+  const shapeSnapRef = useRef<boolean>(shapeSnap);
+  shapeSnapRef.current = shapeSnap;
+
+  const toggleShapeSnap = () => {
+    setShapeSnap((prev) => {
+      const next = !prev;
+      shapeSnapRef.current = next;
+      try {
+        window.localStorage.setItem('obee_flipchart_shape_snap_v1', String(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  };
+
+  const [recentSnapRevert, setRecentSnapRevert] = useState<{
+    pageId: string;
+    strokeId: string;
+    shapeLabel: string;
+    rawStroke: FlipchartStroke;
+  } | null>(null);
+
   // Undo/Redo stacks per page id
   const [redoMap, setRedoMap] = useState<
     Record<string, Array<{ strokes: FlipchartStroke[]; texts: FlipchartTextItem[] }>>
@@ -481,6 +693,11 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const draftStrokeRef = useRef<FlipchartStroke | null>(null);
   const isDrawingRef = useRef<boolean>(false);
+  const holdSnapTimerRef = useRef<number | null>(null);
+  const holdSnappedModeRef = useRef<'none' | 'line' | 'shape'>('none');
+  const holdSnappedLabelRef = useRef<string>('');
+  const rawPointsBeforeSnapRef = useRef<FlipchartPoint[] | null>(null);
+  const snapRevertTimerRef = useRef<number | null>(null);
   const pagesRef = useRef<FlipchartPage[]>(pages);
   const activePageIndexRef = useRef<number>(activePageIndex);
   const syncToProjectorRef = useRef<boolean>(syncToProjector);
@@ -491,11 +708,30 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
   const lastAppliedRemoteTsRef = useRef<number>(0);
   const wasOpenRef = useRef<boolean>(false);
 
+  const clearHoldSnapTimer = useCallback(() => {
+    if (holdSnapTimerRef.current !== null) {
+      window.clearTimeout(holdSnapTimerRef.current);
+      holdSnapTimerRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      clearHoldSnapTimer();
+      if (snapRevertTimerRef.current !== null) {
+        window.clearTimeout(snapRevertTimerRef.current);
+      }
+    };
+  }, [clearHoldSnapTimer]);
+
   useEffect(() => {
     if (!isOpen || !readOnlyMirror) {
       setMirrorBarHovered(false);
     }
-  }, [isOpen, readOnlyMirror]);
+    if (!isOpen) {
+      clearHoldSnapTimer();
+    }
+  }, [isOpen, readOnlyMirror, clearHoldSnapTimer]);
 
   const safeIndex = Math.min(activePageIndex, Math.max(0, pages.length - 1));
   const currentPage = pages[safeIndex] || pages[0];
@@ -760,6 +996,10 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
     }
 
     e.currentTarget.setPointerCapture(e.pointerId);
+    clearHoldSnapTimer();
+    holdSnappedModeRef.current = 'none';
+    holdSnappedLabelRef.current = '';
+    rawPointsBeforeSnapRef.current = null;
     isDrawingRef.current = true;
 
     const activePg = pagesRef.current[activePageIndexRef.current] || currentPage;
@@ -774,6 +1014,7 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
       color: tool === 'highlighter' && color === '#1F3A5F' ? '#FACC15' : effectiveColor,
       size: strokeSize,
       points: [pt],
+      isHighlight: tool === 'highlighter',
     };
     redrawCanvas();
   };
@@ -784,8 +1025,20 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
     const activeTool = draftStrokeRef.current.tool;
     const pts = draftStrokeRef.current.points;
 
-    if (activeTool === 'line' || activeTool === 'arrow' || activeTool === 'rect') {
-      draftStrokeRef.current.points = [pts[0], pt];
+    if (holdSnappedModeRef.current === 'line') {
+      const p0 = pts[0];
+      draftStrokeRef.current.points = [p0, snapLineEndpointAngle(p0, pt)];
+      redrawCanvas();
+      return;
+    }
+
+    if (holdSnappedModeRef.current === 'shape') {
+      return;
+    }
+
+    if (activeTool === 'line' || activeTool === 'arrow' || activeTool === 'rect' || activeTool === 'ellipse') {
+      const nextPt = activeTool === 'line' ? snapLineEndpointAngle(pts[0], pt) : pt;
+      draftStrokeRef.current.points = [pts[0], nextPt];
       redrawCanvas();
       return;
     }
@@ -805,25 +1058,100 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
           x: roundCoord(last.x + alpha * dx),
           y: roundCoord(last.y + alpha * dy),
         });
-        redrawCanvas();
-        return;
+      } else {
+        pts.push(pt);
       }
+    } else {
+      pts.push(pt);
     }
-    pts.push(pt);
+
+    if (shapeSnapRef.current && (activeTool === 'pen' || activeTool === 'highlighter')) {
+      clearHoldSnapTimer();
+      holdSnapTimerRef.current = window.setTimeout(() => {
+        if (!isDrawingRef.current || !draftStrokeRef.current) return;
+        const rawPts = [...draftStrokeRef.current.points];
+        const snapped = detectAndSnapShape(rawPts, true);
+        if (snapped) {
+          rawPointsBeforeSnapRef.current = rawPts;
+          if (draftStrokeRef.current.tool === 'highlighter') {
+            draftStrokeRef.current.isHighlight = true;
+          }
+          draftStrokeRef.current.tool = snapped.tool;
+          draftStrokeRef.current.points = snapped.points;
+          holdSnappedModeRef.current = snapped.tool === 'line' ? 'line' : 'shape';
+          holdSnappedLabelRef.current = snapped.label;
+          redrawCanvas();
+        }
+      }, 380);
+    }
+
     redrawCanvas();
   };
 
+  const showSnapRevertOption = (
+    pageId: string,
+    strokeId: string,
+    shapeLabel: string,
+    rawStroke: FlipchartStroke
+  ) => {
+    if (snapRevertTimerRef.current !== null) {
+      window.clearTimeout(snapRevertTimerRef.current);
+    }
+    setRecentSnapRevert({ pageId, strokeId, shapeLabel, rawStroke });
+    snapRevertTimerRef.current = window.setTimeout(() => {
+      setRecentSnapRevert(null);
+      snapRevertTimerRef.current = null;
+    }, 3500);
+  };
+
+  const handleRevertLastSnap = () => {
+    if (!recentSnapRevert) return;
+    const { pageId, strokeId, rawStroke } = recentSnapRevert;
+    const nextPages = pagesRef.current.map((pg) =>
+      pg.id === pageId
+        ? {
+            ...pg,
+            strokes: pg.strokes.map((stk) => (stk.id === strokeId ? rawStroke : stk)),
+          }
+        : pg
+    );
+    commitLocalChange(nextPages, activePageIndexRef.current);
+    setRecentSnapRevert(null);
+    if (snapRevertTimerRef.current !== null) {
+      window.clearTimeout(snapRevertTimerRef.current);
+      snapRevertTimerRef.current = null;
+    }
+  };
+
   const handlePointerUp = (e?: React.PointerEvent<HTMLCanvasElement>) => {
+    clearHoldSnapTimer();
     if (readOnlyMirror || !isDrawingRef.current || !draftStrokeRef.current) return;
     isDrawingRef.current = false;
     const rawStroke = draftStrokeRef.current;
     draftStrokeRef.current = null;
 
-    let finalPoints = rawStroke.points;
-    if (
-      smoothWriting &&
-      (rawStroke.tool === 'pen' || rawStroke.tool === 'highlighter')
-    ) {
+    const curIdx = Math.min(activePageIndexRef.current, Math.max(0, pagesRef.current.length - 1));
+    const curPg = pagesRef.current[curIdx];
+
+    let finishedStroke: FlipchartStroke = rawStroke;
+    const wasHoldSnapped = holdSnappedModeRef.current !== 'none';
+    const holdLabel = holdSnappedLabelRef.current;
+    const savedRawPts = rawPointsBeforeSnapRef.current;
+    holdSnappedModeRef.current = 'none';
+    holdSnappedLabelRef.current = '';
+    rawPointsBeforeSnapRef.current = null;
+
+    if (wasHoldSnapped) {
+      if (curPg && savedRawPts) {
+        const fallbackPts = smoothWriting ? smoothHandwritingPoints(savedRawPts) : savedRawPts;
+        showSnapRevertOption(curPg.id, rawStroke.id, holdLabel || 'Bentuk', {
+          ...rawStroke,
+          tool: rawStroke.isHighlight ? 'highlighter' : 'pen',
+          points: fallbackPts,
+        });
+      }
+    } else if (rawStroke.tool === 'pen' || rawStroke.tool === 'highlighter') {
+      let finalPoints = rawStroke.points;
       if (e && canvasRef.current) {
         const endPt = getVirtualCoords(e);
         const lastPt = finalPoints[finalPoints.length - 1];
@@ -831,16 +1159,33 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
           finalPoints = [...finalPoints, endPt];
         }
       }
-      finalPoints = smoothHandwritingPoints(finalPoints);
+
+      const snapped = shapeSnapRef.current ? detectAndSnapShape(finalPoints, false) : null;
+      if (snapped) {
+        const fallbackPts = smoothWriting ? smoothHandwritingPoints(finalPoints) : finalPoints;
+        finishedStroke = {
+          ...rawStroke,
+          tool: snapped.tool,
+          isHighlight: rawStroke.tool === 'highlighter' || rawStroke.isHighlight,
+          points: snapped.points,
+        };
+        if (curPg) {
+          showSnapRevertOption(curPg.id, rawStroke.id, snapped.label, {
+            ...rawStroke,
+            points: fallbackPts,
+          });
+        }
+      } else {
+        if (smoothWriting) {
+          finalPoints = smoothHandwritingPoints(finalPoints);
+        }
+        finishedStroke = {
+          ...rawStroke,
+          points: finalPoints,
+        };
+      }
     }
 
-    const finishedStroke: FlipchartStroke = {
-      ...rawStroke,
-      points: finalPoints,
-    };
-
-    const curIdx = Math.min(activePageIndexRef.current, Math.max(0, pagesRef.current.length - 1));
-    const curPg = pagesRef.current[curIdx];
     const nextPages = pagesRef.current.map((pg, idx) =>
       idx === curIdx ? { ...pg, strokes: [...pg.strokes, finishedStroke] } : pg
     );
@@ -1124,6 +1469,23 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
 
               <button
                 type="button"
+                onClick={toggleShapeSnap}
+                className={`w-9 h-9 rounded-lg flex items-center justify-center cursor-pointer shrink-0 transition-colors ${
+                  shapeSnap
+                    ? 'bg-[#F28C28] text-white shadow-xs'
+                    : 'bg-white/10 hover:bg-white/20 text-white/75'
+                }`}
+                title={
+                  shapeSnap
+                    ? 'Perapi Garis & Bentuk Otomatis: AKTIF (Tahan ujung goresan atau gambar garis/kotak/lingkaran)'
+                    : 'Perapi Garis & Bentuk Otomatis: MATI (Klik untuk aktifkan)'
+                }
+              >
+                <Shapes className="w-4 h-4" />
+              </button>
+
+              <button
+                type="button"
                 onClick={handleUndo}
                 className="w-9 h-9 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center cursor-pointer shrink-0"
                 title="Undo coretan terakhir"
@@ -1299,6 +1661,7 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
                           { id: 'arrow', label: 'Panah', icon: ArrowUpRight },
                           { id: 'line', label: 'Garis', icon: Minus },
                           { id: 'rect', label: 'Kotak', icon: Square },
+                          { id: 'ellipse', label: 'Lingkaran', icon: Circle },
                           { id: 'eraser', label: 'Hapus', icon: Eraser },
                         ] as const
                       ).map((item) => {
@@ -1323,11 +1686,11 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
                       <button
                         type="button"
                         onClick={handleClearCurrentPage}
-                        className="px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                        className="col-span-2 px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
                         title="Bersihkan seluruh coretan di lembar ini"
                       >
                         <Trash2 className="w-3.5 h-3.5 shrink-0" />
-                        <span>Bersihkan</span>
+                        <span>Bersihkan Lembar Ini</span>
                       </button>
                     </div>
 
@@ -1430,6 +1793,36 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
                         }`}
                       >
                         {smoothWriting ? 'AKTIF' : 'MATI'}
+                      </span>
+                    </button>
+
+                    {/* Toggle Perapi Garis & Bentuk Otomatis (Opsi 2) */}
+                    <button
+                      type="button"
+                      onClick={toggleShapeSnap}
+                      className={`w-full rounded-lg px-2.5 py-1.5 text-xs font-bold flex items-center justify-between gap-2 border cursor-pointer transition-colors ${
+                        shapeSnap
+                          ? 'bg-[#FFF3E0] border-[#F28C28]/45 text-[#1F3A5F]'
+                          : 'bg-white border-[#1F3A5F]/15 text-[#1F3A5F]/70 hover:bg-slate-50'
+                      }`}
+                      title="Tahan ujung goresan ±0,4 detik (atau gambar garis panjang/kotak/lingkaran jelas) agar otomatis lurus dan simetris"
+                    >
+                      <span className="flex items-center gap-1.5">
+                        <Shapes
+                          className={`w-3.5 h-3.5 ${
+                            shapeSnap ? 'text-[#F28C28]' : 'text-slate-400'
+                          }`}
+                        />
+                        <span>Rapikan Bentuk</span>
+                      </span>
+                      <span
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-extrabold ${
+                          shapeSnap
+                            ? 'bg-[#F28C28] text-white'
+                            : 'bg-slate-200 text-slate-600'
+                        }`}
+                      >
+                        {shapeSnap ? 'AKTIF' : 'MATI'}
                       </span>
                     </button>
                   </div>
@@ -1667,6 +2060,21 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
                           : 'cursor-crosshair'
                   }`}
                 />
+
+                {/* 1-Klik Kembalikan Coretan Asli bila Auto Shape Snap aktif */}
+                {!readOnlyMirror && recentSnapRevert && (
+                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#1F3A5F]/92 backdrop-blur-md text-white text-xs font-bold shadow-lg border border-white/15">
+                    <Shapes className="w-3.5 h-3.5 text-[#F28C28] shrink-0" />
+                    <span>Dirapikan ke {recentSnapRevert.shapeLabel}</span>
+                    <button
+                      type="button"
+                      onClick={handleRevertLastSnap}
+                      className="px-2 py-0.5 rounded-full bg-white/15 hover:bg-white/25 text-[#FFF7EC] text-[11px] font-extrabold cursor-pointer transition-colors"
+                    >
+                      Kembalikan Asli
+                    </button>
+                  </div>
+                )}
 
                 {/* Editable Text Overlay Input */}
                 {textEditor && !readOnlyMirror && (
