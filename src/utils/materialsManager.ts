@@ -508,6 +508,446 @@ export const SESI_2_ACTION_PLAN_CURRICULUM: SavedMaterial = {
 };
 
 /**
+ * Kurikulum Lanjutan PartnerUp: Sesi 3 (Perbedaan Mendasar: Branding, Marketing, dan Selling)
+ * Melanjutkan materi Sesi 2 (Target Penjualan, Margin Ideal & Copywriting Penyampai Value Proposition)
+ */
+const SESI_3_QUESTIONS: WorksheetQuestion[] = [
+  {
+    index: 0,
+    sectionNumber: 1,
+    sectionTitle: '1. Audit Kebiasaan: Selama Ini Sibuk di Bagian Mana?',
+    coreLearning: 'Banyak UMKM merasa sudah melakukan semuanya, padahal sebenarnya hanya sibuk di 1 dari 3 pilar',
+    questionText: 'Sebutkan 2 aktivitas jualan yang paling sering kamu lakukan minggu lalu, lalu kelompokkan jujur: apakah itu masuk BRANDING, MARKETING, atau SELLING?',
+    secondaryPrompt: 'Contoh: "Bikin stiker botol = Branding", "Posting status WA/Reels = Marketing", "Balas chat & follow up transfer = Selling".',
+    exampleAnswer: 'Aktivitas 1: Update Status WA & Reels IG tiap pagi (ini baru Marketing). Aktivitas 2: Cetak stiker segel botol (ini Branding). Saya ternyata hampir belum pernah melakukan follow-up chat (Selling masih bolong).',
+    exampleBusiness: 'Yoghurt Segar Mbak Nisa (F&B)',
+    helperTips: [
+      'Jangan terkecoh oleh rasa capek: rajin posting konten setiap hari baru menyentuh tahap Marketing, belum tentu sudah melakukan Selling.',
+      'Kalau kamu hanya fokus mempercantik logo atau kemasan tanpa mencari calon pembeli baru, itu baru Branding tanpa Marketing.',
+    ],
+    linkedSlideIndex: 3,
+  },
+  {
+    index: 1,
+    sectionNumber: 2,
+    sectionTitle: '2. Diagnosa Titik Macet Utama Usahamu (Jangan Salah Obat!)',
+    coreLearning: 'Setiap masalah omzet punya obat yang berbeda: sepi traffic butuh Marketing, sering ditawar murah butuh Branding, banyak chat tapi batal transfer butuh Selling',
+    questionText: 'Dari corong jualan usahamu sekarang, di tahap mana calon pembeli paling banyak bocor/hilang: MARKETING (sepi yang lihat/chat), BRANDING (ragu/tawar murah), atau SELLING (chat masuk banyak tapi batal beli)?',
+    secondaryPrompt: 'Jelaskan gejala nyatanya agar kita tidak salah memberi obat strategi di minggu depan.',
+    exampleAnswer: 'Paling bocor di SELLING: setiap minggu ada 20–30 calon penyewa chat tanya harga di WA, tapi setelah saya kirim daftar harga polos, 80% menghilang tidak membalas.',
+    exampleBusiness: 'Berkah Event Rental (Persewaan)',
+    helperTips: [
+      'Jika gejalanya "sepi yang lihat & hampir tidak ada yang chat", jangan sibuk ganti warna logo — obati dulu MARKETING-nya.',
+      'Jika gejalanya "banyak yang lihat tapi selalu membandingkan harga murahan", perkuat BUKTI BRANDING-nya.',
+    ],
+    linkedSlideIndex: 9,
+  },
+  {
+    index: 2,
+    sectionNumber: 3,
+    sectionTitle: '3. Pilar BRANDING: 1 Bukti Kepercayaan Agar Tidak Perang Harga',
+    coreLearning: 'Branding UMKM bukan sekadar logo mahal, melainkan janji kepercayaan dan bukti kualitas nyata yang membuat pembeli rela membayar margin sehat',
+    questionText: 'Tentukan 1 penguat BRANDING paling nyata yang bisa langsung kamu tampilkan agar pembeli percaya kualitas usahamu tanpa menawar murah!',
+    secondaryPrompt: 'Fokus pada bukti fisik, kerapian kemasan, garansi rasa/kebersihan, atau konsistensi pengalaman pelanggan (selaras dengan Value Proposition Sesi 1).',
+    exampleAnswer: 'Menempelkan segel "Produksi Segar Hari Ini + Garansi Ganti Baru Jika Basi/Rusak" di botol & membuat tampilan foto dapur yang seragam bersih agar ibu-ibu yakin aman untuk anak.',
+    exampleBusiness: 'Yoghurt Segar Mbak Nisa',
+    helperTips: [
+      'Untuk Kriya: bisa berupa kartu perawatan produk, box kado pita rapi, atau cerita keunikan jahitan tangan.',
+      'Untuk Persewaan: bisa berupa bukti video sterilisasi alat H-1 dan seragam kru pengantar yang rapi.',
+    ],
+    linkedSlideIndex: 10,
+  },
+  {
+    index: 3,
+    sectionNumber: 4,
+    sectionTitle: '4. Pilar MARKETING: 1 Cara Mengundang Orang Baru Bertanya',
+    coreLearning: 'Tugas Marketing adalah mendatangkan perhatian dan pertanyaan (Traffic & Leads) dari kolam pembeli yang tepat, bukan memaksa orang langsung transfer di detik pertama',
+    questionText: 'Pilih 1 aksi MARKETING paling konsisten minggu ini untuk mengundang minimal 15–20 calon pembeli baru agar mau bertanya atau mampir ke usahamu!',
+    secondaryPrompt: 'Pastikan kamu menjemput kolam pembeli yang tepat, bukan sekadar menunggu algoritma medsos.',
+    exampleAnswer: 'Bekerja sama dengan 3 sekolah PAUD/TK & sanggar senam ibu-ibu untuk bagi tester botol mini 100ml + brosur QR WA setiap hari Jumat pagi.',
+    exampleBusiness: 'Yoghurt Segar Mbak Nisa',
+    helperTips: [
+      'Marketing tidak harus selalu iklan berbayar; kolaborasi komunitas, titip tester, video proses di Reels, & status WA terjadwal adalah mesin Marketing murah untuk UMKM.',
+      'Ingat angka Sesi 2: tanpa arus orang bertanya dari Marketing, bagian Selling tidak punya bahan untuk di-closing.',
+    ],
+    linkedSlideIndex: 11,
+  },
+  {
+    index: 4,
+    sectionNumber: 5,
+    sectionTitle: '5. Pilar SELLING: Skrip Ubah Chat Bertanya Jadi Transfer',
+    coreLearning: 'Selling adalah seni memandu calon pembeli yang ragu menjadi yakin mengambil paket, menutup transaksi, dan kembali membeli',
+    questionText: 'Tulis 1 kalimat balasan chat WA (saat orang tanya "Berapa harganya?") + 1 kalimat Follow-Up sopan H+1 agar calon pembeli mau ambil Paket Bundling!',
+    secondaryPrompt: 'Hindari hanya membalas angka harga polos seperti "15rb kak". Arahkan ke kebutuhan mereka & tawarkan paket hemat!',
+    exampleAnswer: 'Balasan: "Siap Kak, untuk acara berapa tamu & tanggal berapa? Biar lebih hemat & aman, kami sarankan Paket Komplit 2 Hari (sudah termasuk pasang H-1 & unit steril). Mau saya cekkan jadwal kosongnya?" | Follow-up H+1: "Halo Kak, izin konfirmasi untuk tanggal 18 kemarin masih tersisa 1 set lagi sebelum terisi acara lain."',
+    exampleBusiness: 'Berkah Event Rental',
+    helperTips: [
+      'Rumus anti-ghosting: Jawab ramah + Tanya kebutuhan spesifik + Beri 2 pilihan paket (Satuan vs Paket Hemat) + Tutup dengan pertanyaan ringan.',
+      'Selalu sapa ulang dengan sopan 1×24 jam setelah chat berhenti; 30–40% penjualan UMKM justru lahir dari follow-up kedua!',
+    ],
+    linkedSlideIndex: 12,
+  },
+  {
+    index: 5,
+    sectionNumber: 6,
+    sectionTitle: '6. Merangkai Sinergi 3 Pilar dalam 1 Alur Penawaran Nyata',
+    coreLearning: 'Marketing menarik perhatian, Branding mengunci kepercayaan, dan Selling menjemput transfer — ketiganya saling melengkapi',
+    questionText: 'Rangkai 1 skenario lengkap untuk produk andalanmu: [Cara mengundang lewat MARKETING] → [Bukti yang meyakinkan di BRANDING] → [Cara menutup order di SELLING]!',
+    secondaryPrompt: 'Pastikan ketiga tahap terhubung mulus dari saat orang pertama kali melihat produkmu sampai uang masuk ke rekening.',
+    exampleAnswer: 'MARKETING: Reels video kerenyahan keripik tanpa minyak berlebih → BRANDING: Foto pouch aluminium zip rapi bersegel higienis + label gizi jelas → SELLING: Di chat WA langsung tawarkan "Paket Oleh-Oleh 4 Pouch Hemat Ongkir" + sapa ulang H+2.',
+    exampleBusiness: 'Keripik Apel Bu Sari',
+    helperTips: [
+      'Bayangkan perjalanan satu pembeli baru: pertama kali lihat dari mana (Marketing), kenapa langsung percaya (Branding), dan apa yang bikin dia jadi transfer hari itu juga (Selling).',
+    ],
+    linkedSlideIndex: 14,
+  },
+  {
+    index: 6,
+    sectionNumber: 7,
+    sectionTitle: '7. Jadwal Seimbang 3 Pilar (7 Hari ke Depan)',
+    coreLearning: 'Keseimbangan jadwal mingguan mencegah pemilik UMKM terjebak hanya sibuk produksi atau hanya sibuk posting tanpa ada penutupan transaksi',
+    questionText: 'Susun jadwal pembagian waktu 7 hari ke depan agar BRANDING, MARKETING, dan SELLING usahamu berjalan seimbang setiap minggu!',
+    secondaryPrompt: 'Pisahkan jam kapan merapikan kepercayaan produk (Branding), kapan mengundang traffic baru (Marketing), dan kapan fokus balas cepat & follow-up (Selling).',
+    exampleAnswer: 'Senin & Kamis: Rapikan materi BRANDING (foto testimoni, cek segel & kemasan). Setiap Pagi: Jalankan MARKETING (Status WA + sebar ke komunitas/WO). Setiap Siang-Sore: Eksekusi SELLING (balas cepat <5 menit, tawarkan bundling, & follow-up yang belum transfer).',
+    exampleBusiness: 'Tas Rajut Kreasi Mbak Dita',
+    helperTips: [
+      'Evaluasi setiap Minggu malam: jika chat sepi tambah porsi Marketing; jika ditawar terus tambah bukti Branding; jika chat hilang tambah disiplin Selling.',
+    ],
+    linkedSlideIndex: 15,
+  },
+];
+
+const SESI_3_POLLS: LivePollConfig[] = [
+  {
+    id: 'poll_s3_salah_kaprah_umkm',
+    title: 'Selama Ini, Mana yang Paling Sering Kamu Kira Sudah Mewakili "Semuanya"?',
+    subtitle: 'Pilih 1 kebiasaan yang paling menyita waktumu selama berjualan (jawaban jujur untuk evaluasi bersama):',
+    linkedSlideIndex: 2,
+    type: 'bar',
+    options: [
+      {
+        id: 'opt_s3_rajin_posting',
+        label: '1. Rajin posting status WA / IG tiap hari — saya kira itu sudah jualan lengkap',
+        subtitle: 'Padahal baru mengerjakan Marketing, belum tentu Selling & Branding-nya kuat',
+        category: 'rational',
+      },
+      {
+        id: 'opt_s3_sibuk_kemasan',
+        label: '2. Fokus bikin logo, kemasan bagus, & jaga kualitas — tinggal nunggu pembeli datang',
+        subtitle: 'Padahal baru membangun Branding, mesin Marketing belum dijalankan',
+        category: 'emotional',
+      },
+      {
+        id: 'opt_s3_kasih_diskon',
+        label: '3. Sering kasih diskon / obral harga murah supaya cepat laku hari ini',
+        subtitle: 'Fokus Selling jangka pendek tanpa membangun Branding & margin sehat',
+        category: 'rational',
+      },
+      {
+        id: 'opt_s3_campur_aduk',
+        label: '4. Masih bingung membedakan batas tugas Branding, Marketing, dan Selling',
+        subtitle: 'Sering mencampuradukkan ketiganya sehingga capek tapi omzet stagnan',
+        category: 'emotional',
+      },
+    ],
+  },
+  {
+    id: 'poll_s3_titik_bocor_terbesar',
+    title: 'Melihat Usahamu Seminggu Terakhir, di Tahap Mana Pembeli Paling Banyak Bocor?',
+    subtitle: 'Pilih gejala yang paling terasa menghambat target penjualanmu:',
+    linkedSlideIndex: 8,
+    type: 'bar',
+    options: [
+      {
+        id: 'opt_s3_bocor_marketing',
+        label: '1. Sepi yang lihat & jarang ada chat baru bertanya (Masalah MARKETING)',
+        subtitle: 'Pintu toko masih sepi karena belum banyak yang tahu & tertarik mampir',
+        category: 'rational',
+      },
+      {
+        id: 'opt_s3_bocor_branding',
+        label: '2. Banyak yang lihat tapi ragu, membandingkan, & tawar harga murah (Masalah BRANDING)',
+        subtitle: 'Pembeli belum melihat bukti pembeda & alasan kenapa produkmu layak lebih bernilai',
+        category: 'emotional',
+      },
+      {
+        id: 'opt_s3_bocor_selling',
+        label: '3. Lumayan banyak yang chat tanya harga, tapi hilang tidak transfer (Masalah SELLING)',
+        subtitle: 'Belum ada teknik menjawab, mengarahkan paket, & follow-up yang tepat',
+        category: 'rational',
+      },
+      {
+        id: 'opt_s3_bocor_repeat',
+        label: '4. Sudah pernah beli 1x tapi jarang kembali beli ulang / repeat order',
+        subtitle: 'Perlu penguatan pengalaman Branding & penawaran Selling berkala',
+        category: 'emotional',
+      },
+    ],
+  },
+];
+
+const SESI_3_SLIDES: SlideDefinition[] = [
+  {
+    index: 0,
+    pageNumber: 1,
+    badge: 'SESI 3 PARTNERUP: PETA STRATEGI EKSEKUSI',
+    title: 'Perbedaan Mendasar: Branding, Marketing & Selling',
+    subtitle: 'Melanjutkan Target Penjualan & Margin Ideal: Memahami Tugas Berbeda untuk Membangun Kepercayaan, Mengundang Pembeli, dan Menutup Transaksi — PartnerUp',
+    type: 'cover',
+    speakerNotes: 'Buka sesi dengan menyambungkan materi Sesi 2 kemarin (Target Penjualan, Margin Ideal, dan Copywriting). Tekankan bahwa banyak UMKM sudah punya angka target, tapi di lapangan masih capek tanpa hasil karena mencampuradukkan Branding, Marketing, dan Selling sebagai satu hal yang sama.',
+  },
+  {
+    index: 1,
+    pageNumber: 2,
+    badge: 'ANALOGI SEDERHANA TOKO UMKM',
+    title: 'Mengapa Rajin Posting Belum Tentu Closing? (Analogi Toko)',
+    subtitle: 'Branding, Marketing, dan Selling adalah 3 pekerjaan berbeda dengan tujuan dan cara kerja yang berbeda pula!',
+    type: 'comparison',
+    imageUrl: '/assets/images/sesi3_analogi_toko_1795422841754.jpg',
+    imageCaption: 'Analogi Toko: Marketing Mengundang Masuk (Kiri) · Branding Membangun Kepercayaan (Tengah) · Selling Menutup Pembayaran di Kasir (Kanan)',
+    imagePosition: 'top',
+    speakerNotes: 'Gunakan analogi toko fisik agar langsung melekat di benak UMKM: (1) Marketing itu orang yang berdiri di pinggir jalan membagikan brosur/teriak ramah mengundang orang MAMPIR. (2) Branding itu suasana toko yang bersih, rapi, & reputasi jujur sehingga begitu masuk orang langsung PERCAYA. (3) Selling itu kasir/pelayan yang sigap menyapa, menjelaskan pilihan paket, dan membuat orang jadi BAYAR bawa pulang barang.',
+    comparison: {
+      leftTitle: 'Kesalahpahaman Umum UMKM',
+      leftBody: '• Menganggap "yang penting posting tiap hari = sudah Branding & Selling".\n• Menganggap "bikin logo bagus = otomatis ramai pembeli".\n• Saat jualan sepi, solusinya selalu banting harga / kasih diskon.',
+      rightTitle: 'Cara Pandang Bisnis yang Tepat',
+      rightBody: '• MARKETING bertugas mengundang orang baru datang & bertanya.\n• BRANDING bertugas membuat orang percaya & rela bayar margin sehat.\n• SELLING bertugas mengubah rasa tertarik menjadi uang masuk & beli ulang.',
+    },
+  },
+  {
+    index: 2,
+    pageNumber: 3,
+    badge: 'POLLING 1: CEK KEBIASAAN',
+    title: 'Selama Ini, Mana yang Paling Sering Kamu Kira Sudah "Semuanya"?',
+    subtitle: 'Jawab jujur melalui HP masing-masing agar kita tahu kebiasaan yang paling dominan di kelas hari ini:',
+    type: 'concept',
+    linkedPollId: 'poll_s3_salah_kaprah_umkm',
+    speakerNotes: 'Jalankan Polling 1. Biasanya mayoritas UMKM memilih opsi 1 (rajin posting dikira sudah lengkap) atau opsi 4 (masih bingung membedakan ketiganya). Gunakan hasil polling untuk memvalidasi bahwa sesi ini akan meluruskan peta kerja harian mereka.',
+    cards: [
+      { title: '1. Rajin Posting Konten', body: 'Sibuk upload status & Reels, tapi lupa cara mengonversi chat menjadi transaksi.', accent: 'orange' },
+      { title: '2. Fokus Kemasan & Logo', body: 'Produk sudah rapi & enak, tapi menunggu pembeli datang tanpa jemput bola.', accent: 'teal' },
+      { title: '3. Main Diskon Terus', body: 'Kejar laku cepat hari ini, tapi margin tergerus dan pembeli hilang saat harga normal.', accent: 'orange' },
+    ],
+  },
+  {
+    index: 3,
+    pageNumber: 4,
+    badge: 'PRAKTIK 1: AUDIT AKTIVITAS',
+    title: 'Kelompokkan Aktivitas Jualanmu Minggu Lalu',
+    subtitle: 'Mari cek secara jujur: kegiatan yang menyita waktumu selama ini sebenarnya masuk pilar mana?',
+    type: 'worksheet',
+    linkedQuestionIndex: 0,
+    speakerNotes: 'Berikan waktu 3 menit agar peserta menuliskan 2 aktivitas minggu lalu di HP. Sorot 2–3 jawaban di proyektor dan tunjukkan pilar mana yang masih kosong di bisnis mereka.',
+    promptLines: ['Aktivitas 1 (masuk pilar ___): ______________ | Aktivitas 2 (masuk pilar ___): ______________'],
+  },
+  {
+    index: 4,
+    pageNumber: 5,
+    badge: 'PILAR 1: BRANDING (KEPERCAYAAN)',
+    title: 'BRANDING: Membuat Pembeli Percaya & Tidak Menawar Murah',
+    subtitle: 'Branding bukan soal logo mahal — Branding adalah kesan & janji bukti yang tertanam di kepala pembeli saat mendengar namamu!',
+    type: 'concept',
+    speakerNotes: 'Hubungkan langsung ke materi Sesi 1 (Value Proposition) dan Sesi 2 (Margin Sehat). Jelaskan bahwa tanpa Branding yang kuat, pembeli tidak melihat alasan kenapa harus bayar Rp15.000 jika di sebelah ada Rp10.000. Branding melindungi margin sehat kita!',
+    cards: [
+      { title: 'Pertanyaan yang Dijawab', body: '"Kenapa saya harus percaya & mau bayar harga segini ke usahamu dibanding produk sebelah?"', accent: 'orange' },
+      { title: 'Wujud Nyata di UMKM', body: 'Konsistensi rasa/mutu, botol segel higienis, box kado rapi, foto jujur, garansi ganti baru, & sapaan ramah.', accent: 'teal' },
+      { title: 'Ukuran Keberhasilan', body: 'Pembeli tidak menawar harga, berani rekomendasikan ke teman, dan ingat merekmu saat butuh.', accent: 'orange' },
+    ],
+  },
+  {
+    index: 5,
+    pageNumber: 6,
+    badge: 'PILAR 2: MARKETING (MENGUNDANG)',
+    title: 'MARKETING: Mengundang Orang Baru Datang & Bertanya',
+    subtitle: 'Marketing adalah aktivitas menjemput perhatian pasar yang tepat — tugasnya membuat orang PENASARAN & BERTANYA, belum tentu langsung beli!',
+    type: 'concept',
+    speakerNotes: 'Hubungkan ke rumus Corong Jemput Bola Sesi 2 (150 orang lihat → 20 chat masuk). Tegaskan: jangan kecewa kalau posting Reels atau bagi brosur tidak langsung menghasilkan transfer detik itu juga! Jika orang mulai klik, komentar, atau chat tanya, berarti MARKETING sudah BERHASIL.',
+    cards: [
+      { title: 'Pertanyaan yang Dijawab', body: '"Bagaimana caranya calon pembeli yang tepat tahu kalau produkku ada dan tertarik menyapa?"', accent: 'teal' },
+      { title: 'Wujud Nyata di UMKM', body: 'Konten hook masalah, video proses produksi, bagi tester di komunitas/sekolah, kolaborasi WO, & Status WA rutin.', accent: 'orange' },
+      { title: 'Ukuran Keberhasilan', body: 'Jumlah orang baru yang melihat penawaran (Traffic) & jumlah chat/pertanyaan masuk per hari (Leads).', accent: 'teal' },
+    ],
+  },
+  {
+    index: 6,
+    pageNumber: 7,
+    badge: 'PILAR 3: SELLING (MENUTUP TRANSAKSI)',
+    title: 'SELLING: Mengubah Pertanyaan Jadi Transfer & Paket Lebih Besar',
+    subtitle: 'Begitu calon pembeli sudah chat atau berdiri di depan lapakmu, tugas Marketing selesai — sekarang giliran SELLING bekerja!',
+    type: 'concept',
+    speakerNotes: 'Jelaskan kenapa banyak UMKM kehilangan 70% omzet justru di tahap Selling: balas chat lambat, cuma jawab "Rp15rb kak" tanpa mengarahkan paket, takut menjawab keberatan harga, dan tidak pernah follow-up calon pembeli yang diam.',
+    cards: [
+      { title: 'Pertanyaan yang Dijawab', body: '"Bagaimana membimbing pembeli yang masih ragu agar yakin transfer sekarang & ambil paket hemat?"', accent: 'orange' },
+      { title: 'Wujud Nyata di UMKM', body: 'Respon cepat ramah, gali kebutuhan pembeli, tawarkan 2 opsi paket (Satuan vs Bundling), & follow-up sopan H+1.', accent: 'teal' },
+      { title: 'Ukuran Keberhasilan', body: 'Rasio closing (% yang tanya berubah jadi transfer) dan nilai rata-rata per transaksi (Repeat & Upsell).', accent: 'orange' },
+    ],
+  },
+  {
+    index: 7,
+    pageNumber: 8,
+    badge: 'MATRIKS PERBEDAAN MENDASAR',
+    title: 'Peta Perbedaan Strategi: Branding vs Marketing vs Selling',
+    subtitle: 'Pegang tabel ringkas ini agar kamu tidak lagi mencampuradukkan target dan cara kerjanya:',
+    type: 'comparison',
+    speakerNotes: 'Ajak peserta membaca perbedaan waktu dan fokus masing-masing pilar. Branding bersifat jangka panjang menjaga reputasi & margin; Marketing mencari perhatian & chat masuk harian; Selling fokus eksekusi percakapan & penawaran hari ini agar jadi uang.',
+    comparison: {
+      leftTitle: 'BRANDING (Jaga Nilai) vs MARKETING (Cari Traffic)',
+      leftBody: '• BRANDING:\n  Fokus: Kepercayaan, pembeda, & kesan premium.\n  Efek: Pembeli rela bayar margin ideal tanpa menawar.\n\n• MARKETING:\n  Fokus: Menjangkau mata & telinga target pasar.\n  Efek: Ramai yang melihat, klik, mencicipi, & chat tanya.',
+      rightTitle: 'SELLING (Ubah Minat Jadi Uang Masuk)',
+      rightBody: '• SELLING:\n  Fokus: Komunikasi 1-on-1, negosiasi nilai, & penawaran paket.\n  Contoh F&B: "Ambil Paket 5 Botol gratis ice pack ya Kak?"\n  Contoh Kriya: "Sekalian box kado & kartu ucapan nama?"\n  Contoh Sewa: "Untuk tanggal 18 masih ada 1 set, mau kami kunci?"\n  Efek: Chat berubah jadi transfer & repeat order.',
+    },
+  },
+  {
+    index: 8,
+    pageNumber: 9,
+    badge: 'POLLING 2 & DIAGNOSA PENYAKIT',
+    title: 'Jangan Salah Obat! Kenali di Mana Usahamu Paling Bocor',
+    subtitle: 'Salah mendiagnosa masalah membuatmu capek kerja keras di bagian yang sebenarnya sudah cukup baik:',
+    type: 'concept',
+    linkedPollId: 'poll_s3_titik_bocor_terbesar',
+    imageUrl: '/assets/images/sesi3_macet_tiga_tahap_1795422840467.jpg',
+    imageCaption: '3 Gejala Bocor Berbeda: Sepi Pengunjung (Marketing) · Ragu/Tawar Murah (Branding) · Chat Dianggurkan/Kabur (Selling)',
+    imagePosition: 'right',
+    speakerNotes: 'Jalankan Polling 2 lalu bahas analogi "Jangan Salah Obat": kalau sakit perut (Marketing kurang traffic) jangan dikasih obat sakit kepala (ganti logo/kemasan terus). Kalau banyak yang tanya harga lalu kabur (Selling lemah), obatnya perbaiki skrip balas chat WA — bukan malah banting harga!',
+    cards: [
+      { title: 'Gejala: Sepi yang Tanya', body: 'Jangan ubah logo terus — perbanyak aktivitas MARKETING menjemput kolam target pasar!', accent: 'teal' },
+      { title: 'Gejala: Ditawar Terus', body: 'Jangan buru-buru diskon — perkuat bukti BRANDING (kemasan, segel, testimoni, garansi)!', accent: 'orange' },
+      { title: 'Gejala: Chat Hilang', body: 'Jangan salahkan produknya — perbaiki cara SELLING, arahkan ke paket bundling, & follow-up!', accent: 'teal' },
+    ],
+  },
+  {
+    index: 9,
+    pageNumber: 10,
+    badge: 'PRAKTIK 2: DIAGNOSA TITIK BOCOR',
+    title: 'Tentukan Titik Bocor Paling Mendesak di Usahamu',
+    subtitle: 'Pilih 1 dari 3 pilar yang saat ini paling menghambat target penjualanmu agar segera diobati minggu ini:',
+    type: 'worksheet',
+    linkedQuestionIndex: 1,
+    speakerNotes: 'Minta peserta jujur mendiagnosa titik bocornya di HP. Pilih 3 jawaban berbeda (1 bocor Marketing, 1 bocor Branding, 1 bocor Selling) untuk dibahas singkat di layar.',
+    promptLines: ['Tahap paling bocor di usahaku saat ini: ___________ | Gejala nyatanya: ______________'],
+  },
+  {
+    index: 10,
+    pageNumber: 11,
+    badge: 'PRAKTIK 3: EKSEKUSI BRANDING',
+    title: 'Tetapkan 1 Bukti Nyata BRANDING Minggu Ini',
+    subtitle: 'Apa 1 perbaikan kecil pada produk, kemasan, atau pelayanan yang langsung menaikkan rasa percaya pembeli?',
+    type: 'worksheet',
+    linkedQuestionIndex: 2,
+    speakerNotes: 'Tekankan bahwa penguatan Branding UMKM harus murah tapi terlihat nyata: stiker segel higienis (F&B), kartu perawatan & box rapi (Kriya), atau checklist sterilisasi & seragam rapi (Persewaan).',
+    cards: [
+      { title: 'F&B (Yoghurt / Keripik)', body: 'Segel tutup, label tanggal produksi segar, foto dapur bersih, atau garansi ganti jika rusak.', accent: 'orange' },
+      { title: 'Kriya (Handycraft)', body: 'Tag merek rapi, panduan rawat rajutan/kulit, & kemasan box yang pantas langsung jadi kado.', accent: 'teal' },
+      { title: 'Jasa Persewaan', body: 'Foto unit rapi terbungkus bersih sebelum kirim & bukti ketepatan waktu di lokasi acara.', accent: 'orange' },
+    ],
+    promptLines: ['1 Penguat BRANDING yang langsung saya terapkan minggu ini: ______________'],
+  },
+  {
+    index: 11,
+    pageNumber: 12,
+    badge: 'PRAKTIK 4: EKSEKUSI MARKETING',
+    title: 'Rancang 1 Aksi MARKETING Penjemput Target Harian',
+    subtitle: 'Pilih 1 saluran nyata untuk memastikan 15–20 calon pembeli yang tepat mengenal & menyapa usahamu tiap hari:',
+    type: 'worksheet',
+    linkedQuestionIndex: 3,
+    speakerNotes: 'Ingatkan peserta agar tidak pasif menunggu orang menemukan toko mereka. Arahkan mereka memilih saluran yang cocok dengan target pembelinya: komunitas ibu sekolah, kantor, WO/event organizer, atau konten video singkat proses pembuatan.',
+    promptLines: ['1 Aksi MARKETING konsisten + siapa kolam target yang dituju: ______________'],
+  },
+  {
+    index: 12,
+    pageNumber: 13,
+    badge: 'PRAKTIK 5: SKRIP SELLING ANTI-GHOSTING',
+    title: 'Rumus 3 Langkah SELLING di WhatsApp (Ubah Tanya Jadi Transfer)',
+    subtitle: 'Berhenti membalas chat tanya harga dengan angka mentah! Pakai rumus sederhana ini agar closing melonjak:',
+    type: 'formula',
+    linkedQuestionIndex: 4,
+    speakerNotes: 'Ini sesi praktik yang paling cepat menghasilkan uang keesokan harinya. Beri contoh nyata kenapa membalas "Rp15.000 kak" membuat chat langsung mati, sedangkan membalas dengan pertanyaan + rekomendasi paket bundling membuat pembeli merasa dibantu.',
+    cards: [
+      { title: '1. Sambut + Gali Kebutuhan', body: '"Siap Kak! Boleh tahu untuk acara kapan / dikonsumsi keluarga sendiri atau untuk kado?"', accent: 'orange' },
+      { title: '2. Arahkan ke Paket Bundling', body: '"Biar lebih hemat & aman, paling banyak yang ambil Paket 5 Botol / Paket Kado (include box)..."', accent: 'teal' },
+      { title: '3. Kunci + Follow-Up H+1', body: '"Mau dikirim sore ini atau besok pagi?" → Jika diam, sapa ulang besoknya dengan sopan!', accent: 'orange' },
+    ],
+    promptLines: ['Skrip Balas Chat Paket Bundling + Kalimat Follow-Up H+1 usahaku: ______________'],
+  },
+  {
+    index: 13,
+    pageNumber: 14,
+    badge: 'SINERGI 3 RODA GIGI USAHA',
+    title: 'Bagaimana Ketiganya Bekerja Bersama Mengejar Target Sesi 2',
+    subtitle: 'Marketing membawa orang ke depan pintu, Branding membuat mereka yakin membayar harga sehat, dan Selling mengantar uang masuk ke kasir!',
+    type: 'concept',
+    imageUrl: '/assets/images/sesi3_sinergi_tri_pilar_1795422840690.jpg',
+    imageCaption: '3 Roda Gigi Saling Menggerakkan: Marketing (Teal) + Branding (Navy) + Selling (Amber) = Target Laba UMKM Tercapai',
+    imagePosition: 'top',
+    speakerNotes: 'Tunjukkan ilustrasi 3 roda gigi ini dan tarik benang merah dari Sesi 1 sampai Sesi 3: Sesi 1 memberi nilai pembeda (bahan bakar Branding), Sesi 2 memberi target laba, margin sehat, & copywriting (kompas & peluru Marketing), dan Sesi 3 menyatukan ketiganya hingga menjadi transaksi closing (Selling).',
+    cards: [
+      { title: 'Roda Marketing', body: 'Mengisi corong atas: 100–150 pasang mata → 15–20 chat masuk/hari.', accent: 'teal' },
+      { title: 'Roda Branding', body: 'Menjaga margin sehat 30%–70% agar pembeli tidak lari ke barang murahan.', accent: 'orange' },
+      { title: 'Roda Selling', body: 'Mengunci closing 5–6 transaksi paket/hari + menjaga pelanggan repeat order.', accent: 'orange' },
+    ],
+  },
+  {
+    index: 14,
+    pageNumber: 15,
+    badge: 'PRAKTIK 6: RANGKAIAN UTUH 3 PILAR',
+    title: 'Sambungkan Marketing → Branding → Selling untuk 1 Produk Andalan',
+    subtitle: 'Tulis satu alur perjalanan pembeli dari pertama melihat promosimu sampai transfer paket bundling:',
+    type: 'worksheet',
+    linkedQuestionIndex: 5,
+    speakerNotes: 'Ajak peserta merangkai 1 skenario utuh dari awal hingga akhir. Sorot 2–3 jawaban terbaik di layar proyektor dan berikan apresiasi langsung.',
+    promptLines: ['Alur 1 Produk: [Marketing]: _______ → [Branding]: _______ → [Selling]: _______'],
+  },
+  {
+    index: 15,
+    pageNumber: 16,
+    badge: 'PENUTUP & JADWAL SEIMBANG',
+    title: 'Jadwal Seimbang 7 Hari: Jangan Pincang di Satu Roda Saja!',
+    subtitle: 'Atur ritme mingguan agar waktumu sebagai pemilik UMKM terbagi cerdas untuk menjaga kepercayaan, mengundang pembeli, dan menutup transaksi.',
+    type: 'closing',
+    linkedQuestionIndex: 6,
+    speakerNotes: 'Tutup Sesi 3 PartnerUp dengan menegaskan aturan emas: jangan pernah mengerjakan 1 pilar saja selama sebulan penuh. Bagi hari atau jam untuk Branding, Marketing, dan Selling. Minta peserta menuliskan jadwal 7 hari ke depan di HP masing-masing sebagai komitmen eksekusi besok pagi.',
+    promptLines: ['Jadwal 7 Hari Seimbang (Branding / Marketing / Selling) usahaku: ______________'],
+    cards: [
+      { title: '2 Hari/Minggu: BRANDING', body: 'Rapikan foto testimoni, cek standar kemasan/segel, & dokumentasikan kualitas produksi.', accent: 'orange' },
+      { title: 'Setiap Pagi: MARKETING', body: 'Sebar konten hook VP + sapa komunitas/mitra untuk menjemput calon pembeli baru.', accent: 'teal' },
+      { title: 'Setiap Siang–Sore: SELLING', body: 'Balas cepat chat masuk, arahkan ke paket bundling, & follow-up sopan calon pembeli kemarin.', accent: 'orange' },
+    ],
+  },
+];
+
+export const SESI_3_BRANDING_MARKETING_SELLING_CURRICULUM: SavedMaterial = {
+  id: 'partnerup_sesi_3_branding_marketing_selling',
+  seminarTitle: 'Sesi 3 PartnerUp: Perbedaan Mendasar Branding, Marketing & Selling',
+  organizerName: 'Program PartnerUp | Obeecreatives',
+  description: 'Kurikulum Lanjutan PartnerUp setelah Target Penjualan & Copywriting: Membedah perbedaan peran Branding (bangun trust & jaga margin), Marketing (undang traffic & chat), dan Selling (skrip closing WA & repeat order) lengkap dengan diagnosa titik bocor UMKM (7 Pertanyaan, 2 Polling, 16 Slide).',
+  category: 'Sesi 3 PartnerUp (Eksekusi 3 Pilar)',
+  isDefault: false,
+  createdAt: 1732600000000,
+  updatedAt: 1733000000000,
+  content: {
+    seminarTitle: 'Sesi 3 PartnerUp: Perbedaan Mendasar Branding, Marketing & Selling',
+    organizerName: 'Program PartnerUp | Obeecreatives',
+    questions: SESI_3_QUESTIONS,
+    polls: SESI_3_POLLS,
+    slides: SESI_3_SLIDES,
+    qnaTopics: [
+      'Branding vs Marketing vs Selling',
+      'Diagnosa Titik Bocor Penjualan',
+      'Penguat Trust & Jaga Margin',
+      'Jemput Traffic Tepat Sasaran',
+      'Strategi Selling & Closing WA',
+    ],
+    brandTheme: DEFAULT_BRAND_THEME,
+    updatedAt: 1733000000000,
+    materialId: 'partnerup_sesi_3_branding_marketing_selling',
+    description: 'Kurikulum Lanjutan PartnerUp setelah Target Penjualan & Copywriting: Membedah perbedaan peran Branding (bangun trust & jaga margin), Marketing (undang traffic & chat), dan Selling (skrip closing WA & repeat order).',
+    category: 'Sesi 3 PartnerUp (Eksekusi 3 Pilar)',
+    isDefault: false,
+    createdAt: 1732600000000,
+  },
+};
+
+/**
  * Kurikulum Praktik: Copywriting & Foto Produk Sosmed UMKM
  */
 export const COPYWRITING_MATERIAL_PRESET: SavedMaterial = {
@@ -1126,6 +1566,7 @@ export const INITIAL_PRESET_MATERIALS: SavedMaterial[] = [
   DEFAULT_PARTNERUP_CURRICULUM,
   PACKAGING_DESIGN_MARKETING_CURRICULUM,
   SESI_2_ACTION_PLAN_CURRICULUM,
+  SESI_3_BRANDING_MARKETING_SELLING_CURRICULUM,
   COPYWRITING_MATERIAL_PRESET,
 ];
 
@@ -1145,6 +1586,7 @@ export function getSavedMaterialsLocal(): SavedMaterial[] {
       const hasMaster = parsed.some((m) => m.id === DEFAULT_PARTNERUP_CURRICULUM.id);
       const hasPackaging = parsed.some((m) => m.id === PACKAGING_DESIGN_MARKETING_CURRICULUM.id);
       const hasSesi2 = parsed.some((m) => m.id === SESI_2_ACTION_PLAN_CURRICULUM.id);
+      const hasSesi3 = parsed.some((m) => m.id === SESI_3_BRANDING_MARKETING_SELLING_CURRICULUM.id);
       const hasCopywriting = parsed.some((m) => m.id === COPYWRITING_MATERIAL_PRESET.id);
 
       let updated = [...parsed];
@@ -1192,6 +1634,23 @@ export function getSavedMaterialsLocal(): SavedMaterial[] {
             !currentSesi2?.content?.slides?.[1]?.imageUrl;
           if (needsSesi2Refresh && currentSesi2) {
             updated[sesi2Idx] = SESI_2_ACTION_PLAN_CURRICULUM;
+            changed = true;
+          }
+        }
+      }
+      if (!hasSesi3) {
+        updated.splice(3, 0, SESI_3_BRANDING_MARKETING_SELLING_CURRICULUM);
+        changed = true;
+      } else {
+        const sesi3Idx = updated.findIndex((m) => m.id === SESI_3_BRANDING_MARKETING_SELLING_CURRICULUM.id);
+        if (sesi3Idx >= 0) {
+          const currentSesi3 = updated[sesi3Idx];
+          const needsSesi3Refresh =
+            !currentSesi3?.updatedAt ||
+            currentSesi3.updatedAt < 1733000000000 ||
+            !currentSesi3?.content?.polls?.some((p: LivePollConfig) => p.id === 'poll_s3_salah_kaprah_umkm');
+          if (needsSesi3Refresh && currentSesi3) {
+            updated[sesi3Idx] = SESI_3_BRANDING_MARKETING_SELLING_CURRICULUM;
             changed = true;
           }
         }

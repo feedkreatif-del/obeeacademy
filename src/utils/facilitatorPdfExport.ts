@@ -701,6 +701,125 @@ function appendSesi2PartnerUpMasteryChapters(pdf: PdfBuilder): void {
 }
 
 /**
+ * Bab Spesialis Khusus Sesi 3 PartnerUp:
+ * Perbedaan Mendasar Branding, Marketing, dan Selling
+ */
+function appendSesi3PartnerUpMasteryChapters(pdf: PdfBuilder): void {
+  // BAB 1
+  pdf.addChapterHeading('BAB 1', 'Analogi Toko & 4 Kesalahpahaman Mendasar UMKM');
+  pdf.addParagraph(
+    'Kurikulum Sesi 3 ini melanjutkan langsung Sesi 2 (Target Penjualan, Margin Ideal & Copywriting). Di lapangan, banyak UMKM sudah menghitung target laba tetapi tetap kelelahan dan tidak closing karena menyamakan Branding, Marketing, dan Selling. Gunakan analogi toko fisik ini agar seluruh peserta langsung paham dalam 2 menit:'
+  );
+  pdf.addBullets([
+    {
+      lead: '1. MARKETING = Orang Ramah di Pinggir Jalan Mengundang Masuk',
+      body: 'Tugasnya mencari perhatian pasar yang tepat dan membuat orang penasaran lalu bertanya atau mampir. Jika postingan mulai diklik, dikomentari, atau dibalas chat tanya harga, Marketing sudah BERHASIL—meski belum tentu langsung bayar detik itu.',
+    },
+    {
+      lead: '2. BRANDING = Suasana Toko Bersih, Rapi, Segel Meyakinkan & Reputasi Jujur',
+      body: 'Tugasnya mengunci kepercayaan sehingga saat pembeli masuk, mereka yakin kualitasnya sepadan dan tidak menawar harga murahan. Branding menjaga margin sehat 30%-70% yang dihitung di Sesi 2.',
+    },
+    {
+      lead: '3. SELLING = Kasir / Pelayan Sigap yang Menutup Transaksi di Depan',
+      body: 'Tugasnya menggali kebutuhan pembeli yang sudah bertanya, mengarahkan ke Paket Bundling hemat, menjawab keraguan, melakukan follow-up H+1, dan mengajak beli ulang.',
+    },
+    {
+      lead: '4. Jebakan Terbesar UMKM: Rajin 1 Pilar Tapi Mengira Sudah Mengerjakan Semuanya',
+      body: 'Banyak pemilik usaha merasa "sudah jualan setiap hari" padahal hanya rajin posting status (baru Marketing) atau sibuk mempercantik stiker (baru Branding) sambil membiarkan chat WA terbengkalai (Selling kosong).',
+    },
+  ]);
+
+  // BAB 2
+  pdf.addChapterHeading('BAB 2', 'Matriks Perbedaan Tugas, Waktu & Ukuran Keberhasilan');
+  pdf.addTable(
+    ['Dimensi', 'BRANDING (Jaga Nilai)', 'MARKETING (Cari Traffic)', 'SELLING (Jemput Uang)'],
+    [
+      [
+        'Pertanyaan Inti',
+        '"Kenapa saya harus percaya & mau bayar harga segini ke usahamu?"',
+        '"Bagaimana calon pembeli tepat tahu produkku ada & tertarik menyapa?"',
+        '"Bagaimana mengubah chat yang masuk menjadi transfer & paket lebih besar?"',
+      ],
+      [
+        'Fokus Kerja',
+        'Bukti kualitas, segel higienis, konsistensi rasa, garansi, & identitas rapi.',
+        'Hook konten VP, bagi tester komunitas, kolaborasi mitra/WO, & Status WA.',
+        'Respon cepat (<5 menit), gali kebutuhan, tawarkan bundling, & follow-up H+1.',
+      ],
+      [
+        'Indikator Sukses',
+        'Pembeli tidak menawar harga & berani merekomendasikan ke teman.',
+        'Jumlah pasang mata yang melihat (Traffic) & jumlah chat tanya masuk (Leads).',
+        'Rasio closing (% tanya jadi transfer) & nilai rata-rata order naik.',
+      ],
+      [
+        'Horison Efek',
+        'Jangka menengah-panjang: membangun reputasi & melindungi margin ideal.',
+        'Harian-mingguan: menjaga keran calon pembeli baru terus mengalir.',
+        'Saat ini juga: mengubah minat yang sudah hangat menjadi omzet tunai.',
+      ],
+    ],
+    [0.16, 0.28, 0.28, 0.28]
+  );
+
+  // BAB 3
+  pdf.addChapterHeading('BAB 3', 'Diagnosa "Jangan Salah Obat!" & Penerapan 3 Sektor UMKM');
+  pdf.addParagraph(
+    'Ajarkan peserta mendiagnosa titik bocor sebelum bekerja keras. Memberi obat yang salah hanya membuang tenaga dan biaya:'
+  );
+  pdf.addTable(
+    ['Gejala Lapangan', 'Diagnosa Pilar Bocor', 'Obat Salah (Jangan Lakukan)', 'Obat Tepat untuk Sektor F&B, Kriya & Sewa'],
+    [
+      [
+        'Produk bagus tapi sepi yang lihat & jarang ada chat baru bertanya.',
+        'Masalah MARKETING',
+        'Ganti-ganti warna logo atau banting harga.',
+        'F&B: titip tester PAUD/kantor. Kriya: Reels proses rajut/jahit. Sewa: sapa rutin EO/panitia kampus.',
+      ],
+      [
+        'Ramai yang lihat & tanya, tapi selalu dibanding-bandingkan harga murahan.',
+        'Masalah BRANDING',
+        'Ikut perang harga murah sampai margin habis.',
+        'F&B: segel higienis + tanggal segar. Kriya: kartu rawat + box kado rapi. Sewa: bukti foto unit steril + seragam kru.',
+      ],
+      [
+        'Banyak chat tanya harga masuk WA, tapi setelah dijawab langsung hilang (ghosting).',
+        'Masalah SELLING',
+        'Menyalahkan produk atau algoritma medsos.',
+        'Ganti jawaban harga polos dengan skrip 3 langkah: Gali acara/kebutuhan -> Arahkan ke Paket Bundling -> Follow-up H+1.',
+      ],
+    ],
+    [0.23, 0.17, 0.2, 0.4]
+  );
+
+  // BAB 4
+  pdf.addChapterHeading('BAB 4', 'Rumus Skrip Selling Anti-Ghosting WA & Jadwal Seimbang 7 Hari');
+  pdf.addCalloutBox({
+    title: 'SKRIP WA ANTI-GHOSTING (LANGSUNG DIPRAKTIKKAN PESERTA DI KELAS)',
+    tone: 'teal',
+    bodyLines: [
+      'JANGAN: "15rb kak. Mau pesan?" (Chat langsung mati, pembeli merasa hanya berhadapan dengan daftar harga).',
+      '1. Sambut + Gali Kebutuhan: "Siap Kak! Boleh dibantu infonya, ini untuk konsumsi keluarga sendiri atau acara kado/kantor tanggal berapa?"',
+      '2. Arahkan 2 Opsi Paket Bundling: "Biar lebih hemat & aman, paling banyak pelanggan ambil Paket 5 Botol Bonus Ice Pack (Rp70rb) dibanding eceran Rp15rb/botol. Lebih pas yang mana Kak?"',
+      '3. Follow-Up Sopan H+1: "Halo Kak, izin mengingatkan kembali untuk slot pengiriman besok/tanggal 18 masih tersisa 1 paket lagi ya Kak."',
+    ],
+  });
+
+  pdf.addSubHeading('Panduan Alokasi Waktu Kelas Sesi 3 (Total 100 Menit)');
+  pdf.addTable(
+    ['Segmen & Slide', 'Durasi', 'Fokus Fasilitator'],
+    [
+      ['Pembukaan, Analogi Toko & Polling 1 (Slide 1-4)', '20 Menit', 'Patahkan anggapan "rajin posting = sudah lengkap", lakukan audit aktivitas minggu lalu.'],
+      ['Bedah 3 Pilar & Matriks Strategi (Slide 5-8)', '20 Menit', 'Sambungkan Branding ke VP Sesi 1, Marketing ke Target Sesi 2, & peran Selling.'],
+      ['Polling 2 & Diagnosa Jangan Salah Obat (Slide 9-10)', '15 Menit', 'Sorot 3 peserta berbeda titik bocor agar kelas paham cara memilih obat tepat.'],
+      ['Praktik Branding, Marketing & Skrip Selling (Slide 11-13)', '25 Menit', 'Polis langsung balasan chat WA peserta di layar proyektor agar bebas ghosting.'],
+      ['Sinergi 3 Roda Gigi & Jadwal Seimbang 7 Hari (Slide 14-16)', '20 Menit', 'Rangkai 1 alur utuh + kunci jadwal mingguan agar 3 roda berjalan seimbang.'],
+    ],
+    [0.38, 0.14, 0.48]
+  );
+}
+
+/**
  * Bab Spesialis Khusus Materi Desain Kemasan Pemasaran UMKM
  */
 function appendPackagingMasteryChapters(pdf: PdfBuilder): void {
@@ -773,6 +892,10 @@ export function exportFacilitatorDeepDivePdf(options: FacilitatorPdfOptions): vo
     materialId === 'partnerup_sesi_2_action_plan' ||
     seminarTitle.toLowerCase().includes('target penjualan') ||
     seminarTitle.toLowerCase().includes('margin ideal');
+  const isSesi3PartnerUp =
+    materialId === 'partnerup_sesi_3_branding_marketing_selling' ||
+    (seminarTitle.toLowerCase().includes('branding') && seminarTitle.toLowerCase().includes('selling')) ||
+    seminarTitle.toLowerCase().includes('sesi 3');
   const isPackaging =
     materialId === 'desain_kemasan_pemasaran_umkm' ||
     seminarTitle.toLowerCase().includes('desain kemasan');
@@ -793,6 +916,13 @@ export function exportFacilitatorDeepDivePdf(options: FacilitatorPdfOptions): vo
         'Simulasi hitungan target laba, margin sehat, dan bundling untuk F&B, Kriya, & Jasa Persewaan.',
         'Mengubah rumus Value Proposition Sesi 1 menjadi Copywriting 3 Pilar siap posting.',
         'Panduan menjawab 5 keberatan paling sulit dari peserta di kelas + skrip tiap slide (Slide 1-16).',
+      ]
+    : isSesi3PartnerUp
+    ? [
+        'Meluruskan kesalahpahaman klasik UMKM lewat Analogi Toko (Branding vs Marketing vs Selling).',
+        'Panduan diagnosa "Jangan Salah Obat!" untuk sektor F&B, Kriya, dan Jasa Persewaan.',
+        'Rumus Skrip Selling WhatsApp Anti-Ghosting untuk mengubah chat tanya menjadi transfer paket.',
+        'Peta sinergi 3 roda gigi & jadwal eksekusi seimbang 7 hari + skrip Slide 1-16.',
       ]
     : [
         'Penguasaan konsep mendalam agar pemateri tampil percaya diri dan menguasai panggung.',
@@ -815,6 +945,8 @@ export function exportFacilitatorDeepDivePdf(options: FacilitatorPdfOptions): vo
   // Bab pendalaman khusus sesuai kurikulum
   if (isSesi2PartnerUp) {
     appendSesi2PartnerUpMasteryChapters(pdf);
+  } else if (isSesi3PartnerUp) {
+    appendSesi3PartnerUpMasteryChapters(pdf);
   } else if (isPackaging) {
     appendPackagingMasteryChapters(pdf);
   } else if (isSesi1) {
@@ -822,7 +954,7 @@ export function exportFacilitatorDeepDivePdf(options: FacilitatorPdfOptions): vo
   }
 
   // Lampiran / Bab Bedah Lembar Kerja & Polling
-  const worksheetChapterLabel = isSesi2PartnerUp ? 'BAB 6' : 'BAB 2';
+  const worksheetChapterLabel = isSesi2PartnerUp ? 'BAB 6' : isSesi3PartnerUp ? 'BAB 5' : 'BAB 2';
   pdf.addChapterHeading(
     worksheetChapterLabel,
     `Panduan Membimbing Lembar Kerja (${questions.length} Soal) & Polling (${polls.length} Sesi)`
@@ -859,7 +991,7 @@ export function exportFacilitatorDeepDivePdf(options: FacilitatorPdfOptions): vo
   }
 
   // Lampiran Terakhir: Bedah Slide per Slide + Speaker Notes Lengkap
-  const slideChapterLabel = isSesi2PartnerUp ? 'BAB 7' : 'BAB 3';
+  const slideChapterLabel = isSesi2PartnerUp ? 'BAB 7' : isSesi3PartnerUp ? 'BAB 6' : 'BAB 3';
   pdf.addChapterHeading(
     slideChapterLabel,
     `Bedah Slide per Slide & Naskah Pembicara (${slides.length} Slide)`

@@ -4,6 +4,7 @@ import {
   DEFAULT_PARTNERUP_CURRICULUM,
   PACKAGING_DESIGN_MARKETING_CURRICULUM,
   SESI_2_ACTION_PLAN_CURRICULUM,
+  SESI_3_BRANDING_MARKETING_SELLING_CURRICULUM,
   COPYWRITING_MATERIAL_PRESET,
   duplicateMaterial,
   createBlankMaterial,
@@ -63,7 +64,7 @@ export const MaterialsBankModal: React.FC<MaterialsBankModalProps> = ({
   const [newOrganizer, setNewOrganizer] = useState('Program PartnerUp | Obeecreatives');
   const [newDescription, setNewDescription] = useState('');
   const [creationSource, setCreationSource] = useState<
-    'duplicate_active' | 'template_packaging' | 'template_sesi_2' | 'template_sesi_1' | 'preset_copywriting' | 'blank'
+    'duplicate_active' | 'template_packaging' | 'template_sesi_2' | 'template_sesi_3' | 'template_sesi_1' | 'preset_copywriting' | 'blank'
   >('template_packaging');
   const [autoActivateNew, setAutoActivateNew] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -132,6 +133,19 @@ export const MaterialsBankModal: React.FC<MaterialsBankModalProps> = ({
           seminarTitle: newTitle.trim(),
           organizerName: newOrganizer.trim() || 'Program PartnerUp | Obeecreatives',
           description: newDescription.trim() || SESI_2_ACTION_PLAN_CURRICULUM.description,
+          content: {
+            ...base.content,
+            seminarTitle: newTitle.trim(),
+            organizerName: newOrganizer.trim() || 'Program PartnerUp | Obeecreatives',
+          },
+        };
+      } else if (creationSource === 'template_sesi_3') {
+        const base = duplicateMaterial(SESI_3_BRANDING_MARKETING_SELLING_CURRICULUM, '');
+        createdMaterial = {
+          ...base,
+          seminarTitle: newTitle.trim(),
+          organizerName: newOrganizer.trim() || 'Program PartnerUp | Obeecreatives',
+          description: newDescription.trim() || SESI_3_BRANDING_MARKETING_SELLING_CURRICULUM.description,
           content: {
             ...base.content,
             seminarTitle: newTitle.trim(),
@@ -706,6 +720,34 @@ export const MaterialsBankModal: React.FC<MaterialsBankModalProps> = ({
                     </p>
                     <span className="inline-block mt-2 text-[10px] font-extrabold text-[#2A9D8F] bg-white px-2 py-0.5 rounded border border-[#2A9D8F]/30">
                       Siap Pakai Lanjutan 3 Sesi VP
+                    </span>
+                  </div>
+
+                  {/* Option: Sesi 3 Branding, Marketing & Selling Preset */}
+                  <div
+                    onClick={() => {
+                      setCreationSource('template_sesi_3');
+                      if (!newTitle) {
+                        setNewTitle('Sesi 3 PartnerUp: Perbedaan Mendasar Branding, Marketing & Selling');
+                      }
+                    }}
+                    className={`p-4 rounded-2xl border-2 transition-all cursor-pointer ${
+                      creationSource === 'template_sesi_3'
+                        ? 'border-[#1F3A5F] bg-[#F0F5FA] shadow-xs'
+                        : 'border-[#1F3A5F]/15 hover:border-[#1F3A5F]/35 bg-white'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <Layers className="w-4 h-4 text-[#1F3A5F]" />
+                      <span className="font-bold text-sm text-[#1F3A5F]">
+                        Template Sesi 3 PartnerUp (Branding, Marketing & Selling)
+                      </span>
+                    </div>
+                    <p className="text-xs text-[#1F3A5F]/70 leading-relaxed">
+                      Kelanjutan Target Penjualan Sesi 2: 7 lembar kerja audit & strategi 3 pilar (F&B, Kriya, Persewaan), 2 polling live, 16 slide + 3 ilustrasi, diagnosa "Jangan Salah Obat", dan skrip Selling anti-ghosting WA.
+                    </p>
+                    <span className="inline-block mt-2 text-[10px] font-extrabold text-[#1F3A5F] bg-white px-2 py-0.5 rounded border border-[#1F3A5F]/30">
+                      Siap Pakai Lanjutan Sesi 2
                     </span>
                   </div>
 

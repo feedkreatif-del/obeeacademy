@@ -1544,6 +1544,207 @@ export const COPYWRITING_SEED_QNA = [
   },
 ];
 
+// ============================================================================
+// SIMULASI KHUSUS SESI 3 PARTNERUP: BRANDING, MARKETING, DAN SELLING (Q0–Q6)
+// ============================================================================
+
+export const SESI_3_SEED_ANSWERS = [
+  // Q0: Audit Aktivitas Selama Ini
+  {
+    q: 0,
+    text: 'Selama ini saya tiap hari update Status WA & Reels IG (ternyata itu baru Marketing), tapi belum punya skrip follow-up kalau orang sudah tanya harga (Selling lemah).',
+    subText: 'Baru sadar selama ini saya kira bikin konten sudah sama dengan jualan.',
+    businessName: 'Yoghurt Segar Mbak Nisa',
+    participantId: 'seed_s3_nisa',
+    status: 'approved' as const,
+    star: true,
+    spotlightSize: 'besar' as const,
+    likes: 11,
+    mentorNote: 'Kesadaran paling mahal hari ini: rajin konten = Marketing, tapi mengubah chat jadi transfer butuh ilmu Selling!',
+    ts: Date.now() - 3600000,
+  },
+  {
+    q: 0,
+    text: 'Saya sudah fokus bikin box kado & stiker merek bagus (Branding), tapi jarang menjemput pembeli baru sehingga toko sepi (Marketing kurang).',
+    subText: 'Selama ini hanya mengandalkan pembeli dari mulut ke mulut.',
+    businessName: 'Tas Rajut Kreasi Mbak Dita',
+    participantId: 'seed_s3_dita',
+    status: 'approved' as const,
+    star: false,
+    likes: 8,
+    mentorNote: '',
+    ts: Date.now() - 3400000,
+  },
+  // Q1: Diagnosa Titik Macet Utama
+  {
+    q: 1,
+    text: 'Titik bocor di SELLING: setiap minggu ada 20–30 orang chat tanya harga paket sewa, tapi setelah saya kirim daftar harga polos, 80% menghilang tidak membalas.',
+    subText: 'Belum mengarahkan kebutuhan acara mereka & belum pernah follow-up.',
+    businessName: 'Berkah Event Rental',
+    participantId: 'seed_s3_berkah',
+    status: 'approved' as const,
+    star: true,
+    spotlightSize: 'besar' as const,
+    likes: 13,
+    mentorNote: 'Diagnosa tepat! Obatnya bukan ganti logo, tapi perbaiki skrip balas chat & follow-up Selling!',
+    ts: Date.now() - 3100000,
+  },
+  {
+    q: 1,
+    text: 'Titik bocor di BRANDING: sudah banyak yang lihat di bazar & medsos, tapi pembeli masih sering bilang "kok lebih mahal dari plastik kiloan sebelah?".',
+    subText: 'Kemasan & bukti higienis belum terlihat jelas dari pandangan pertama.',
+    businessName: 'Keripik Apel Bu Sari',
+    participantId: 'seed_s3_busari',
+    status: 'approved' as const,
+    star: false,
+    likes: 9,
+    mentorNote: '',
+    ts: Date.now() - 2950000,
+  },
+  // Q2: 1 Penguat Pilar BRANDING
+  {
+    q: 2,
+    text: 'Menempelkan segel "Produksi Segar Hari Ini + Garansi Ganti Baru Jika Basi/Rusak" di botol & membuat tampilan foto dapur yang seragam bersih.',
+    subText: 'Supaya ibu-ibu yakin kualitasnya tanpa ragu membandingkan dengan minuman murah.',
+    businessName: 'Yoghurt Segar Mbak Nisa',
+    participantId: 'seed_s3_nisa',
+    status: 'approved' as const,
+    star: true,
+    spotlightSize: 'kecil' as const,
+    likes: 10,
+    mentorNote: 'Branding nyata UMKM bukan logo mahal, tapi bukti konsistensi & rasa aman bagi pembeli!',
+    ts: Date.now() - 2600000,
+  },
+  {
+    q: 2,
+    text: 'Menyertakan kartu "Panduan Perawatan Rajut & Garansi Jahitan 30 Hari" di setiap box kado agar terasa pantas sebagai hadiah istimewa.',
+    subText: 'Menguatkan nilai emosional & kepercayaan pembeli kado.',
+    businessName: 'Tas Rajut Kreasi Mbak Dita',
+    participantId: 'seed_s3_dita',
+    status: 'approved' as const,
+    star: false,
+    likes: 7,
+    mentorNote: '',
+    ts: Date.now() - 2500000,
+  },
+  // Q3: 1 Aksi Pilar MARKETING
+  {
+    q: 3,
+    text: 'Bekerja sama dengan 3 sekolah PAUD/TK & sanggar senam ibu-ibu untuk bagi tester botol mini 100ml + brosur QR WA setiap hari Jumat.',
+    subText: 'Menjemput langsung segmen ibu & anak yang memang butuh camilan sehat.',
+    businessName: 'Yoghurt Segar Mbak Nisa',
+    participantId: 'seed_s3_nisa',
+    status: 'approved' as const,
+    star: true,
+    spotlightSize: 'besar' as const,
+    likes: 12,
+    mentorNote: 'Marketing yang cerdas: langsung mendatangi kolam pembeli yang tepat, bukan sekadar menunggu algoritma!',
+    ts: Date.now() - 2200000,
+  },
+  {
+    q: 3,
+    text: 'Upload 3 video Reels singkat per minggu memperlihatkan proses sterilisasi tenda & loading rapi di lokasi acara agar dilirik panitia kantor/WO.',
+    subText: 'Menarik calon penyewa yang mengutamakan ketepatan waktu & kebersihan.',
+    businessName: 'Berkah Event Rental',
+    participantId: 'seed_s3_berkah',
+    status: 'approved' as const,
+    star: false,
+    likes: 8,
+    mentorNote: '',
+    ts: Date.now() - 2100000,
+  },
+  // Q4: 1 Skrip Pilar SELLING
+  {
+    q: 4,
+    text: 'Balasan chat: "Siap Kak, untuk acara berapa tamu & di tanggal berapa? Supaya lebih hemat & aman, kami sarankan Paket Komplit 2 Hari (sudah termasuk pasang H-1 & unit steril). Mau saya cekkan jadwal kosongnya dulu?" + Follow-up H+1: "Halo Kak, izin konfirmasi untuk tanggal 18 kemarin masih tersedia 1 set lagi sebelum terisi acara lain."',
+    subText: 'Tidak langsung lempar pricelist mentah, tapi bantu pilih paket & kunci jadwal.',
+    businessName: 'Berkah Event Rental',
+    participantId: 'seed_s3_berkah',
+    status: 'approved' as const,
+    star: true,
+    spotlightSize: 'besar' as const,
+    likes: 15,
+    mentorNote: 'Ini contoh skrip Selling kelas juara: bertanya balik, mengarahkan ke paket bundling, dan follow-up sopan!',
+    ts: Date.now() - 1700000,
+  },
+  {
+    q: 4,
+    text: 'Balasan chat: "Ready Kak! Untuk stok kulkas anak lebih hemat ambil Paket 5 Botol Rp70rb (gratis ice pack & bisa mix 3 rasa). Mau dikirim sore jam 4?"',
+    subText: 'Langsung tawarkan opsi paket bundling dengan pilihan rasa.',
+    businessName: 'Yoghurt Segar Mbak Nisa',
+    participantId: 'seed_s3_nisa',
+    status: 'approved' as const,
+    star: false,
+    likes: 9,
+    mentorNote: '',
+    ts: Date.now() - 1600000,
+  },
+  // Q5: Rangkaian Utuh 3 Pilar
+  {
+    q: 5,
+    text: 'MARKETING: Reels video kerenyahan keripik tanpa minyak berlebih → BRANDING: Foto pouch aluminium zip rapi bersegel higienis + label gizi jelas → SELLING: Di chat WA langsung tawarkan "Paket Oleh-Oleh 4 Pouch Lebih Hemat Ongkir" + sapa ulang H+2.',
+    subText: 'Ketiga roda berputar bareng sehingga tidak ada lagi calon pembeli yang lepas di tengah jalan.',
+    businessName: 'Keripik Apel Bu Sari',
+    participantId: 'seed_s3_busari',
+    status: 'approved' as const,
+    star: true,
+    spotlightSize: 'besar' as const,
+    likes: 14,
+    mentorNote: 'Alur 3 Pilar yang sempurna: Marketing menarik mata, Branding meyakinkan hati, Selling menutup transaksi!',
+    ts: Date.now() - 1200000,
+  },
+  // Q6: Jadwal Seimbang 7 Hari
+  {
+    q: 6,
+    text: 'Senin & Kamis: Rapikan materi BRANDING (foto testimoni, cek segel & kemasan). Setiap Pagi: Jalankan MARKETING (Status WA + sebar ke komunitas/WO). Setiap Siang-Sore: Eksekusi SELLING (balas cepat <5 menit, tawarkan bundling, & follow-up yang belum transfer).',
+    subText: 'Tidak lagi berat sebelah hanya posting saja tanpa closing.',
+    businessName: 'Tas Rajut Kreasi Mbak Dita',
+    participantId: 'seed_s3_dita',
+    status: 'approved' as const,
+    star: true,
+    spotlightSize: 'besar' as const,
+    likes: 11,
+    mentorNote: 'Jadwal yang sangat seimbang dan realistis dijalankan pemilik UMKM sendirian!',
+    ts: Date.now() - 800000,
+  },
+];
+
+export const SESI_3_SEED_QNA = [
+  {
+    text: 'Untuk usaha kecil yang dikerjakan sendiri di rumah, mana yang harus didahulukan: memperbaiki Branding dulu atau langsung kejar Marketing & Selling?',
+    authorName: 'Anonim (UMKM Kuliner)',
+    isAnonymous: true,
+    topicTag: 'Branding vs Marketing vs Selling',
+    upvotes: 14,
+    status: 'approved' as const,
+    star: true,
+    participantId: 'seed_qna_s3_1',
+    ts: Date.now() - 1900000,
+  },
+  {
+    text: 'Bagaimana cara menyikapi calon pembeli yang sudah melihat bukti Branding kita (kemasan segel & kualitas bagus), tapi tetap membandingkan harga dengan barang murahan di marketplace?',
+    authorName: 'Keripik Apel Bu Sari',
+    isAnonymous: false,
+    topicTag: 'Strategi Selling & Closing WA',
+    upvotes: 11,
+    status: 'approved' as const,
+    star: false,
+    participantId: 'seed_qna_s3_2',
+    ts: Date.now() - 1400000,
+  },
+  {
+    text: 'Apakah follow-up chat WA besok harinya ke orang yang cuma tanya harga tidak dianggap mengganggu atau terkesan butuh banget?',
+    authorName: 'Berkah Event Rental',
+    isAnonymous: false,
+    topicTag: 'Strategi Selling & Closing WA',
+    upvotes: 9,
+    status: 'approved' as const,
+    star: false,
+    participantId: 'seed_qna_s3_3',
+    ts: Date.now() - 950000,
+  },
+];
+
 export function getSeedDataForCurriculum(
   materialId?: string,
   seminarTitle?: string
@@ -1552,6 +1753,16 @@ export function getSeedDataForCurriculum(
   qna: typeof INITIAL_SEED_QNA;
 } {
   const titleLower = (seminarTitle || '').toLowerCase();
+  if (
+    materialId === 'partnerup_sesi_3_branding_marketing_selling' ||
+    (titleLower.includes('branding') && titleLower.includes('selling')) ||
+    titleLower.includes('sesi 3')
+  ) {
+    return {
+      answers: SESI_3_SEED_ANSWERS,
+      qna: SESI_3_SEED_QNA,
+    };
+  }
   if (
     materialId === 'partnerup_sesi_2_action_plan' ||
     titleLower.includes('target penjualan') ||

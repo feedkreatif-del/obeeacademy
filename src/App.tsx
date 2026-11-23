@@ -61,6 +61,7 @@ import {
   removeMaterial,
   DEFAULT_PARTNERUP_CURRICULUM,
   SESI_2_ACTION_PLAN_CURRICULUM,
+  SESI_3_BRANDING_MARKETING_SELLING_CURRICULUM,
 } from './utils/materialsManager';
 import { MaterialsBankModal } from './components/MaterialsBankModal';
 import { Download, BookOpen, Lock, Unlock, ShieldCheck, Settings, Layers } from 'lucide-react';
@@ -796,6 +797,10 @@ export default function App() {
             customContent.materialId === SESI_2_ACTION_PLAN_CURRICULUM.id ||
             titleLower.includes('target penjualan') ||
             titleLower.includes('margin ideal');
+          const isSesi3 =
+            customContent.materialId === SESI_3_BRANDING_MARKETING_SELLING_CURRICULUM.id ||
+            (titleLower.includes('branding') && titleLower.includes('selling')) ||
+            titleLower.includes('sesi 3');
           const isPackaging =
             customContent.materialId === 'desain_kemasan_pemasaran_umkm' ||
             titleLower.includes('desain kemasan');
@@ -813,6 +818,9 @@ export default function App() {
           const hasSesi2Seed =
             seedAnswers.some((sa) => sa.participantId?.startsWith('seed_s2_')) &&
             seedAnswers.some((sa) => sa.q === 6 && sa.participantId === 'seed_s2_dita');
+          const hasSesi3Seed =
+            seedAnswers.some((sa) => sa.participantId?.startsWith('seed_s3_')) &&
+            seedAnswers.some((sa) => sa.q === 6 && sa.participantId === 'seed_s3_dita');
           const hasPkgSeed =
             seedAnswers.some((sa) => sa.participantId?.startsWith('seed_pkg_')) &&
             seedAnswers.some((sa) => sa.q === 4);
@@ -822,9 +830,10 @@ export default function App() {
 
           const isMismatched =
             (isSesi2 && !hasSesi2Seed) ||
+            (isSesi3 && !hasSesi3Seed) ||
             (isPackaging && !hasPkgSeed) ||
             (isCopywriting && !hasCwSeed) ||
-            (!isSesi2 && !isPackaging && !isCopywriting && !hasSesi1Seed);
+            (!isSesi2 && !isSesi3 && !isPackaging && !isCopywriting && !hasSesi1Seed);
 
           if (hasDuplicates || isMismatched) {
             sesiSeedHealDoneRef.current = true;
