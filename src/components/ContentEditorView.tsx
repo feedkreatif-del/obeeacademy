@@ -209,8 +209,8 @@ export const ContentEditorView: React.FC<ContentEditorViewProps> = ({
       }));
 
       await onSaveCustomContent({
-        seminarTitle: seminarTitle.trim() || 'Seminar UMKM Interaktif',
-        organizerName: organizerName.trim() || 'Program PartnerUp | Obeecreatives',
+        seminarTitle: seminarTitle.trim() || 'Kelas & Workshop Interaktif',
+        organizerName: organizerName.trim() || 'obeeAcademy | Obeecreatives',
         questions: normalizedQuestions,
         polls,
         slides: normalizedSlides,
@@ -244,7 +244,7 @@ export const ContentEditorView: React.FC<ContentEditorViewProps> = ({
       const newMat: SavedMaterial = {
         id: newId,
         seminarTitle: saveCopyTitle.trim(),
-        organizerName: organizerName.trim() || 'Program PartnerUp | Obeecreatives',
+        organizerName: organizerName.trim() || 'obeeAcademy | Obeecreatives',
         description: saveCopyNotice.trim() || `Salinan dibuat pada ${new Date().toLocaleDateString('id-ID')}`,
         category: 'Materi Kustom',
         isDefault: false,
@@ -252,7 +252,7 @@ export const ContentEditorView: React.FC<ContentEditorViewProps> = ({
         updatedAt: Date.now(),
         content: {
           seminarTitle: saveCopyTitle.trim(),
-          organizerName: organizerName.trim() || 'Program PartnerUp | Obeecreatives',
+          organizerName: organizerName.trim() || 'obeeAcademy | Obeecreatives',
           questions: normalizedQuestions,
           polls,
           slides: normalizedSlides,
@@ -279,7 +279,7 @@ export const ContentEditorView: React.FC<ContentEditorViewProps> = ({
   // Preset Template Loader for Quick Demo of Another Seminar Topic
   const handleLoadCopywritingPreset = () => {
     setSeminarTitle('Seminar Copywriting & Foto Produk Laris di Sosmed');
-    setOrganizerName('Program PartnerUp | Obeecreatives');
+    setOrganizerName('obeeAcademy | Obeecreatives');
     setQuestions([
       {
         index: 0,
@@ -757,7 +757,7 @@ export const ContentEditorView: React.FC<ContentEditorViewProps> = ({
               className="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-[#1F3A5F] text-xs font-bold flex items-center gap-1.5 cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              <span>Reset ke Materi Asli PartnerUp</span>
+              <span>Reset ke Materi Asli Bawaan</span>
             </button>
           ) : (
             <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-300 px-3 py-1.5 rounded-xl">
@@ -1253,7 +1253,7 @@ export const ContentEditorView: React.FC<ContentEditorViewProps> = ({
                 Pengaturan Tema Warna Organisasi (Custom Brand Color Picker)
               </h2>
               <p className="text-sm text-[#1F3A5F]/75 max-w-3xl">
-                Sesuaikan identitas warna untuk organisasi penyelenggara (BUMN, Dinas, Koperasi, Kampus, atau Komunitas). Warna default tetap menggunakan <strong>PartnerUp | Obeecreatives</strong>. Klik <strong>Simpan & Terapkan ke Seminar</strong> di kanan atas untuk menyinkronkan warna ke seluruh layar Proyektor & HP Peserta.
+                Sesuaikan identitas warna untuk organisasi penyelenggara (BUMN, Dinas, Koperasi, Kampus, atau Komunitas). Warna default menggunakan <strong>obeeAcademy | Obeecreatives</strong>. Klik <strong>Simpan & Terapkan ke Seminar</strong> di kanan atas untuk menyinkronkan warna ke seluruh layar Proyektor & HP Peserta.
               </p>
             </div>
 
@@ -1263,7 +1263,7 @@ export const ContentEditorView: React.FC<ContentEditorViewProps> = ({
               className="px-4 py-2.5 rounded-xl bg-[#FFF7EC] border-2 border-[#1F3A5F]/20 hover:border-[#F28C28] text-[#1F3A5F] text-xs font-bold flex items-center gap-2 cursor-pointer shrink-0 transition-colors"
             >
               <RotateCcw className="w-4 h-4 text-[#F28C28]" />
-              <span>Kembalikan Warna Default (PartnerUp | Obeecreatives)</span>
+              <span>Kembalikan Warna Default (obeeAcademy | Obeecreatives)</span>
             </button>
           </div>
 

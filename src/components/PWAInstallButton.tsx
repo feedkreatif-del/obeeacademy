@@ -51,7 +51,7 @@ export const PWAInstallModalTrigger: React.FC<{ variant?: 'light' | 'dark' }> = 
                   Progressive Web App (PWA)
                 </span>
                 <h3 className="font-display text-2xl font-extrabold text-[#1F3A5F] mt-0.5">
-                  Instal PartnerUp Live
+                  Instal obeeAcademy
                 </h3>
               </div>
               <button

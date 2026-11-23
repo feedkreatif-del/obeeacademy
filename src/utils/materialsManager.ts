@@ -29,15 +29,15 @@ export const ACTIVE_MATERIAL_ID_KEY = 'partnerup_active_material_id';
 export const DEFAULT_PARTNERUP_CURRICULUM: SavedMaterial = {
   id: 'partnerup_sesi_1_curriculum',
   seminarTitle: 'Kenapa Pembeli Harus Pilih Kamu? (Value Proposition UMKM)',
-  organizerName: 'Program PartnerUp | Obeecreatives',
+  organizerName: 'Seri PartnerUp | obeeAcademy',
   description: 'Kurikulum Utama Sesi 1: Merumuskan alasan rasional, emosional, audit bio toko & diferensiasi produk UMKM (8 Pertanyaan, 17 Slide).',
-  category: 'Sesi 1 (Master)',
+  category: 'Seri PartnerUp (Sesi 1)',
   isDefault: true,
   createdAt: 1729000000000,
   updatedAt: 1730000000000,
   content: {
     seminarTitle: 'Kenapa Pembeli Harus Pilih Kamu? (Value Proposition UMKM)',
-    organizerName: 'Program PartnerUp | Obeecreatives',
+    organizerName: 'Seri PartnerUp | obeeAcademy',
     questions: PARTNERUP_QUESTIONS,
     polls: LIVE_POLLS,
     slides: SEMINAR_SLIDES,
@@ -46,7 +46,7 @@ export const DEFAULT_PARTNERUP_CURRICULUM: SavedMaterial = {
     updatedAt: 1730000000000,
     materialId: 'partnerup_sesi_1_curriculum',
     description: 'Kurikulum Utama Sesi 1: Merumuskan alasan rasional, emosional, audit bio toko & diferensiasi produk UMKM.',
-    category: 'Sesi 1 (Master)',
+    category: 'Seri PartnerUp (Sesi 1)',
     isDefault: true,
     createdAt: 1729000000000,
   },
@@ -478,15 +478,15 @@ const SESI_2_SLIDES: SlideDefinition[] = [
 export const SESI_2_ACTION_PLAN_CURRICULUM: SavedMaterial = {
   id: 'partnerup_sesi_2_action_plan',
   seminarTitle: 'Sesi 2 PartnerUp: Target Penjualan, Margin Ideal & Copywriting Penyampai Value Proposition',
-  organizerName: 'Program PartnerUp | Obeecreatives',
+  organizerName: 'Seri PartnerUp | obeeAcademy',
   description: 'Kurikulum Lanjutan PartnerUp setelah pendalaman 3 sesi Value Proposition: Menetapkan target laba & unit harian, menghitung margin sehat F&B/Kriya/Persewaan, merancang paket bundling, & rumus copywriting penyampai VP (7 Pertanyaan, 2 Polling, 16 Slide).',
-  category: 'Sesi 2 PartnerUp (Lanjutan VP)',
+  category: 'Seri PartnerUp (Sesi 2)',
   isDefault: false,
   createdAt: 1730000000000,
   updatedAt: 1732500000000,
   content: {
     seminarTitle: 'Sesi 2 PartnerUp: Target Penjualan, Margin Ideal & Copywriting Penyampai Value Proposition',
-    organizerName: 'Program PartnerUp | Obeecreatives',
+    organizerName: 'Seri PartnerUp | obeeAcademy',
     questions: SESI_2_QUESTIONS,
     polls: SESI_2_POLLS,
     slides: SESI_2_SLIDES,
@@ -501,7 +501,7 @@ export const SESI_2_ACTION_PLAN_CURRICULUM: SavedMaterial = {
     updatedAt: 1732500000000,
     materialId: 'partnerup_sesi_2_action_plan',
     description: 'Kurikulum Lanjutan PartnerUp setelah pendalaman 3 sesi Value Proposition: Menetapkan target laba & unit harian, menghitung margin sehat F&B/Kriya/Persewaan, merancang paket bundling, & rumus copywriting penyampai VP.',
-    category: 'Sesi 2 PartnerUp (Lanjutan VP)',
+    category: 'Seri PartnerUp (Sesi 2)',
     isDefault: false,
     createdAt: 1730000000000,
   },
@@ -925,15 +925,15 @@ const SESI_3_SLIDES: SlideDefinition[] = [
 export const SESI_3_BRANDING_MARKETING_SELLING_CURRICULUM: SavedMaterial = {
   id: 'partnerup_sesi_3_branding_marketing_selling',
   seminarTitle: 'Sesi 3 PartnerUp: Perbedaan Mendasar Branding, Marketing & Selling',
-  organizerName: 'Program PartnerUp | Obeecreatives',
+  organizerName: 'Seri PartnerUp | obeeAcademy',
   description: 'Kurikulum Lanjutan PartnerUp setelah Target Penjualan & Copywriting: Membedah perbedaan peran Branding (bangun trust & jaga margin), Marketing (undang traffic & chat), dan Selling (skrip closing WA & repeat order) lengkap dengan diagnosa titik bocor UMKM (7 Pertanyaan, 2 Polling, 16 Slide).',
-  category: 'Sesi 3 PartnerUp (Eksekusi 3 Pilar)',
+  category: 'Seri PartnerUp (Sesi 3)',
   isDefault: false,
   createdAt: 1732600000000,
   updatedAt: 1733100000000,
   content: {
     seminarTitle: 'Sesi 3 PartnerUp: Perbedaan Mendasar Branding, Marketing & Selling',
-    organizerName: 'Program PartnerUp | Obeecreatives',
+    organizerName: 'Seri PartnerUp | obeeAcademy',
     questions: SESI_3_QUESTIONS,
     polls: SESI_3_POLLS,
     slides: SESI_3_SLIDES,
@@ -948,7 +948,7 @@ export const SESI_3_BRANDING_MARKETING_SELLING_CURRICULUM: SavedMaterial = {
     updatedAt: 1733100000000,
     materialId: 'partnerup_sesi_3_branding_marketing_selling',
     description: 'Kurikulum Lanjutan PartnerUp setelah Target Penjualan & Copywriting: Membedah perbedaan peran Branding (bangun trust & jaga margin), Marketing (undang traffic & chat), dan Selling (skrip closing WA & repeat order).',
-    category: 'Sesi 3 PartnerUp (Eksekusi 3 Pilar)',
+    category: 'Seri PartnerUp (Sesi 3)',
     isDefault: false,
     createdAt: 1732600000000,
   },
@@ -960,7 +960,7 @@ export const SESI_3_BRANDING_MARKETING_SELLING_CURRICULUM: SavedMaterial = {
 export const COPYWRITING_MATERIAL_PRESET: SavedMaterial = {
   id: 'copywriting_foto_sosmed_umkm',
   seminarTitle: 'Cara Menulis Caption & Foto Produk yang Bikin Pembeli Langsung Chat',
-  organizerName: 'Program PartnerUp | Obeecreatives',
+  organizerName: 'obeeAcademy | Obeecreatives',
   description: 'Materi Praktik Singkat: Merombak Bio profil toko, merangkai hook caption promosi, dan Call to Action di sosmed (3 Pertanyaan, 5 Slide).',
   category: 'Workshop Khusus',
   isDefault: false,
@@ -968,7 +968,7 @@ export const COPYWRITING_MATERIAL_PRESET: SavedMaterial = {
   updatedAt: 1730000000000,
   content: {
     seminarTitle: 'Cara Menulis Caption & Foto Produk yang Bikin Pembeli Langsung Chat',
-    organizerName: 'Program PartnerUp | Obeecreatives',
+    organizerName: 'obeeAcademy | Obeecreatives',
     questions: [
       {
         index: 0,
@@ -1529,7 +1529,7 @@ const PACKAGING_SLIDES: SlideDefinition[] = [
 export const PACKAGING_DESIGN_MARKETING_CURRICULUM: SavedMaterial = {
   id: 'desain_kemasan_pemasaran_umkm',
   seminarTitle: 'Pentingnya Desain Kemasan Sebagai Penunjang Pemasaran Bagi UMKM',
-  organizerName: 'Program PartnerUp | Obeecreatives',
+  organizerName: 'obeeAcademy | Obeecreatives',
   description: 'Kurikulum Spesialis: Mengubah kemasan menjadi wiraniaga diam (silent salesperson), hukum pandang 3 detik di rak toko, rumus anatomi label juara, dan strategi menaikkan harga jual 2x lipat (7 Pertanyaan, 17 Slide).',
   category: 'Workshop Kemasan & Branding',
   isDefault: false,
@@ -1537,7 +1537,7 @@ export const PACKAGING_DESIGN_MARKETING_CURRICULUM: SavedMaterial = {
   updatedAt: 1730700000000,
   content: {
     seminarTitle: 'Pentingnya Desain Kemasan Sebagai Penunjang Pemasaran Bagi UMKM',
-    organizerName: 'Program PartnerUp | Obeecreatives',
+    organizerName: 'obeeAcademy | Obeecreatives',
     questions: PACKAGING_QUESTIONS,
     polls: PACKAGING_POLLS,
     slides: PACKAGING_SLIDES,
@@ -1745,7 +1745,7 @@ export async function syncMaterialsFromFirestore(db: Firestore): Promise<SavedMa
         remoteDocs.push({
           id: d.id,
           seminarTitle: data.seminarTitle,
-          organizerName: data.organizerName || 'Program PartnerUp',
+          organizerName: data.organizerName || 'obeeAcademy | Obeecreatives',
           description: data.description || '',
           category: data.category || 'Materi Kustom',
           isDefault: Boolean(data.isDefault),
@@ -1753,7 +1753,7 @@ export async function syncMaterialsFromFirestore(db: Firestore): Promise<SavedMa
           updatedAt: data.updatedAt || Date.now(),
           content: {
             seminarTitle: data.seminarTitle,
-            organizerName: data.organizerName || 'Program PartnerUp',
+            organizerName: data.organizerName || 'obeeAcademy | Obeecreatives',
             questions: data.questions,
             polls: Array.isArray(data.polls) ? data.polls : [],
             slides: data.slides,
@@ -1922,7 +1922,7 @@ export function duplicateMaterial(
  */
 export function createBlankMaterial(
   title: string,
-  organizerName: string = 'Program PartnerUp | Obeecreatives',
+  organizerName: string = 'obeeAcademy | Obeecreatives',
   brandTheme: BrandThemeConfig = DEFAULT_BRAND_THEME
 ): SavedMaterial {
   const newId = `mat_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
@@ -2067,7 +2067,7 @@ export function downloadMaterialAsJson(material: SavedMaterial): void {
  * Unduh seluruh Bank Materi sebagai 1 file cadangan bundle .JSON
  */
 export function downloadAllMaterialsBundleAsJson(materials: SavedMaterial[]): void {
-  const fileName = `Semua_Bank_Materi_PartnerUp_${new Date().toISOString().slice(0, 10)}.json`;
+  const fileName = `Semua_Bank_Materi_obeeAcademy_${new Date().toISOString().slice(0, 10)}.json`;
   const exportPayload = {
     bundleVersion: '2.0',
     exportDate: new Date().toISOString(),

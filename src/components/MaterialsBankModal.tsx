@@ -61,7 +61,7 @@ export const MaterialsBankModal: React.FC<MaterialsBankModalProps> = ({
 
   // Form State for Creating New Material
   const [newTitle, setNewTitle] = useState('');
-  const [newOrganizer, setNewOrganizer] = useState('Program PartnerUp | Obeecreatives');
+  const [newOrganizer, setNewOrganizer] = useState('obeeAcademy | Obeecreatives');
   const [newDescription, setNewDescription] = useState('');
   const [creationSource, setCreationSource] = useState<
     'duplicate_active' | 'template_packaging' | 'template_sesi_2' | 'template_sesi_3' | 'template_sesi_1' | 'preset_copywriting' | 'blank'
@@ -105,12 +105,12 @@ export const MaterialsBankModal: React.FC<MaterialsBankModalProps> = ({
         createdMaterial = {
           ...base,
           seminarTitle: newTitle.trim(),
-          organizerName: newOrganizer.trim() || 'Program PartnerUp | Obeecreatives',
+          organizerName: newOrganizer.trim() || 'obeeAcademy | Obeecreatives',
           description: newDescription.trim() || PACKAGING_DESIGN_MARKETING_CURRICULUM.description,
           content: {
             ...base.content,
             seminarTitle: newTitle.trim(),
-            organizerName: newOrganizer.trim() || 'Program PartnerUp | Obeecreatives',
+            organizerName: newOrganizer.trim() || 'obeeAcademy | Obeecreatives',
           },
         };
       } else if (creationSource === 'duplicate_active') {
@@ -131,12 +131,12 @@ export const MaterialsBankModal: React.FC<MaterialsBankModalProps> = ({
         createdMaterial = {
           ...base,
           seminarTitle: newTitle.trim(),
-          organizerName: newOrganizer.trim() || 'Program PartnerUp | Obeecreatives',
+          organizerName: newOrganizer.trim() || 'obeeAcademy | Obeecreatives',
           description: newDescription.trim() || SESI_2_ACTION_PLAN_CURRICULUM.description,
           content: {
             ...base.content,
             seminarTitle: newTitle.trim(),
-            organizerName: newOrganizer.trim() || 'Program PartnerUp | Obeecreatives',
+            organizerName: newOrganizer.trim() || 'obeeAcademy | Obeecreatives',
           },
         };
       } else if (creationSource === 'template_sesi_3') {
@@ -144,12 +144,12 @@ export const MaterialsBankModal: React.FC<MaterialsBankModalProps> = ({
         createdMaterial = {
           ...base,
           seminarTitle: newTitle.trim(),
-          organizerName: newOrganizer.trim() || 'Program PartnerUp | Obeecreatives',
+          organizerName: newOrganizer.trim() || 'obeeAcademy | Obeecreatives',
           description: newDescription.trim() || SESI_3_BRANDING_MARKETING_SELLING_CURRICULUM.description,
           content: {
             ...base.content,
             seminarTitle: newTitle.trim(),
-            organizerName: newOrganizer.trim() || 'Program PartnerUp | Obeecreatives',
+            organizerName: newOrganizer.trim() || 'obeeAcademy | Obeecreatives',
           },
         };
       } else if (creationSource === 'template_sesi_1') {
@@ -157,12 +157,12 @@ export const MaterialsBankModal: React.FC<MaterialsBankModalProps> = ({
         createdMaterial = {
           ...base,
           seminarTitle: newTitle.trim(),
-          organizerName: newOrganizer.trim() || 'Program PartnerUp | Obeecreatives',
+          organizerName: newOrganizer.trim() || 'obeeAcademy | Obeecreatives',
           description: newDescription.trim() || DEFAULT_PARTNERUP_CURRICULUM.description,
           content: {
             ...base.content,
             seminarTitle: newTitle.trim(),
-            organizerName: newOrganizer.trim() || 'Program PartnerUp | Obeecreatives',
+            organizerName: newOrganizer.trim() || 'obeeAcademy | Obeecreatives',
           },
         };
       } else if (creationSource === 'preset_copywriting') {
@@ -170,19 +170,19 @@ export const MaterialsBankModal: React.FC<MaterialsBankModalProps> = ({
         createdMaterial = {
           ...base,
           seminarTitle: newTitle.trim(),
-          organizerName: newOrganizer.trim() || 'Program PartnerUp | Obeecreatives',
+          organizerName: newOrganizer.trim() || 'obeeAcademy | Obeecreatives',
           description: newDescription.trim() || COPYWRITING_MATERIAL_PRESET.description,
           content: {
             ...base.content,
             seminarTitle: newTitle.trim(),
-            organizerName: newOrganizer.trim() || 'Program PartnerUp | Obeecreatives',
+            organizerName: newOrganizer.trim() || 'obeeAcademy | Obeecreatives',
           },
         };
       } else {
         // Blank
         createdMaterial = createBlankMaterial(
           newTitle.trim(),
-          newOrganizer.trim() || 'Program PartnerUp | Obeecreatives'
+          newOrganizer.trim() || 'obeeAcademy | Obeecreatives'
         );
         if (newDescription.trim()) {
           createdMaterial.description = newDescription.trim();
@@ -227,7 +227,7 @@ export const MaterialsBankModal: React.FC<MaterialsBankModalProps> = ({
           const imported: SavedMaterial = {
             id: newId,
             seminarTitle: parsed.seminarTitle || content.seminarTitle || 'Materi Impor',
-            organizerName: parsed.organizerName || content.organizerName || 'Program PartnerUp',
+            organizerName: parsed.organizerName || content.organizerName || 'obeeAcademy | Obeecreatives',
             description: `Diimpor dari file ${file.name} pada ${new Date().toLocaleDateString('id-ID')}`,
             category: 'Materi Impor',
             isDefault: false,
@@ -235,7 +235,7 @@ export const MaterialsBankModal: React.FC<MaterialsBankModalProps> = ({
             updatedAt: Date.now(),
             content: {
               seminarTitle: parsed.seminarTitle || content.seminarTitle || 'Materi Impor',
-              organizerName: parsed.organizerName || content.organizerName || 'Program PartnerUp',
+              organizerName: parsed.organizerName || content.organizerName || 'obeeAcademy | Obeecreatives',
               questions: content.questions || [],
               polls: content.polls || [],
               slides: content.slides || [],
@@ -768,7 +768,7 @@ export const MaterialsBankModal: React.FC<MaterialsBankModalProps> = ({
                     <div className="flex items-center gap-2 mb-1.5">
                       <BookOpen className="w-4 h-4 text-[#1F3A5F]" />
                       <span className="font-bold text-sm text-[#1F3A5F]">
-                        Kurikulum PartnerUp Asli
+                        Kurikulum Seri PartnerUp (Sesi 1)
                       </span>
                     </div>
                     <p className="text-xs text-[#1F3A5F]/70 leading-relaxed">

@@ -124,7 +124,7 @@ export const PresenterAuthModal: React.FC<PresenterAuthModalProps> = ({
     {
       role: 'slides',
       label: 'Materi Slide Presentasi',
-      desc: '17 Slide kurikulum lengkap seminar PartnerUp',
+      desc: 'Slide kurikulum & materi aktif kelas obeeAcademy',
       icon: <Presentation className="w-5 h-5 text-blue-500" />,
       color: 'border-blue-200 hover:border-blue-500',
     },

@@ -87,7 +87,7 @@ export const SystemGuideModal: React.FC<SystemGuideModalProps> = ({
                 <span className="text-[10px] text-white/60 font-mono hidden sm:inline">v2.4 Enterprise</span>
               </div>
               <h2 className="text-base sm:text-xl font-bold tracking-tight text-white">
-                Buku Panduan Teknis & Penggunaan PartnerUp Live
+                Buku Panduan Teknis & Penggunaan obeeAcademy
               </h2>
             </div>
           </div>
@@ -266,7 +266,7 @@ export const SystemGuideModal: React.FC<SystemGuideModalProps> = ({
 
                 <div className="bg-blue-50/70 border border-blue-200 rounded-xl p-4 space-y-2 text-xs text-blue-950 mt-2">
                   <span className="font-bold uppercase tracking-wider text-[#1F3A5F] block">
-                    Solusi Terpadu: Ekosistem 4-Titik PartnerUp Live
+                    Solusi Terpadu: Ekosistem 4-Titik obeeAcademy
                   </span>
                   <p>
                     Aplikasi ini mengintegrasikan 4 peran secara sinkron dalam satu basis data awan real-time:
@@ -291,7 +291,7 @@ export const SystemGuideModal: React.FC<SystemGuideModalProps> = ({
 
               <div className="space-y-3 text-xs sm:text-sm text-[#1F3A5F]/85">
                 <p>
-                  PartnerUp Live dibangun di atas fondasi teknologi web modern dengan sinkronisasi reaktif multi-klien berbasis WebSockets Firestore:
+                  obeeAcademy dibangun di atas fondasi teknologi web modern dengan sinkronisasi reaktif multi-klien berbasis WebSockets Firestore:
                 </p>
 
                 {/* Architecture Table */}
@@ -418,7 +418,7 @@ export const SystemGuideModal: React.FC<SystemGuideModalProps> = ({
                     <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
                       <div className="font-bold text-[#1F3A5F] text-xs">Zero-Certainty Proof Matrix</div>
                       <p className="text-xs text-slate-600 mt-1">
-                        Formula kurikulum PartnerUp yang mengajarkan UMKM membuktikan klaim produk dengan 4 pilar bukti rasional tak terbantahkan (Angka Waktu Terukur, Sertifikasi Resmi, Garansi Ganti Rugi, dan Uji Laboratorium).
+                        Formula kurikulum seri PartnerUp di obeeAcademy yang mengajarkan UMKM membuktikan klaim produk dengan 4 pilar bukti rasional tak terbantahkan (Angka Waktu Terukur, Sertifikasi Resmi, Garansi Ganti Rugi, dan Uji Laboratorium).
                       </p>
                     </div>
 
@@ -476,14 +476,14 @@ export const SystemGuideModal: React.FC<SystemGuideModalProps> = ({
                     <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
                       <div className="font-bold text-[#1F3A5F] text-xs">Brand Theme Sanitizer & CSS Variable Injection</div>
                       <p className="text-xs text-slate-600 mt-1">
-                        Mesin tema cerdas yang memvalidasi format warna heksadesimal sebelum diinjeksikan ke root DOM. Menjaga warna default PartnerUp | Obeecreatives tetap utuh jika terjadi masukan warna tidak valid, sekaligus menyinkronkan tema ke seluruh komponen cetak dokumen PDF.
+                        Mesin tema cerdas yang memvalidasi format warna heksadesimal sebelum diinjeksikan ke root DOM. Menjaga warna default obeeAcademy | Obeecreatives tetap utuh jika terjadi masukan warna tidak valid, sekaligus menyinkronkan tema ke seluruh komponen cetak dokumen PDF.
                       </p>
                     </div>
 
                     <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
                       <div className="font-bold text-[#1F3A5F] text-xs">Content Hydration & Fallback Schema</div>
                       <p className="text-xs text-slate-600 mt-1">
-                        Logika ketahanan aplikasi yang membaca konten kustom di Firestore, dan jika ada kolom yang kosong, sistem secara aman menggunakan data cadangan PartnerUp tanpa mengalami error crash.
+                        Logika ketahanan aplikasi yang membaca konten kustom di Firestore, dan jika ada kolom yang kosong, sistem secara aman menggunakan data cadangan default obeeAcademy tanpa mengalami error crash.
                       </p>
                     </div>
 
@@ -591,7 +591,7 @@ export const SystemGuideModal: React.FC<SystemGuideModalProps> = ({
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-slate-700 pt-1">
                       <div className="bg-white p-2.5 rounded-lg border border-rose-100">
                         <strong className="text-rose-800 block mb-1">Cara Buka 1: Ketuk 3x di Header</strong>
-                        Ketuk 3 kali berturut-turut pada logo PartnerUp atau judul seminar di bilah header atas HP peserta.
+                        Ketuk 3 kali berturut-turut pada logo obeeAcademy atau judul kelas di bilah header atas HP peserta.
                       </div>
                       <div className="bg-white p-2.5 rounded-lg border border-rose-100">
                         <strong className="text-rose-800 block mb-1">Cara Buka 2: Ikon Gembok di Footer</strong>
@@ -617,9 +617,9 @@ export const SystemGuideModal: React.FC<SystemGuideModalProps> = ({
                     </p>
                     <ol className="list-decimal pl-5 space-y-1">
                       <li>Buka menu <strong>Editor Materi</strong>, lalu klik tab <strong>"Tema Warna Organisasi"</strong>.</li>
-                      <li>Pilih salah satu dari <strong>5 Preset Siap Pakai</strong> (Default PartnerUp | Obeecreatives, Royal Blue BUMN, Emerald Syariah, Crimson Executive, Tech Indigo) atau gunakan palet pemilih warna hex bebas.</li>
+                      <li>Pilih salah satu dari <strong>5 Preset Siap Pakai</strong> (Default obeeAcademy | Obeecreatives, Royal Blue BUMN, Emerald Syariah, Crimson Executive, Tech Indigo) atau gunakan palet pemilih warna hex bebas.</li>
                       <li>Warna Utama (Primary), Aksen (Accent), Sekunder (Secondary), dan Background akan langsung berubah secara <em>live preview</em> di seluruh layar dan template cetak dokumen PDF.</li>
-                      <li>Tersedia tombol <strong>"Kembalikan ke Default"</strong> jika Anda ingin mengembalikan warna standar PartnerUp kapan saja.</li>
+                      <li>Tersedia tombol <strong>"Kembalikan ke Default"</strong> jika Anda ingin mengembalikan warna standar obeeAcademy kapan saja.</li>
                     </ol>
                   </div>
                 </div>
@@ -725,11 +725,11 @@ export const SystemGuideModal: React.FC<SystemGuideModalProps> = ({
                   </h4>
                   <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5 text-xs">
                     <p>
-                      <strong>Kapan dipakai:</strong> Anda ingin membuat versi seminar topik baru (misal: "Seminar Copywriting" atau "Seminar Keuangan UMKM") di akun Google yang sama tanpa mengubah aplikasi PartnerUp saat ini.
+                      <strong>Kapan dipakai:</strong> Anda ingin membuat versi kelas topik baru (misal: "Workshop Fotografi Produk" atau "Kelas Social Media Strategy") di akun Google yang sama tanpa mengubah aplikasi obeeAcademy saat ini.
                     </p>
                     <ol className="list-decimal pl-5 space-y-1">
                       <li>Buka Google AI Studio di dashboard akun Google Anda.</li>
-                      <li>Cari kartu aplikasi PartnerUp Live, klik menu titik tiga (Opsi) lalu pilih <strong>"Copy App"</strong> atau <strong>"Duplicate"</strong>.</li>
+                      <li>Cari kartu aplikasi obeeAcademy, klik menu titik tiga (Opsi) lalu pilih <strong>"Copy App"</strong> atau <strong>"Duplicate"</strong>.</li>
                       <li>AI Studio otomatis membuat salinan proyek baru lengkap dengan database Firebase terpisah.</li>
                       <li>Buka aplikasi baru tersebut dan sesuaikan materi melalui <strong>Editor Materi</strong> atau melalui instruksi chat AI.</li>
                     </ol>
@@ -748,7 +748,7 @@ export const SystemGuideModal: React.FC<SystemGuideModalProps> = ({
                     </p>
                     <ol className="list-decimal pl-5 space-y-1">
                       <li>
-                        <strong>Ekspor ke GitHub:</strong> Di pojok kanan atas jendela Google AI Studio akun pertama, klik menu <strong>Export to GitHub</strong>. Hubungkan akun GitHub Anda dan simpan ke repositori (misal: <code>my-partnerup-live</code>).
+                        <strong>Ekspor ke GitHub:</strong> Di pojok kanan atas jendela Google AI Studio akun pertama, klik menu <strong>Export to GitHub</strong>. Hubungkan akun GitHub Anda dan simpan ke repositori (misal: <code>my-obeeacademy-app</code>).
                       </li>
                       <li>
                         <strong>Buka Akun Google Kedua:</strong> Buka tab browser baru dengan akun Google kedua Anda, lalu masuk ke Google AI Studio.

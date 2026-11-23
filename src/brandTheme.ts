@@ -3,7 +3,7 @@ import { BrandThemeConfig } from './types';
 
 export const DEFAULT_BRAND_THEME: BrandThemeConfig = {
   presetId: 'partnerup_default',
-  name: 'PartnerUp | Obeecreatives (Default)',
+  name: 'obeeAcademy | Obeecreatives (Default)',
   primaryColor: '#1F3A5F',
   accentColor: '#F28C28',
   secondaryColor: '#2A9D8F',
@@ -18,8 +18,8 @@ export interface BrandThemePreset extends BrandThemeConfig {
 export const BRAND_THEME_PRESETS: BrandThemePreset[] = [
   {
     presetId: 'partnerup_default',
-    name: 'PartnerUp | Obeecreatives (Default)',
-    organizationType: 'Standar Resmi PartnerUp',
+    name: 'obeeAcademy | Obeecreatives (Default)',
+    organizationType: 'Standar Resmi obeeAcademy',
     description: 'Kombinasi Navy Klasik, Oranye Hangat, Teal Segar, dan Latar Krem ramah mata.',
     primaryColor: '#1F3A5F',
     accentColor: '#F28C28',

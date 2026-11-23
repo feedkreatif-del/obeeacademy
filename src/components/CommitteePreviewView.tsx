@@ -59,7 +59,7 @@ export const CommitteePreviewView: React.FC<CommitteePreviewViewProps> = ({
   };
 
   const handleShareWhatsApp = () => {
-    const text = `Halo Tim Panitia PartnerUp! 👋\n\nBerikut tautan *Preview Materi Seminar (Read-Only)*:\n${previewUrl}\n\nSilakan dipelajari untuk kesiapan acara. Tautan ini aman (mode baca-saja tanpa akses edit). Terima kasih!`;
+    const text = `Halo Tim Panitia Acara obeeAcademy! 👋\n\nBerikut tautan *Preview Materi Kelas / Workshop (Read-Only)*:\n${previewUrl}\n\nSilakan dipelajari untuk kesiapan acara. Tautan ini aman (mode baca-saja tanpa akses edit). Terima kasih!`;
     const waUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
     window.open(waUrl, '_blank', 'noopener,noreferrer');
   };
@@ -414,7 +414,7 @@ export const CommitteePreviewView: React.FC<CommitteePreviewViewProps> = ({
               {/* Slide Footer Info for Committee */}
               <div className="relative z-10 pt-4 border-t border-white/15 flex flex-wrap items-center justify-between text-xs text-white/70 gap-2">
                 <span className="font-medium">
-                  Seminar PartnerUp UMKM • Obeecreatives
+                  obeeAcademy • Obeecreatives Interactive Class
                 </span>
                 <span className="italic text-white/50">
                   Mode Pratinjau Mandiri Panitia (Tidak Mempengaruhi Layar Proyektor)

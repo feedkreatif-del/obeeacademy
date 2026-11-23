@@ -450,7 +450,7 @@ class PdfBuilder {
       this.doc.setFont('helvetica', 'normal');
       this.doc.setFontSize(8);
       this.doc.setTextColor(130, 140, 155);
-      this.doc.text('PartnerUp | Modul Penguasaan Materi Khusus Pemateri', this.margin, 290);
+      this.doc.text('obeeAcademy | Modul Penguasaan Materi Khusus Pemateri', this.margin, 290);
       this.doc.text(`Halaman ${i} dari ${totalPages}`, this.pageWidth - this.margin - 24, 290);
     }
   }
@@ -937,7 +937,7 @@ export function exportFacilitatorDeepDivePdf(options: FacilitatorPdfOptions): vo
     subtitle:
       description ||
       'Panduan lengkap penguasaan konsep, hitungan bisnis, teknik live coaching, dan skrip presentasi slide per slide untuk fasilitator UMKM.',
-    organizer: organizerName || 'Program PartnerUp | Obeecreatives',
+    organizer: organizerName || 'obeeAcademy | Obeecreatives',
     statsText: `${slides.length} Slide · ${questions.length} Lembar Kerja · ${polls.length} Polling`,
     highlights,
   });
@@ -1039,7 +1039,7 @@ export function exportFacilitatorDeepDivePdf(options: FacilitatorPdfOptions): vo
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '')
-      .slice(0, 60) || 'materi-partnerup';
+      .slice(0, 60) || 'materi-obeeacademy';
 
   pdf.doc.save(`pendalaman-materi-pemateri-${safeSlug}.pdf`);
 }

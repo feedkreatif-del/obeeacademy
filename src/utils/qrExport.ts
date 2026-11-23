@@ -125,12 +125,12 @@ export async function downloadQrCodeAsPng(
           // 5. Footer Branding
           ctx.fillStyle = '#64748B';
           ctx.font = 'bold 18px system-ui, -apple-system, sans-serif';
-          ctx.fillText('PartnerUp Live · Interaktif Seminar UMKM oleh Obeecreatives', canvas.width / 2, 1140);
+          ctx.fillText('obeeAcademy · Platform Kelas & Workshop Interaktif oleh Obeecreatives', canvas.width / 2, 1140);
 
           // Trigger download
           triggerDownload(
             canvas.toDataURL('image/png'),
-            options.filename || 'QR-Peserta-Scan-HP-PartnerUp.png'
+            options.filename || 'QR-Peserta-Scan-HP-obeeAcademy.png'
           );
         } else {
           // Clean Standalone QR Code Canvas: 800 x 800 px
@@ -207,6 +207,6 @@ function triggerDownload(dataUrlOrBlob: string, filename: string): void {
  * Builds formatted text and WhatsApp share link for participants
  */
 export function buildQrWhatsAppShareUrl(joinUrl: string, seminarTitle: string): string {
-  const text = `Halo Bapak/Ibu Peserta Seminar UMKM!\n\nSilakan buka tautan lembar kerja interaktif PartnerUp berikut untuk langsung menjawab dari smartphone Anda:\n\n👉 ${joinUrl}\n\n*${seminarTitle}*\n(Tanpa perlu instal aplikasi dan tanpa perlu login/buat akun)`;
+  const text = `Halo Bapak/Ibu & Rekan Peserta!\n\nSilakan buka tautan lembar kerja interaktif obeeAcademy berikut untuk langsung berpartisipasi dari smartphone Anda:\n\n👉 ${joinUrl}\n\n*${seminarTitle}*\n(Tanpa perlu instal aplikasi dan tanpa perlu login/buat akun)`;
   return `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
 }

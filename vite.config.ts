@@ -14,9 +14,9 @@ export default defineConfig(() => {
         includeAssets: ['icon.svg', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png'],
         manifest: {
           id: '/',
-          name: 'PartnerUp Live — Platform Seminar Interaktif UMKM',
-          short_name: 'PartnerUp',
-          description: 'Platform tanya-jawab real-time, lembar kerja value proposition 7 tahap, polling interaktif, dan dasbor moderasi untuk Seminar UMKM PartnerUp oleh Obeecreatives.',
+          name: 'obeeAcademy — Platform Kelas & Workshop Interaktif',
+          short_name: 'obeeAcademy',
+          description: 'Platform presentasi interaktif, tanya-jawab real-time, lembar kerja peserta, polling live, dan papan tulis untuk kelas & workshop obeeAcademy oleh Obeecreatives.',
           theme_color: '#1F3A5F',
           background_color: '#FFF7EC',
           display: 'standalone',

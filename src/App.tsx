@@ -84,13 +84,13 @@ const DEFAULT_SESSION_STATE: SessionStateDoc = {
   moderationEnabled: false,
   externalEmbedUrl: '',
   externalPlatform: 'slido',
-  sessionName: 'Seminar Value Proposition PartnerUp | Obeecreatives',
+  sessionName: 'Kelas Interaktif obeeAcademy | Obeecreatives',
   updatedAt: Date.now(),
 };
 
 const DEFAULT_CUSTOM_CONTENT: CustomContentDoc = {
   seminarTitle: 'Kenapa Pembeli Harus Pilih Kamu? (Value Proposition UMKM)',
-  organizerName: 'Program PartnerUp | Obeecreatives',
+  organizerName: 'obeeAcademy | Obeecreatives',
   questions: PARTNERUP_QUESTIONS,
   polls: LIVE_POLLS,
   slides: SEMINAR_SLIDES,
@@ -1345,10 +1345,10 @@ export default function App() {
             <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0" title="Terkoneksi Live" />
             <div className="min-w-0">
               <h1 className="font-display text-sm sm:text-base font-extrabold tracking-tight text-white truncate leading-tight">
-                {customContent.seminarTitle || 'PartnerUp Live'}
+                {customContent.seminarTitle || 'obeeAcademy'}
               </h1>
               <p className="text-[11px] text-white/70 truncate leading-none mt-0.5">
-                {customContent.organizerName || 'Portal Peserta UMKM'}
+                {customContent.organizerName || 'obeeAcademy | Obeecreatives'}
               </p>
             </div>
           </div>
@@ -1380,7 +1380,7 @@ export default function App() {
             }}
             className="font-display text-sm sm:text-lg font-extrabold tracking-tight text-white whitespace-nowrap shrink-0 order-1"
           >
-            PartnerUp Live
+            obeeAcademy
           </a>
 
           {/* Zone 2: Concise Single-Line Navigation Links (Full row on HP/Tablet, middle row on Desktop) */}

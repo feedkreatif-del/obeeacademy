@@ -998,15 +998,15 @@ export function printSystemDocumentationGuide(params?: {
   organizerName?: string;
   brandTheme?: BrandThemeConfig;
 }) {
-  const title = params?.seminarTitle || 'PartnerUp Live — Seminar Interaktif Suite';
-  const organizer = params?.organizerName || 'PartnerUp | Obeecreatives';
+  const title = params?.seminarTitle || 'obeeAcademy — Platform Kelas & Workshop Interaktif';
+  const organizer = params?.organizerName || 'obeeAcademy | Obeecreatives';
   const theme = params?.brandTheme || DEFAULT_BRAND_THEME;
 
   const html = `<!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <title>Buku Panduan Teknis & Operasional — PartnerUp Live</title>
+  <title>Buku Panduan Teknis & Operasional — obeeAcademy</title>
   <style>
     @page {
       size: A4 portrait;
@@ -1231,7 +1231,7 @@ export function printSystemDocumentationGuide(params?: {
   <div class="cover">
     <div>
       <span class="cover-badge">Dokumentasi Resmi & Manual Pengoperasian</span>
-      <div class="cover-title">PANDUAN SISTEM<br/>PARTNERUP LIVE</div>
+      <div class="cover-title">PANDUAN SISTEM<br/>OBEEACADEMY</div>
       <div class="cover-subtitle">
         Panduan Menyeluruh: Latar Belakang, Arsitektur Sistem, Glosarium Teknis UI & Engine, 
         Tata Cara Pengoperasian 4-Titik, hingga Prosedur Duplikasi & Migrasi Kode.
@@ -1258,7 +1258,7 @@ export function printSystemDocumentationGuide(params?: {
         </div>
       </div>
       <p style="margin-top: 14px; font-size: 7.5pt; color: rgba(255,255,255,0.6); text-align: left;">
-        Hak Cipta & Dokumen Operasional &copy; ${new Date().getFullYear()} PartnerUp | Obeecreatives. Dibuat untuk pemateri, fasilitator, operator teknis, dan pengembang.
+        Hak Cipta & Dokumen Operasional &copy; ${new Date().getFullYear()} obeeAcademy | Obeecreatives. Dibuat untuk pemateri, fasilitator, operator teknis, dan pengembang.
       </p>
     </div>
   </div>
@@ -1321,9 +1321,9 @@ export function printSystemDocumentationGuide(params?: {
       <li><strong>Friksi Teknologi (*App Download Friction*):</strong> Penggunaan platform interaktif eksternal seringkali mewajibkan audiens mengunduh aplikasi berukuran puluhan megabyte, mendaftar akun email/OTP yang rumit, atau memasukkan kode PIN ruang yang sering salah ketik, menghabiskan waktu seminar 10-15 menit berharga di awal acara.</li>
     </ul>
 
-    <h2 class="sub-title">1.2 Solusi PartnerUp Live: Ekosistem 4-Titik Tanpa Instalasi</h2>
+    <h2 class="sub-title">1.2 Solusi obeeAcademy: Ekosistem 4-Titik Tanpa Instalasi</h2>
     <p>
-      PartnerUp Live dikembangkan sebagai <strong>aplikasi web interaktif terpadu (Progressive Web Application)</strong> yang menghubungkan empat peran penting di ruangan secara nirkabel dan sinkron:
+      obeeAcademy dikembangkan sebagai <strong>aplikasi web interaktif terpadu (Progressive Web Application)</strong> yang menghubungkan empat peran penting di ruangan secara nirkabel dan sinkron:
     </p>
     <div class="step-card">
       <div class="step-header"><span class="step-num">1</span> Layar Proyektor Panggung (Stage Projector Canvas)</div>
@@ -1463,7 +1463,7 @@ export function printSystemDocumentationGuide(params?: {
         <tr>
           <td><strong>Zero-Certainty Proof Matrix</strong></td>
           <td>
-            Metodologi kurikulum PartnerUp yang mengajarkan UMKM mengganti klaim abstrak (misal: "produk berkualitas") dengan 4 pilar bukti rasional tak terbantahkan (Bukti Angka/Waktu, Sertifikasi Resmi, Garansi Ganti Rugi, dan Testimoni Nyata).
+            Metodologi kurikulum Seri PartnerUp di obeeAcademy yang mengajarkan UMKM mengganti klaim abstrak (misal: "produk berkualitas") dengan 4 pilar bukti rasional tak terbantahkan (Bukti Angka/Waktu, Sertifikasi Resmi, Garansi Ganti Rugi, dan Testimoni Nyata).
           </td>
         </tr>
         <tr>
@@ -1517,7 +1517,7 @@ export function printSystemDocumentationGuide(params?: {
         <tr>
           <td><strong>Brand Theme Sanitizer & Dynamic CSS Variables</strong></td>
           <td>
-            Mesin tema cerdas yang memvalidasi format warna heksadesimal sebelum diinjeksikan ke root DOM. Menjaga warna default PartnerUp | Obeecreatives tetap utuh jika terjadi masukan warna tidak valid, sekaligus menyinkronkan tema ke seluruh komponen cetak dokumen PDF.
+            Mesin tema cerdas yang memvalidasi format warna heksadesimal sebelum diinjeksikan ke root DOM. Menjaga warna default obeeAcademy | Obeecreatives tetap utuh jika terjadi masukan warna tidak valid, sekaligus menyinkronkan tema ke seluruh komponen cetak dokumen PDF.
           </td>
         </tr>
         <tr>
@@ -1593,7 +1593,7 @@ export function printSystemDocumentationGuide(params?: {
       Penyelenggara seminar dapat masuk ke menu <strong>Editor Materi</strong> &rarr; tab <strong>Tema Warna Organisasi</strong> untuk menyesuaikan identitas visual:
     </p>
     <ul>
-      <li><strong>5 Preset Siap Pakai:</strong> Default PartnerUp | Obeecreatives, Royal Blue BUMN, Emerald Syariah, Crimson Executive, Tech Indigo.</li>
+      <li><strong>5 Preset Siap Pakai:</strong> Default obeeAcademy | Obeecreatives, Royal Blue BUMN, Emerald Syariah, Crimson Executive, Tech Indigo.</li>
       <li><strong>Pemilih Warna Hex Kustom:</strong> Ubah Warna Utama, Aksen, Sekunder, dan Background sesuai pedoman visual organisasi Anda.</li>
       <li><strong>Penyimpanan Persisten & Reset:</strong> Warna otomatis tersimpan di browser dan dapat dikembalikan ke tema default hanya dengan 1 kali klik.</li>
     </ul>
@@ -1658,7 +1658,7 @@ export function printSystemDocumentationGuide(params?: {
     <h2 class="sub-title">5.2 Metode A: Duplikasi Cepat di Akun Google yang Sama (Copy App)</h2>
     <div class="step-card">
       <div class="step-header"><span class="step-num">Langkah 1</span> Masuk ke Google AI Studio</div>
-      <p style="margin: 0; font-size: 8.5pt;">Buka dashboard AI Studio Anda di akun yang sedang aktif, temukan aplikasi PartnerUp Live.</p>
+      <p style="margin: 0; font-size: 8.5pt;">Buka dashboard AI Studio Anda di akun yang sedang aktif, temukan aplikasi obeeAcademy.</p>
     </div>
     <div class="step-card">
       <div class="step-header"><span class="step-num">Langkah 2</span> Pilih Menu Opsi dan Klik "Copy App" / "Duplicate"</div>
@@ -1700,7 +1700,7 @@ export function printSystemDocumentationGuide(params?: {
         <tr>
           <td style="width: 50%;">
             <strong>Disusun Oleh:</strong><br/>
-            Tim Rekayasa Perangkat Lunak PartnerUp Live<br/>
+            Tim Rekayasa Perangkat Lunak obeeAcademy<br/>
             Obeecreatives Interactive Experience Lab
           </td>
           <td style="width: 50%; text-align: right;">
@@ -1713,7 +1713,7 @@ export function printSystemDocumentationGuide(params?: {
     </div>
 
     <div class="doc-footer">
-      <span>PartnerUp Live Suite &bull; Technical & Operational Architecture</span>
+      <span>obeeAcademy Suite &bull; Technical & Operational Architecture</span>
       <span>Halaman Akhir Panduan &bull; Format Standar A4</span>
     </div>
   </div>
