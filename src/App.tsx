@@ -280,6 +280,7 @@ export default function App() {
   const seedSyncLockRef = useRef<boolean>(false);
   const sesiSeedHealDoneRef = useRef<boolean>(false);
   const sesi2ContentUpgradeDoneRef = useRef<boolean>(false);
+  const sesi3ContentUpgradeDoneRef = useRef<boolean>(false);
 
   const isHostRole =
     viewRole === 'projector' ||
@@ -484,6 +485,30 @@ export default function App() {
           })
         ).catch((err) => {
           console.warn('Sesi 2 visual upgrade skipped:', err);
+        });
+      }
+
+      // Auto-upgrade active Sesi 3 curriculum once if running pre-audit slide/poll version
+      const isSesi3ActiveDoc =
+        data.materialId === SESI_3_BRANDING_MARKETING_SELLING_CURRICULUM.id ||
+        ((data.seminarTitle || '').toLowerCase().includes('branding') &&
+          (data.seminarTitle || '').toLowerCase().includes('selling'));
+      if (
+        isHostRoleRef.current &&
+        isSesi3ActiveDoc &&
+        !sesi3ContentUpgradeDoneRef.current &&
+        (data.updatedAt || 0) < 1733100000000
+      ) {
+        sesi3ContentUpgradeDoneRef.current = true;
+        setDoc(
+          doc(db, 'custom_content', 'active'),
+          sanitizeForFirestore({
+            ...SESI_3_BRANDING_MARKETING_SELLING_CURRICULUM.content,
+            brandTheme: sanitizeBrandTheme(data.brandTheme),
+            updatedAt: Date.now(),
+          })
+        ).catch((err) => {
+          console.warn('Sesi 3 curriculum sync upgrade skipped:', err);
         });
       }
     };

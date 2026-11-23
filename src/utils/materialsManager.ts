@@ -727,6 +727,7 @@ const SESI_3_SLIDES: SlideDefinition[] = [
       { title: '1. Rajin Posting Konten', body: 'Sibuk upload status & Reels, tapi lupa cara mengonversi chat menjadi transaksi.', accent: 'orange' },
       { title: '2. Fokus Kemasan & Logo', body: 'Produk sudah rapi & enak, tapi menunggu pembeli datang tanpa jemput bola.', accent: 'teal' },
       { title: '3. Main Diskon Terus', body: 'Kejar laku cepat hari ini, tapi margin tergerus dan pembeli hilang saat harga normal.', accent: 'orange' },
+      { title: '4. Mencampur Ketiganya', body: 'Bingung batas kerja harian, sehingga capek bekerja tanpa tahu pilar mana yang macet.', accent: 'teal' },
     ],
   },
   {
@@ -808,11 +809,12 @@ const SESI_3_SLIDES: SlideDefinition[] = [
     imageUrl: '/assets/images/sesi3_macet_tiga_tahap_1795422840467.jpg',
     imageCaption: '3 Gejala Bocor Berbeda: Sepi Pengunjung (Marketing) · Ragu/Tawar Murah (Branding) · Chat Dianggurkan/Kabur (Selling)',
     imagePosition: 'right',
-    speakerNotes: 'Jalankan Polling 2 lalu bahas analogi "Jangan Salah Obat": kalau sakit perut (Marketing kurang traffic) jangan dikasih obat sakit kepala (ganti logo/kemasan terus). Kalau banyak yang tanya harga lalu kabur (Selling lemah), obatnya perbaiki skrip balas chat WA — bukan malah banting harga!',
+    speakerNotes: 'Jalankan Polling 2 lalu bahas analogi "Jangan Salah Obat": kalau sakit perut (Marketing kurang traffic) jangan dikasih obat sakit kepala (ganti logo/kemasan terus). Kalau banyak yang tanya harga lalu kabur (Selling lemah), obatnya perbaiki skrip balas chat WA — bukan malah banting harga! Jika yang dipilih opsi 4 (jarang repeat order), obati dengan menjaga konsistensi kualitas Branding + sapa ulang Selling berkala.',
     cards: [
       { title: 'Gejala: Sepi yang Tanya', body: 'Jangan ubah logo terus — perbanyak aktivitas MARKETING menjemput kolam target pasar!', accent: 'teal' },
       { title: 'Gejala: Ditawar Terus', body: 'Jangan buru-buru diskon — perkuat bukti BRANDING (kemasan, segel, testimoni, garansi)!', accent: 'orange' },
       { title: 'Gejala: Chat Hilang', body: 'Jangan salahkan produknya — perbaiki cara SELLING, arahkan ke paket bundling, & follow-up!', accent: 'teal' },
+      { title: 'Gejala: Jarang Beli Ulang', body: 'Jaga kepuasan pengalaman BRANDING setelah barang diterima + jadwal sapa SELLING berkala!', accent: 'orange' },
     ],
   },
   {
@@ -847,10 +849,15 @@ const SESI_3_SLIDES: SlideDefinition[] = [
     pageNumber: 12,
     badge: 'PRAKTIK 4: EKSEKUSI MARKETING',
     title: 'Rancang 1 Aksi MARKETING Penjemput Target Harian',
-    subtitle: 'Pilih 1 saluran nyata untuk memastikan 15–20 calon pembeli yang tepat mengenal & menyapa usahamu tiap hari:',
+    subtitle: 'Pilih 1 saluran nyata untuk memastikan 15–20 calon pembeli yang tepat mengenal & menyapa usahamu tiap minggu:',
     type: 'worksheet',
     linkedQuestionIndex: 3,
-    speakerNotes: 'Ingatkan peserta agar tidak pasif menunggu orang menemukan toko mereka. Arahkan mereka memilih saluran yang cocok dengan target pembelinya: komunitas ibu sekolah, kantor, WO/event organizer, atau konten video singkat proses pembuatan.',
+    speakerNotes: 'Ingatkan peserta agar tidak pasif menunggu orang menemukan toko mereka. Arahkan mereka memilih saluran yang cocok dengan target pembelinya: komunitas ibu sekolah (F&B), reels proses pembuatan/mitra kado (Kriya), atau sapa langsung WO/panitia kampus (Persewaan).',
+    cards: [
+      { title: 'F&B (Yoghurt / Keripik)', body: 'Bagi tester botol/kemasan mini di PAUD, sanggar senam, & kantor terdekat + brosur QR WA.', accent: 'teal' },
+      { title: 'Kriya (Handycraft)', body: 'Reels proses rajut/jahit di balik layar & kerja sama toko kado/florist lokal.', accent: 'orange' },
+      { title: 'Jasa Persewaan', body: 'Reels bukti loading & sterilisasi alat + sapa rutin 15 panitia acara/EO lokal tiap Senin.', accent: 'teal' },
+    ],
     promptLines: ['1 Aksi MARKETING konsisten + siapa kolam target yang dituju: ______________'],
   },
   {
@@ -923,7 +930,7 @@ export const SESI_3_BRANDING_MARKETING_SELLING_CURRICULUM: SavedMaterial = {
   category: 'Sesi 3 PartnerUp (Eksekusi 3 Pilar)',
   isDefault: false,
   createdAt: 1732600000000,
-  updatedAt: 1733000000000,
+  updatedAt: 1733100000000,
   content: {
     seminarTitle: 'Sesi 3 PartnerUp: Perbedaan Mendasar Branding, Marketing & Selling',
     organizerName: 'Program PartnerUp | Obeecreatives',
@@ -938,7 +945,7 @@ export const SESI_3_BRANDING_MARKETING_SELLING_CURRICULUM: SavedMaterial = {
       'Strategi Selling & Closing WA',
     ],
     brandTheme: DEFAULT_BRAND_THEME,
-    updatedAt: 1733000000000,
+    updatedAt: 1733100000000,
     materialId: 'partnerup_sesi_3_branding_marketing_selling',
     description: 'Kurikulum Lanjutan PartnerUp setelah Target Penjualan & Copywriting: Membedah perbedaan peran Branding (bangun trust & jaga margin), Marketing (undang traffic & chat), dan Selling (skrip closing WA & repeat order).',
     category: 'Sesi 3 PartnerUp (Eksekusi 3 Pilar)',
@@ -1647,7 +1654,7 @@ export function getSavedMaterialsLocal(): SavedMaterial[] {
           const currentSesi3 = updated[sesi3Idx];
           const needsSesi3Refresh =
             !currentSesi3?.updatedAt ||
-            currentSesi3.updatedAt < 1733000000000 ||
+            currentSesi3.updatedAt < 1733100000000 ||
             !currentSesi3?.content?.polls?.some((p: LivePollConfig) => p.id === 'poll_s3_salah_kaprah_umkm');
           if (needsSesi3Refresh && currentSesi3) {
             updated[sesi3Idx] = SESI_3_BRANDING_MARKETING_SELLING_CURRICULUM;

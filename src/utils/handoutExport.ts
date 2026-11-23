@@ -5,6 +5,8 @@ import {
   VP_THREE_TESTS,
   SESI_2_MARGIN_BENCHMARKS,
   SESI_2_THREE_CHECKS,
+  SESI_3_DIAGNOSIS_GUIDES,
+  SESI_3_SELLING_CHECKS,
 } from '../data/seminarData';
 import { AnswerDoc, BrandThemeConfig } from '../types';
 import { DEFAULT_BRAND_THEME } from '../brandTheme';
@@ -437,8 +439,23 @@ export function printParticipantWorkbookHandout(params: {
       q.sectionTitle.includes('Margin Ideal') ||
       q.sectionTitle.includes('Target Laba Bersih')
   );
+  const isSesi3Curriculum = questions.some(
+    (q) =>
+      q.sectionTitle.includes('Audit Kebiasaan') ||
+      q.sectionTitle.includes('Diagnosa Titik Macet') ||
+      q.sectionTitle.includes('Sinergi 3 Pilar')
+  );
 
-  const dictionaryHtml = isSesi2Curriculum
+  const dictionaryHtml = isSesi3Curriculum
+    ? SESI_3_DIAGNOSIS_GUIDES.map(
+        (d) => `
+      <tr>
+        <td style="font-weight:700;color:${theme.primaryColor};">✅ ${escapeHtml(d.pillar)}<br/><span style="color:#64748b;font-size:11px;font-weight:500;">${escapeHtml(d.symptom)}</span></td>
+        <td><span style="color:#b91c1c;font-weight:600;">❌ ${escapeHtml(d.wrongMedicine)}</span><br/><span style="color:${theme.secondaryColor};font-weight:700;">✅ ${escapeHtml(d.rightMedicine)}</span></td>
+      </tr>
+    `
+      ).join('')
+    : isSesi2Curriculum
     ? SESI_2_MARGIN_BENCHMARKS.map(
         (m) => `
       <tr>
@@ -669,23 +686,39 @@ export function printParticipantWorkbookHandout(params: {
   </div>
 
   <div class="vp-highlight">
-    <div class="vp-label">Kalimat Value Proposition Utama (${escapeHtml(umkmTitle)})</div>
+    <div class="vp-label">${
+      isSesi3Curriculum
+        ? `Alur Sinergi 3 Pilar (${escapeHtml(umkmTitle)})`
+        : `Kalimat Value Proposition Utama (${escapeHtml(umkmTitle)})`
+    }</div>
     <p class="vp-sentence">"${escapeHtml(finalVpSentence)}"</p>
   </div>
 
   <div class="kit-grid">
     <div class="kit-box">
-      <div class="kit-box-title">1. Bio Instagram / Shopee / TikTok</div>
+      <div class="kit-box-title">${
+        isSesi3Curriculum
+          ? '1. Bio Profil (Branding + Marketing)'
+          : '1. Bio Instagram / Shopee / TikTok'
+      }</div>
       <pre class="kit-pre">${escapeHtml(generatedInstagramBio)}</pre>
     </div>
     <div class="kit-box">
-      <div class="kit-box-title">2. Salam Otomatis WhatsApp Business</div>
+      <div class="kit-box-title">${
+        isSesi3Curriculum
+          ? '2. Skrip Balas Chat WA (Selling)'
+          : '2. Salam Otomatis WhatsApp Business'
+      }</div>
       <pre class="kit-pre">${escapeHtml(generatedWhatsappGreeting)}</pre>
     </div>
   </div>
 
   <div class="kit-box" style="margin-bottom: 14px;">
-    <div class="kit-box-title">3. Tagline Stiker Kemasan / Banner Lapak</div>
+    <div class="kit-box-title">${
+      isSesi3Curriculum
+        ? '3. Kartu Komitmen & Jadwal 3 Pilar'
+        : '3. Tagline Stiker Kemasan / Banner Lapak'
+    }</div>
     <pre class="kit-pre">${escapeHtml(generatedPackagingSticker)}</pre>
   </div>
 
@@ -693,15 +726,29 @@ export function printParticipantWorkbookHandout(params: {
   ${questionsHtml}
 
   <h2 class="section-heading">${
-    isSesi2Curriculum
+    isSesi3Curriculum
+      ? 'B. Peta Diagnosa "Jangan Salah Obat!" (Branding, Marketing & Selling)'
+      : isSesi2Curriculum
       ? 'B. Patokan Margin Ideal VP & Komponen Modal Wajib'
       : 'B. Kamus Konversi: Ubah Kata Sifat Umum Jadi Bukti Angka'
   }</h2>
   <table>
     <thead>
       <tr>
-        <th>${isSesi2Curriculum ? 'Jenis Usaha & Patokan Margin' : 'Hindari Klaim Umum Ini'}</th>
-        <th>${isSesi2Curriculum ? 'Biaya Jaga Janji VP yang Wajib Dihitung' : 'Ganti Dengan Bukti Spesifik / Angka Ini'}</th>
+        <th>${
+          isSesi3Curriculum
+            ? 'Pilar Bocor & Gejala di Lapangan'
+            : isSesi2Curriculum
+            ? 'Jenis Usaha & Patokan Margin'
+            : 'Hindari Klaim Umum Ini'
+        }</th>
+        <th>${
+          isSesi3Curriculum
+            ? 'Obat Salah vs Obat Tepat untuk UMKM'
+            : isSesi2Curriculum
+            ? 'Biaya Jaga Janji VP yang Wajib Dihitung'
+            : 'Ganti Dengan Bukti Spesifik / Angka Ini'
+        }</th>
       </tr>
     </thead>
     <tbody>
@@ -789,8 +836,36 @@ export function downloadParticipantTxtHandout(params: {
       q.sectionTitle.includes('Margin Ideal') ||
       q.sectionTitle.includes('Target Laba Bersih')
   );
+  const isSesi3Txt = questions.some(
+    (q) =>
+      q.sectionTitle.includes('Audit Kebiasaan') ||
+      q.sectionTitle.includes('Diagnosa Titik Macet') ||
+      q.sectionTitle.includes('Sinergi 3 Pilar')
+  );
 
-  if (isSesi2Txt) {
+  if (isSesi3Txt) {
+    lines.push(
+      '',
+      '====================================================================',
+      'PETA DIAGNOSA "JANGAN SALAH OBAT!" (SESI 3 PARTNERUP)',
+      '===================================================================='
+    );
+    SESI_3_DIAGNOSIS_GUIDES.forEach((d) => {
+      lines.push(`• ${d.pillar}: ${d.symptom}`);
+      lines.push(`  - Hindari: ${d.wrongMedicine}`);
+      lines.push(`  - Solusi : ${d.rightMedicine}`);
+    });
+
+    lines.push(
+      '',
+      '====================================================================',
+      'CEKLIS 3 LANGKAH SKRIP SELLING WA ANTI-GHOSTING',
+      '===================================================================='
+    );
+    SESI_3_SELLING_CHECKS.forEach((c, i) => {
+      lines.push(`${i + 1}. ${c.title}: ${c.question} (${c.passCriteria})`);
+    });
+  } else if (isSesi2Txt) {
     lines.push(
       '',
       '====================================================================',

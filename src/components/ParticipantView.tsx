@@ -11,6 +11,9 @@ import {
   SESI_2_BUNDLING_TEMPLATES,
   SESI_2_COPYWRITING_TEMPLATES,
   SESI_2_THREE_CHECKS,
+  SESI_3_DIAGNOSIS_GUIDES,
+  SESI_3_SELLING_TEMPLATES,
+  SESI_3_SELLING_CHECKS,
 } from '../data/seminarData';
 import {
   AnswerDoc,
@@ -158,6 +161,12 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
       q.sectionTitle.includes('Margin Ideal') ||
       q.sectionTitle.includes('Target Laba Bersih')
   );
+  const isSesi3PartnerUp = questions.some(
+    (q) =>
+      q.sectionTitle.includes('Audit Kebiasaan') ||
+      q.sectionTitle.includes('Diagnosa Titik Macet') ||
+      q.sectionTitle.includes('Sinergi 3 Pilar')
+  );
 
   const getMyPreviousAnswer = (qIdx: number) => {
     const found = myAnswers.find((a) => a.q === qIdx);
@@ -165,6 +174,18 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
   };
 
   const handleAutoFillPart6Formula = () => {
+    if (isSesi3PartnerUp) {
+      const mktAction = getMyPreviousAnswer(3) || '[Cara mengundang lewat Marketing]';
+      const brdProof = getMyPreviousAnswer(2) || '[Bukti kualitas & kepercayaan Branding]';
+      const slgScript = getMyPreviousAnswer(4) || '[Skrip paket & follow-up Selling]';
+      const drafted =
+        `MARKETING: ${mktAction} → BRANDING: ${brdProof} → SELLING: ${slgScript}`.slice(
+          0,
+          200
+        );
+      setAnswerText(drafted);
+      return;
+    }
     if (isSesi2PartnerUp) {
       const vpPromise = getMyPreviousAnswer(0) || '[Keunggulan & Bukti Nyata Usahamu]';
       const priceNote = getMyPreviousAnswer(2) || '[Harga Spesial Berkualitas]';
@@ -296,21 +317,35 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
   const rationalProof = getMyPreviousAnswer(3) || getMyPreviousAnswer(2) || 'Bahan Asli · Kualitas Terjamin · Harga Bersahabat';
   const emotionalFeeling = getMyPreviousAnswer(4) || 'Praktis, Tenang & Bikin Keluarga Senang';
 
-  const finalVpSentence = isSesi2PartnerUp
+  const s3BrandingProof = getMyPreviousAnswer(2) || 'Segel Higienis, Kemasan Rapi & Jaminan Kualitas Teruji';
+  const s3MarketingAction = getMyPreviousAnswer(3) || 'Penjemputan Calon Pembeli & Konten Edukasi Rutin';
+  const s3SellingScript = getMyPreviousAnswer(4) || 'Siap bantu pilih Paket Bundling hemat & konfirmasi jadwal pengiriman!';
+  const s3SchedulePlan = getMyPreviousAnswer(6) || 'Senin & Kamis Branding · Pagi Marketing · Siang-Sore Selling';
+
+  const finalVpSentence = isSesi3PartnerUp
+    ? getMyPreviousAnswer(5) ||
+      `MARKETING: ${s3MarketingAction} → BRANDING: ${s3BrandingProof} → SELLING: ${s3SellingScript}`
+    : isSesi2PartnerUp
     ? getMyPreviousAnswer(5) ||
       `${productInfo} — penawaran paket hemat: ${getMyPreviousAnswer(3) || 'Paket Bundling Spesial Hari Ini'}.`
     : getMyPreviousAnswer(5) ||
       `${productInfo} untuk ${targetBuyer} yang ingin ${emotionalFeeling}, karena ${rationalProof}.`;
 
-  const generatedInstagramBio = isSesi2PartnerUp
+  const generatedInstagramBio = isSesi3PartnerUp
+    ? `✨ ${umkmTitle}\n🛡️ Bukti Kualitas (Branding): ${s3BrandingProof}\n📣 Promo Aktif (Marketing): ${s3MarketingAction}\n👇 Tanya paket hemat & pesan cepat via WhatsApp:`
+    : isSesi2PartnerUp
     ? `✨ ${umkmTitle}\n✅ ${productInfo}\n🎁 Paket Favorit: ${getMyPreviousAnswer(3) || 'Tersedia Paket Hemat / Bundling'}\n📣 Promo: ${getMyPreviousAnswer(5) || 'Chat WA untuk pemesanan cepat hari ini!'}\n👇 Pesan langsung via WhatsApp:`
     : `✨ ${umkmTitle}\n🎯 Solusi untuk: ${targetBuyer}\n✅ ${rationalProof}\n💛 ${emotionalFeeling}\n👇 Pesan sekarang via WhatsApp di bawah:`;
 
-  const generatedWhatsappGreeting = isSesi2PartnerUp
+  const generatedWhatsappGreeting = isSesi3PartnerUp
+    ? `Halo Kak! 👋 Terima kasih sudah menghubungi *${umkmTitle}*.\n\n🛡️ *Jaminan Kami:* ${s3BrandingProof}\n\n💬 *Skrip Balas Cepat:* ${s3SellingScript}`
+    : isSesi2PartnerUp
     ? `Halo Kak! 👋 Terima kasih sudah menghubungi *${umkmTitle}*.\n\n${finalVpSentence}\n\nTarget kami membantu Kakak mendapatkan layanan/produk terbaik tanpa ragu. Mau ambil satuan atau Paket Bundling lebih hemat hari ini? 😊`
     : `Halo Kak! 👋 Terima kasih sudah menghubungi *${umkmTitle}*.\n\nKami menyediakan ${finalVpSentence}\n\nAda varian atau paket yang ingin Kakak pesan untuk hari ini? 😊`;
 
-  const generatedPackagingSticker = isSesi2PartnerUp
+  const generatedPackagingSticker = isSesi3PartnerUp
+    ? `${umkmTitle.toUpperCase()}\n🛡️ BRANDING: ${s3BrandingProof}\n🗓️ JADWAL 3 PILAR: ${s3SchedulePlan}`
+    : isSesi2PartnerUp
     ? `${umkmTitle.toUpperCase()}\n"${productInfo}"\n• Target & Paket: ${getMyPreviousAnswer(3) || 'Paket Hemat Keluarga'} •`
     : `${umkmTitle.toUpperCase()}\n"${emotionalFeeling}"\n• ${rationalProof} •`;
 
@@ -687,6 +722,111 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
                     </div>
                   ))}
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* PANDUAN DIAGNOSA JANGAN SALAH OBAT (Khusus Sesi 3 PartnerUp Bagian 2 / index 1) */}
+          {isSesi3PartnerUp && activeQIndex === 1 && (
+            <div className="rounded-xl bg-[#E3F5F2] border border-[#2A9D8F]/40 p-4 mb-6 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs sm:text-sm font-bold text-[#1F3A5F] flex items-center gap-1.5">
+                  <HelpCircle className="w-4 h-4 text-[#2A9D8F] shrink-0" />
+                  <span>Peta Diagnosa &quot;Jangan Salah Obat!&quot; (Ketuk yang Paling Mirip Usahamu)</span>
+                </p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                {SESI_3_DIAGNOSIS_GUIDES.map((dg, idx) => (
+                  <div
+                    key={idx}
+                    onClick={() => handleInsertChip(dg.chipText)}
+                    className="bg-white rounded-lg p-2.5 border border-[#2A9D8F]/30 hover:border-[#F28C28] cursor-pointer transition-colors space-y-1"
+                  >
+                    <div className="flex items-center justify-between gap-1 text-[11px]">
+                      <span className="font-bold text-[#1F3A5F]">{dg.pillar}</span>
+                      <span className="font-bold text-[#F28C28]">+ Pakai</span>
+                    </div>
+                    <p className="text-[11px] text-red-700 font-semibold leading-snug">{dg.wrongMedicine}</p>
+                    <p className="text-[11px] text-[#2A9D8F] font-semibold leading-snug">{dg.rightMedicine}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* PANDUAN SKRIP SELLING ANTI-GHOSTING WA (Khusus Sesi 3 PartnerUp Bagian 5 / index 4) */}
+          {isSesi3PartnerUp && activeQIndex === 4 && (
+            <div className="space-y-4 mb-6">
+              <div className="rounded-xl bg-[#E3F5F2] border border-[#2A9D8F]/40 p-4 space-y-3">
+                <p className="text-xs sm:text-sm font-bold text-[#1F3A5F] flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-[#2A9D8F] shrink-0" />
+                  <span>Contoh Skrip Selling Anti-Ghosting WA (Ketuk untuk Modifikasi)</span>
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {SESI_3_SELLING_TEMPLATES.map((tpl, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setAnswerText(tpl.chipText.slice(0, 200))}
+                      className="text-left p-2.5 rounded-lg bg-white border border-[#2A9D8F]/30 hover:border-[#F28C28] text-xs font-semibold text-[#1F3A5F] cursor-pointer transition-colors"
+                    >
+                      <span className="font-bold text-[#F28C28] block text-[11px]">
+                        + Contoh {tpl.sector}
+                      </span>
+                      <span className="line-clamp-3 text-[11px] text-[#1F3A5F]/80 mt-0.5">
+                        {tpl.chipText}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-xl bg-[#FFF7EC] border border-[#F28C28]/40 p-4 space-y-2.5">
+                <p className="text-xs font-bold uppercase tracking-wider text-[#F28C28]">
+                  Ceklis 3 Langkah Skrip Selling WA Sebelum Kirim:
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  {SESI_3_SELLING_CHECKS.map((chk, idx) => (
+                    <div
+                      key={idx}
+                      className="bg-white rounded-lg p-3 border border-[#1F3A5F]/10 space-y-1 text-xs"
+                    >
+                      <p className="font-bold text-[#1F3A5F]">{chk.title}</p>
+                      <p className="text-[#1F3A5F]/80">{chk.question}</p>
+                      <p className="font-semibold text-[#2A9D8F]">{chk.passCriteria}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* BANTUAN GABUNGKAN ALUR 3 PILAR OTOMATIS (Khusus Sesi 3 PartnerUp Bagian 6 / index 5) */}
+          {isSesi3PartnerUp && activeQIndex === 5 && (
+            <div className="rounded-xl bg-[#E3F5F2] border border-[#2A9D8F]/40 p-4 mb-6 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-bold text-[#1F3A5F] flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-[#2A9D8F]" />
+                  Bantuan Rangkai Sinergi 3 Pilar (Dari Jawabanmu Sebelumnya)
+                </p>
+                <button
+                  type="button"
+                  onClick={handleAutoFillPart6Formula}
+                  className="px-3 py-1.5 rounded-lg bg-[#2A9D8F] text-white text-xs font-bold hover:bg-[#218276] transition-colors cursor-pointer"
+                >
+                  Susun Otomatis ke Kolom
+                </button>
+              </div>
+              <div className="text-xs text-[#1F3A5F]/80 space-y-1">
+                <p>
+                  <strong>Bagian 4 (Aksi Marketing):</strong> {getMyPreviousAnswer(3) || 'Belum diisi'}
+                </p>
+                <p>
+                  <strong>Bagian 3 (Bukti Branding):</strong> {getMyPreviousAnswer(2) || 'Belum diisi'}
+                </p>
+                <p>
+                  <strong>Bagian 5 (Skrip Selling):</strong> {getMyPreviousAnswer(4) || 'Belum diisi'}
+                </p>
               </div>
             </div>
           )}
@@ -1268,17 +1408,21 @@ export const ParticipantView: React.FC<ParticipantViewProps> = ({
                   3 Format Promosi Siap Pakai ({umkmTitle})
                 </h2>
                 <p className="text-sm text-[#1F3A5F]/75 mt-1">
-                  Hasil jawabanmu dari Bagian 1–6 otomatis dirangkai menjadi Bio Instagram, Salam Pembuka WhatsApp Business, dan Label Stiker Kemasan.
+                  {isSesi3PartnerUp
+                    ? 'Hasil jawabanmu dari Bagian 1–7 otomatis dirangkai menjadi Alur 3 Pilar, Bio Profil Kepercayaan (Branding + Marketing), Skrip Balas Chat WA (Selling), dan Kartu Jadwal Eksekusi.'
+                    : `Hasil jawabanmu dari Bagian 1–${questions.length} otomatis dirangkai menjadi Bio Instagram, Salam Pembuka WhatsApp Business, dan Label Stiker Kemasan.`}
                 </p>
               </div>
               <PWAInstallModalTrigger variant="light" />
             </div>
 
-            {/* 1. Kalimat Value Proposition Utuh */}
+            {/* 1. Kalimat Value Proposition / Ringkasan Alur Utuh */}
             <div className="rounded-xl bg-[#FFF7EC] border border-[#F28C28]/50 p-4 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold uppercase text-[#F28C28]">
-                  Kalimat Value Proposition Utama
+                  {isSesi3PartnerUp
+                    ? 'Alur Utuh 3 Pilar (Marketing → Branding → Selling)'
+                    : 'Kalimat Value Proposition Utama'}
                 </span>
                 <button
                   type="button"

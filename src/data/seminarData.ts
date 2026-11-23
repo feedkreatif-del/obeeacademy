@@ -1545,8 +1545,65 @@ export const COPYWRITING_SEED_QNA = [
 ];
 
 // ============================================================================
-// SIMULASI KHUSUS SESI 3 PARTNERUP: BRANDING, MARKETING, DAN SELLING (Q0–Q6)
+// PANDUAN & SIMULASI KHUSUS SESI 3 PARTNERUP (Branding, Marketing & Selling)
 // ============================================================================
+
+export const SESI_3_DIAGNOSIS_GUIDES = [
+  {
+    pillar: 'Bocor di MARKETING (Sepi Traffic)',
+    symptom: 'Produk bagus, tapi sepi yang lihat & jarang ada chat baru bertanya.',
+    wrongMedicine: 'Jangan ganti warna logo atau banting harga.',
+    rightMedicine: 'Jemput kolam target baru: titip tester, kolaborasi komunitas/WO, & konten hook rutin.',
+    chipText: 'Titik bocor di MARKETING: setiap minggu baru sedikit calon pembeli yang lihat/tanya karena promosi belum menjemput kolam target yang tepat.',
+  },
+  {
+    pillar: 'Bocor di BRANDING (Ragu & Ditawar)',
+    symptom: 'Sudah ramai yang lihat & tanya, tapi selalu membandingkan harga murahan.',
+    wrongMedicine: 'Jangan ikut perang diskon sampai margin ideal tergerus.',
+    rightMedicine: 'Perkuat bukti kepercayaan: segel higienis, label rapi, kartu rawat, & garansi ganti baru.',
+    chipText: 'Titik bocor di BRANDING: sudah banyak yang lihat, tapi pembeli masih ragu & menawar murah karena bukti kualitas & kemasannya belum terlihat meyakinkan.',
+  },
+  {
+    pillar: 'Bocor di SELLING (Chat Hilang / Ghosting)',
+    symptom: 'Banyak chat tanya harga masuk WA, tapi setelah dijawab langsung menghilang.',
+    wrongMedicine: 'Jangan salahkan algoritma atau langsung obral harga.',
+    rightMedicine: 'Berhenti lempar daftar harga polos: gali kebutuhan, tawarkan Paket Bundling, & follow-up H+1.',
+    chipText: 'Titik bocor di SELLING: banyak chat tanya harga di WA, tapi setelah dikirimi harga satuan polos kebanyakan menghilang karena belum diarahkan ke Paket Bundling & di-follow up.',
+  },
+];
+
+export const SESI_3_SELLING_TEMPLATES = [
+  {
+    sector: 'F&B (Yoghurt / Keripik)',
+    chipText: 'Balasan: "Siap Kak, ini untuk stok kulkas keluarga atau acara kado/kantor? Biar lebih hemat, paling favorit Paket 5 Botol/Pouch (bonus ice pack & bisa mix rasa). Mau dikirim hari ini?" | Follow-up H+1: "Halo Kak, izin konfirmasi untuk kiriman besok kuota promo paketnya masih tersedia ya."',
+  },
+  {
+    sector: 'Kriya (Tas / Kerajinan)',
+    chipText: 'Balasan: "Siap Kak, tas rajutnya untuk dipakai sendiri atau sebagai kado spesial? Sekalian kami siapkan Paket Kado Lengkap (include box pita + kartu nama) agar langsung siap beri. Mau warna apa Kak?" | Follow-up H+1: "Halo Kak, slot rajut minggu ini tersisa 3 pcs lagi ya jika jadi dipesan."',
+  },
+  {
+    sector: 'Jasa Persewaan',
+    chipText: 'Balasan: "Siap Kak, untuk acara berapa tamu & tanggal berapa? Biar lebih hemat & tenang, kami sarankan Paket Komplit 2 Hari (sudah termasuk pasang H-1 & unit steril). Mau kami cekkan jadwal kosongnya?" | Follow-up H+1: "Halo Kak, izin info untuk tanggal acara kemarin tersisa 1 set lagi."',
+  },
+];
+
+export const SESI_3_SELLING_CHECKS = [
+  {
+    title: '1. Sambut & Gali Kebutuhan',
+    question: 'Apakah kamu bertanya balik soal acara/tujuan pakai sebelum menyebut angka mentah?',
+    passCriteria: 'Hindari hanya menjawab "15rb kak" karena membuat chat langsung mati.',
+  },
+  {
+    title: '2. Arahkan ke Paket Bundling',
+    question: 'Apakah kamu memberi pilihan Paket Hemat agar nilai transaksi naik?',
+    passCriteria: 'Tawarkan Paket Keluarga/Kado/Komplit lengkap dengan manfaat tambahannya.',
+  },
+  {
+    title: '3. Kunci & Follow-Up H+1',
+    question: 'Apakah kamu menyiapkan kalimat sapa ulang sopan jika calon pembeli belum membalas?',
+    passCriteria: '30–40% closing UMKM justru datang dari sapaan ulang sopan keesokan harinya.',
+  },
+];
 
 export const SESI_3_SEED_ANSWERS = [
   // Q0: Audit Aktivitas Selama Ini
@@ -1575,7 +1632,7 @@ export const SESI_3_SEED_ANSWERS = [
     mentorNote: '',
     ts: Date.now() - 3400000,
   },
-  // Q1: Diagnosa Titik Macet Utama
+  // Q1: Diagnosa Titik Macet Utama (Lengkap 3 Pilar: Selling, Branding, Marketing)
   {
     q: 1,
     text: 'Titik bocor di SELLING: setiap minggu ada 20–30 orang chat tanya harga paket sewa, tapi setelah saya kirim daftar harga polos, 80% menghilang tidak membalas.',
@@ -1596,12 +1653,25 @@ export const SESI_3_SEED_ANSWERS = [
     businessName: 'Keripik Apel Bu Sari',
     participantId: 'seed_s3_busari',
     status: 'approved' as const,
-    star: false,
-    likes: 9,
-    mentorNote: '',
+    star: true,
+    spotlightSize: 'kecil' as const,
+    likes: 10,
+    mentorNote: 'Bocor Branding: jangan banting harga! Obat tepatnya tambah stiker segel higienis & label bukti buah apel asli.',
     ts: Date.now() - 2950000,
   },
-  // Q2: 1 Penguat Pilar BRANDING
+  {
+    q: 1,
+    text: 'Titik bocor di MARKETING: produk tas rajut & box kadonya sering dipuji pembeli lama, tapi tiap minggu baru 3–5 orang baru yang chat karena jarang promosi keluar.',
+    subText: 'Terlalu asyik merapikan produksi di dalam tanpa menjemput kolam pembeli baru.',
+    businessName: 'Tas Rajut Kreasi Mbak Dita',
+    participantId: 'seed_s3_dita',
+    status: 'approved' as const,
+    star: false,
+    likes: 9,
+    mentorNote: 'Bocor Marketing: kualitas Branding sudah oke, sekarang wajib tambah porsi menjemput orang baru bertanya!',
+    ts: Date.now() - 2850000,
+  },
+  // Q2: 1 Penguat Pilar BRANDING (Lengkap 3 Sektor: F&B, Kriya, Persewaan)
   {
     q: 2,
     text: 'Menempelkan segel "Produksi Segar Hari Ini + Garansi Ganti Baru Jika Basi/Rusak" di botol & membuat tampilan foto dapur yang seragam bersih.',
@@ -1627,10 +1697,22 @@ export const SESI_3_SEED_ANSWERS = [
     mentorNote: '',
     ts: Date.now() - 2500000,
   },
+  {
+    q: 2,
+    text: 'Mengirim foto/video bukti sterilisasi & unit terbungkus rapi H-1 sebelum dikirim + kru pengantar memakai seragam berlogo usaha.',
+    subText: 'Menghilangkan keraguan panitia acara agar tidak membandingkan dengan sewa murahan.',
+    businessName: 'Berkah Event Rental',
+    participantId: 'seed_s3_berkah',
+    status: 'approved' as const,
+    star: false,
+    likes: 9,
+    mentorNote: '',
+    ts: Date.now() - 2420000,
+  },
   // Q3: 1 Aksi Pilar MARKETING
   {
     q: 3,
-    text: 'Bekerja sama dengan 3 sekolah PAUD/TK & sanggar senam ibu-ibu untuk bagi tester botol mini 100ml + brosur QR WA setiap hari Jumat.',
+    text: 'Bekerja sama dengan 3 sekolah PAUD/TK & sanggar senam ibu-ibu untuk bagi tester botol mini 100ml + brosur QR WA setiap hari Jumat pagi (target 20 chat baru/minggu).',
     subText: 'Menjemput langsung segmen ibu & anak yang memang butuh camilan sehat.',
     businessName: 'Yoghurt Segar Mbak Nisa',
     participantId: 'seed_s3_nisa',
@@ -1643,20 +1725,20 @@ export const SESI_3_SEED_ANSWERS = [
   },
   {
     q: 3,
-    text: 'Upload 3 video Reels singkat per minggu memperlihatkan proses sterilisasi tenda & loading rapi di lokasi acara agar dilirik panitia kantor/WO.',
-    subText: 'Menarik calon penyewa yang mengutamakan ketepatan waktu & kebersihan.',
+    text: 'Upload 3 Reels proses sterilisasi & loading rapi per minggu + sapa langsung 15 panitia acara kampus/WO lokal lewat WA tiap Senin untuk mengundang tanya jadwal.',
+    subText: 'Menggabungkan konten bukti kerja dan jemput bola aktif ke kolam penyelenggara acara.',
     businessName: 'Berkah Event Rental',
     participantId: 'seed_s3_berkah',
     status: 'approved' as const,
     star: false,
-    likes: 8,
+    likes: 9,
     mentorNote: '',
     ts: Date.now() - 2100000,
   },
   // Q4: 1 Skrip Pilar SELLING
   {
     q: 4,
-    text: 'Balasan chat: "Siap Kak, untuk acara berapa tamu & di tanggal berapa? Supaya lebih hemat & aman, kami sarankan Paket Komplit 2 Hari (sudah termasuk pasang H-1 & unit steril). Mau saya cekkan jadwal kosongnya dulu?" + Follow-up H+1: "Halo Kak, izin konfirmasi untuk tanggal 18 kemarin masih tersedia 1 set lagi sebelum terisi acara lain."',
+    text: 'Balasan chat: "Siap Kak, untuk acara berapa tamu & di tanggal berapa? Supaya lebih hemat & aman, kami sarankan Paket Komplit 2 Hari (sudah termasuk pasang H-1 & unit steril). Mau saya cekkan jadwal kosongnya dulu?" | Follow-up H+1: "Halo Kak, izin konfirmasi untuk tanggal 18 kemarin masih tersedia 1 set lagi sebelum terisi acara lain."',
     subText: 'Tidak langsung lempar pricelist mentah, tapi bantu pilih paket & kunci jadwal.',
     businessName: 'Berkah Event Rental',
     participantId: 'seed_s3_berkah',
@@ -1669,13 +1751,13 @@ export const SESI_3_SEED_ANSWERS = [
   },
   {
     q: 4,
-    text: 'Balasan chat: "Ready Kak! Untuk stok kulkas anak lebih hemat ambil Paket 5 Botol Rp70rb (gratis ice pack & bisa mix 3 rasa). Mau dikirim sore jam 4?"',
-    subText: 'Langsung tawarkan opsi paket bundling dengan pilihan rasa.',
+    text: 'Balasan chat: "Siap Kak, ini untuk stok kulkas keluarga atau acara arisan/bekal sekolah? Biar lebih hemat, paling favorit ambil Paket Keluarga 5 Botol Rp70rb (gratis ice pack & bisa mix 3 rasa). Mau dikirim sore ini?" | Follow-up H+1: "Halo Kak, izin info kloter produksi segar pagi ini masih ada 2 paket ya Kak."',
+    subText: 'Menggali kebutuhan terlebih dulu, menawarkan Paket 5 Botol, & menyiapkan sapa ulang H+1.',
     businessName: 'Yoghurt Segar Mbak Nisa',
     participantId: 'seed_s3_nisa',
     status: 'approved' as const,
     star: false,
-    likes: 9,
+    likes: 10,
     mentorNote: '',
     ts: Date.now() - 1600000,
   },
@@ -1692,6 +1774,18 @@ export const SESI_3_SEED_ANSWERS = [
     likes: 14,
     mentorNote: 'Alur 3 Pilar yang sempurna: Marketing menarik mata, Branding meyakinkan hati, Selling menutup transaksi!',
     ts: Date.now() - 1200000,
+  },
+  {
+    q: 5,
+    text: 'MARKETING: Sapa 15 panitia kampus/WO + Reels proses pasang rapi → BRANDING: Kirim bukti foto unit steril terbungkus & seragam kru → SELLING: Di WA tawarkan "Paket Komplit 2 Hari Free Setup" + follow-up H+1.',
+    subText: 'Dari pertama kenal sampai DP masuk rekening berjalan satu alur.',
+    businessName: 'Berkah Event Rental',
+    participantId: 'seed_s3_berkah',
+    status: 'approved' as const,
+    star: false,
+    likes: 11,
+    mentorNote: '',
+    ts: Date.now() - 1100000,
   },
   // Q6: Jadwal Seimbang 7 Hari
   {
