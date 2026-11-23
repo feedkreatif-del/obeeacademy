@@ -8,6 +8,7 @@ import {
   Type,
   Square,
   Circle,
+  Triangle,
   Shapes,
   ArrowUpRight,
   Minus,
@@ -39,7 +40,8 @@ export type FlipchartTool =
   | 'line'
   | 'arrow'
   | 'rect'
-  | 'ellipse';
+  | 'ellipse'
+  | 'triangle';
 
 export type FlipchartPaperStyle = 'white' | 'grid' | 'lined' | 'chalkboard';
 
@@ -227,19 +229,93 @@ function snapLineEndpointAngle(p0: FlipchartPoint, p1: FlipchartPoint): Flipchar
   return p1;
 }
 
+function pointToSegmentDistance(p: FlipchartPoint, a: FlipchartPoint, b: FlipchartPoint): number {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const lenSq = dx * dx + dy * dy;
+  if (lenSq === 0) return Math.hypot(p.x - a.x, p.y - a.y);
+  const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / lenSq));
+  return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
+}
+
+function triangleDoubleArea(a: FlipchartPoint, b: FlipchartPoint, c: FlipchartPoint): number {
+  return Math.abs((b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x));
+}
+
+/**
+ * Merapikan 3 titik sudut segitiga agar sisi hampir horizontal/vertikal rata sempurna
+ * dan puncak segitiga sama kaki berada tepat di tengah alasnya.
+ */
+function cleanTriangleVertices(
+  verts: [FlipchartPoint, FlipchartPoint, FlipchartPoint]
+): [FlipchartPoint, FlipchartPoint, FlipchartPoint] {
+  const out: [FlipchartPoint, FlipchartPoint, FlipchartPoint] = [
+    { x: roundCoord(verts[0].x), y: roundCoord(verts[0].y) },
+    { x: roundCoord(verts[1].x), y: roundCoord(verts[1].y) },
+    { x: roundCoord(verts[2].x), y: roundCoord(verts[2].y) },
+  ];
+
+  // Ratakan sisi yang hampir horizontal atau hampir vertikal (±7.5°)
+  const pairs: Array<[number, number]> = [
+    [0, 1],
+    [1, 2],
+    [2, 0],
+  ];
+  for (const [i, j] of pairs) {
+    const a = out[i];
+    const b = out[j];
+    const dx = Math.abs(b.x - a.x);
+    const dy = Math.abs(b.y - a.y);
+    if (Math.hypot(dx, dy) < 20) continue;
+    if (dx > 0 && dy / dx <= 0.132) {
+      const avgY = roundCoord((a.y + b.y) / 2);
+      out[i] = { ...out[i], y: avgY };
+      out[j] = { ...out[j], y: avgY };
+    } else if (dy > 0 && dx / dy <= 0.132) {
+      const avgX = roundCoord((a.x + b.x) / 2);
+      out[i] = { ...out[i], x: avgX };
+      out[j] = { ...out[j], x: avgX };
+    }
+  }
+
+  // Jika ada sisi alas horizontal/vertikal dan sudut ke-3 hampir simetris di tengah, pusatkan puncaknya
+  for (const [i, j] of pairs) {
+    const k = 3 - i - j;
+    const a = out[i];
+    const b = out[j];
+    const apex = out[k];
+    const baseW = Math.abs(b.x - a.x);
+    const baseH = Math.abs(b.y - a.y);
+    if (a.y === b.y && baseW >= 24) {
+      const midX = (a.x + b.x) / 2;
+      if (Math.abs(apex.x - midX) <= baseW * 0.1) {
+        out[k] = { ...apex, x: roundCoord(midX) };
+      }
+    } else if (a.x === b.x && baseH >= 24) {
+      const midY = (a.y + b.y) / 2;
+      if (Math.abs(apex.y - midY) <= baseH * 0.1) {
+        out[k] = { ...apex, y: roundCoord(midY) };
+      }
+    }
+  }
+
+  return out;
+}
+
 /**
  * Deteksi & perapi bentuk geometris otomatis (Opsi 2 — Smart Shape Snap, 0 ms):
  * - Garis lurus (otomatis rata horizontal/vertikal bila mendekati 0°/90°)
  * - Kotak / Persegi
  * - Lingkaran / Elips
+ * - Segitiga
  */
 function detectAndSnapShape(
   points: FlipchartPoint[],
   isHoldSnap: boolean
 ): {
-  tool: 'line' | 'rect' | 'ellipse';
+  tool: 'line' | 'rect' | 'ellipse' | 'triangle';
   label: string;
-  points: [FlipchartPoint, FlipchartPoint];
+  points: FlipchartPoint[];
 } | null {
   if (points.length < 2) return null;
 
@@ -304,9 +380,9 @@ function detectAndSnapShape(
     }
   }
 
-  // 2. Cek apakah goresan merupakan Kurva Tertutup (Lingkaran/Elips atau Kotak)
-  const minLoopBox = isHoldSnap ? 28 : 60;
-  const minLoopDiag = isHoldSnap ? 42 : 85;
+  // 2. Cek apakah goresan merupakan Kurva Tertutup (Segitiga, Lingkaran/Elips, atau Kotak)
+  const minLoopBox = isHoldSnap ? 28 : 58;
+  const minLoopDiag = isHoldSnap ? 42 : 82;
   const maxGap = Math.max(36, diag * (isHoldSnap ? 0.44 : 0.28));
 
   if (
@@ -315,12 +391,13 @@ function detectAndSnapShape(
     diag >= minLoopDiag &&
     Math.min(w, h) >= 16 &&
     directDist <= maxGap &&
-    pathLen >= 2 * (w + h) * 0.55
+    pathLen >= 2 * (w + h) * 0.48
   ) {
     const cx = (minX + maxX) / 2;
     const cy = (minY + maxY) / 2;
     const rx = Math.max(1, w / 2);
     const ry = Math.max(1, h / 2);
+    const avgRadius = (rx + ry) / 2;
 
     let ellipseErrSum = 0;
     let rectErrSum = 0;
@@ -336,7 +413,107 @@ function detectAndSnapShape(
 
     const ellipseErr = ellipseErrSum / points.length;
     const rectErr = rectErrSum / points.length;
+
+    // Ekstraksi 3 sudut maksimum untuk mendeteksi Segitiga
+    let v1 = points[0];
+    let maxDistCenter = -1;
+    for (const p of points) {
+      const d = (p.x - cx) * (p.x - cx) + (p.y - cy) * (p.y - cy);
+      if (d > maxDistCenter) {
+        maxDistCenter = d;
+        v1 = p;
+      }
+    }
+
+    let v2 = points[0];
+    let maxDistV1 = -1;
+    for (const p of points) {
+      const d = (p.x - v1.x) * (p.x - v1.x) + (p.y - v1.y) * (p.y - v1.y);
+      if (d > maxDistV1) {
+        maxDistV1 = d;
+        v2 = p;
+      }
+    }
+
+    let v3 = points[0];
+    let maxArea = -1;
+    for (const p of points) {
+      const a = triangleDoubleArea(v1, v2, p);
+      if (a > maxArea) {
+        maxArea = a;
+        v3 = p;
+      }
+    }
+
+    for (let pass = 0; pass < 2; pass++) {
+      let bestArea = triangleDoubleArea(v1, v2, v3);
+      for (const p of points) {
+        const a = triangleDoubleArea(p, v2, v3);
+        if (a > bestArea) {
+          bestArea = a;
+          v1 = p;
+        }
+      }
+      bestArea = triangleDoubleArea(v1, v2, v3);
+      for (const p of points) {
+        const a = triangleDoubleArea(v1, p, v3);
+        if (a > bestArea) {
+          bestArea = a;
+          v2 = p;
+        }
+      }
+      bestArea = triangleDoubleArea(v1, v2, v3);
+      for (const p of points) {
+        const a = triangleDoubleArea(v1, v2, p);
+        if (a > bestArea) {
+          bestArea = a;
+          v3 = p;
+        }
+      }
+    }
+
+    const e12 = Math.hypot(v2.x - v1.x, v2.y - v1.y);
+    const e23 = Math.hypot(v3.x - v2.x, v3.y - v2.y);
+    const e31 = Math.hypot(v1.x - v3.x, v1.y - v3.y);
+    const minEdge = Math.min(e12, e23, e31);
+    const maxEdge = Math.max(e12, e23, e31);
+    const dblArea = triangleDoubleArea(v1, v2, v3);
+    const altitude = maxEdge > 0 ? dblArea / maxEdge : 0;
+
+    let triErr = Infinity;
+    let triMaxErr = Infinity;
+    if (minEdge >= diag * 0.25 && altitude >= diag * 0.22) {
+      let triErrSum = 0;
+      let maxSegDist = 0;
+      for (const p of points) {
+        const d = Math.min(
+          pointToSegmentDistance(p, v1, v2),
+          pointToSegmentDistance(p, v2, v3),
+          pointToSegmentDistance(p, v3, v1)
+        );
+        triErrSum += d;
+        if (d > maxSegDist) maxSegDist = d;
+      }
+      triErr = triErrSum / points.length / avgRadius;
+      triMaxErr = maxSegDist / avgRadius;
+    }
+
     const tol = isHoldSnap ? 0.23 : 0.145;
+    const triTol = isHoldSnap ? 0.19 : 0.13;
+    const triMaxTol = isHoldSnap ? 0.44 : 0.31;
+
+    if (
+      triErr <= triTol &&
+      triMaxErr <= triMaxTol &&
+      triErr < ellipseErr &&
+      triErr < rectErr
+    ) {
+      return {
+        tool: 'triangle',
+        label: 'Segitiga',
+        points: cleanTriangleVertices([v1, v2, v3]),
+      };
+    }
 
     if (ellipseErr <= tol && ellipseErr < rectErr) {
       const aspect = Math.min(w, h) / Math.max(w, h);
@@ -385,9 +562,11 @@ function serializePagesSafely(pages: FlipchartPage[], maxBytes = 435000): string
     const compacted = pages.map((pg) => ({
       ...pg,
       strokes: pg.strokes.map((stk) =>
-        stk.tool === 'line' || stk.tool === 'arrow' || stk.tool === 'rect' || stk.tool === 'ellipse'
-          ? { ...stk, points: stk.points.length >= 2 ? [stk.points[0], stk.points[stk.points.length - 1]] : stk.points }
-          : { ...stk, points: compactStrokePoints(stk.points, distSq) }
+        stk.tool === 'triangle'
+          ? { ...stk, points: stk.points.slice(0, 3) }
+          : stk.tool === 'line' || stk.tool === 'arrow' || stk.tool === 'rect' || stk.tool === 'ellipse'
+            ? { ...stk, points: stk.points.length >= 2 ? [stk.points[0], stk.points[stk.points.length - 1]] : stk.points }
+            : { ...stk, points: compactStrokePoints(stk.points, distSq) }
       ),
     }));
     const candidate = JSON.stringify(compacted);
@@ -537,6 +716,21 @@ function renderStrokesAndTexts(
       const ry = Math.max(1, Math.abs(p1.y - p0.y) / 2);
       ctx.beginPath();
       ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    } else if (stroke.tool === 'triangle' && pts.length >= 2) {
+      ctx.beginPath();
+      if (pts.length >= 3) {
+        ctx.moveTo(pts[0].x, pts[0].y);
+        ctx.lineTo(pts[1].x, pts[1].y);
+        ctx.lineTo(pts[2].x, pts[2].y);
+      } else {
+        const p0 = pts[0];
+        const p1 = pts[1];
+        ctx.moveTo((p0.x + p1.x) / 2, p0.y);
+        ctx.lineTo(p1.x, p1.y);
+        ctx.lineTo(p0.x, p1.y);
+      }
+      ctx.closePath();
       ctx.stroke();
     } else {
       ctx.beginPath();
@@ -692,6 +886,7 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const draftStrokeRef = useRef<FlipchartStroke | null>(null);
+  const dragOriginRef = useRef<FlipchartPoint | null>(null);
   const isDrawingRef = useRef<boolean>(false);
   const holdSnapTimerRef = useRef<number | null>(null);
   const holdSnappedModeRef = useRef<'none' | 'line' | 'shape'>('none');
@@ -1016,6 +1211,7 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
       points: [pt],
       isHighlight: tool === 'highlighter',
     };
+    dragOriginRef.current = pt;
     redrawCanvas();
   };
 
@@ -1036,9 +1232,24 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
       return;
     }
 
-    if (activeTool === 'line' || activeTool === 'arrow' || activeTool === 'rect' || activeTool === 'ellipse') {
-      const nextPt = activeTool === 'line' ? snapLineEndpointAngle(pts[0], pt) : pt;
-      draftStrokeRef.current.points = [pts[0], nextPt];
+    if (
+      activeTool === 'line' ||
+      activeTool === 'arrow' ||
+      activeTool === 'rect' ||
+      activeTool === 'ellipse' ||
+      activeTool === 'triangle'
+    ) {
+      const origin = dragOriginRef.current || pts[0];
+      if (activeTool === 'triangle') {
+        draftStrokeRef.current.points = [
+          { x: roundCoord((origin.x + pt.x) / 2), y: origin.y },
+          pt,
+          { x: origin.x, y: pt.y },
+        ];
+      } else {
+        const nextPt = activeTool === 'line' ? snapLineEndpointAngle(origin, pt) : pt;
+        draftStrokeRef.current.points = [origin, nextPt];
+      }
       redrawCanvas();
       return;
     }
@@ -1662,6 +1873,7 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
                           { id: 'line', label: 'Garis', icon: Minus },
                           { id: 'rect', label: 'Kotak', icon: Square },
                           { id: 'ellipse', label: 'Lingkaran', icon: Circle },
+                          { id: 'triangle', label: 'Segitiga', icon: Triangle },
                           { id: 'eraser', label: 'Hapus', icon: Eraser },
                         ] as const
                       ).map((item) => {
@@ -1686,11 +1898,11 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
                       <button
                         type="button"
                         onClick={handleClearCurrentPage}
-                        className="col-span-2 px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
+                        className="px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
                         title="Bersihkan seluruh coretan di lembar ini"
                       >
                         <Trash2 className="w-3.5 h-3.5 shrink-0" />
-                        <span>Bersihkan Lembar Ini</span>
+                        <span className="truncate">Bersihkan</span>
                       </button>
                     </div>
 
