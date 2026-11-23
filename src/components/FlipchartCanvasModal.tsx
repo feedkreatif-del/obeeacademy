@@ -183,6 +183,28 @@ function compactStrokePoints(points: FlipchartPoint[], minDistSq: number): Flipc
   return result;
 }
 
+const roundCoord = (n: number): number => Math.round(n * 10) / 10;
+
+/**
+ * Penghalus tulisan tangan ringan (1-pass corner-preserving weighted smoothing)
+ * Menghilangkan getaran tangan tanpa merusak bentuk sudut huruf atau angka kecil.
+ */
+function smoothHandwritingPoints(points: FlipchartPoint[]): FlipchartPoint[] {
+  if (points.length < 3) return points;
+  const smoothed: FlipchartPoint[] = [points[0]];
+  for (let i = 1; i < points.length - 1; i++) {
+    const prev = points[i - 1];
+    const curr = points[i];
+    const next = points[i + 1];
+    smoothed.push({
+      x: roundCoord(0.18 * prev.x + 0.64 * curr.x + 0.18 * next.x),
+      y: roundCoord(0.18 * prev.y + 0.64 * curr.y + 0.18 * next.y),
+    });
+  }
+  smoothed.push(points[points.length - 1]);
+  return compactStrokePoints(smoothed, 5);
+}
+
 function serializePagesSafely(pages: FlipchartPage[], maxBytes = 435000): string {
   const raw = JSON.stringify(pages);
   if (raw.length <= maxBytes) return raw;
@@ -340,14 +362,23 @@ function renderStrokesAndTexts(
       ctx.moveTo(pts[0].x, pts[0].y);
       if (pts.length === 1) {
         ctx.lineTo(pts[0].x + 0.1, pts[0].y + 0.1);
+      } else if (pts.length === 2) {
+        ctx.lineTo(pts[1].x, pts[1].y);
       } else {
-        for (let i = 1; i < pts.length - 1; i++) {
-          const midX = (pts[i].x + pts[i + 1].x) / 2;
-          const midY = (pts[i].y + pts[i + 1].y) / 2;
-          ctx.quadraticCurveTo(pts[i].x, pts[i].y, midX, midY);
+        // Catmull-Rom -> Cubic Bezier untuk lekukan huruf yang mulus dan presisi melewati tiap titik
+        for (let i = 0; i < pts.length - 1; i++) {
+          const pPrev = pts[Math.max(0, i - 1)];
+          const p0 = pts[i];
+          const p1 = pts[i + 1];
+          const pNext = pts[Math.min(pts.length - 1, i + 2)];
+
+          const cp1x = p0.x + (p1.x - pPrev.x) / 6;
+          const cp1y = p0.y + (p1.y - pPrev.y) / 6;
+          const cp2x = p1.x - (pNext.x - p0.x) / 6;
+          const cp2y = p1.y - (pNext.y - p0.y) / 6;
+
+          ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p1.x, p1.y);
         }
-        const last = pts[pts.length - 1];
-        ctx.lineTo(last.x, last.y);
       }
       ctx.stroke();
     }
@@ -412,6 +443,27 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
   );
   const [isFooterExpanded, setIsFooterExpanded] = useState<boolean>(false);
   const [showTemplates, setShowTemplates] = useState<boolean>(false);
+  const [mirrorBarHovered, setMirrorBarHovered] = useState<boolean>(false);
+  const [smoothWriting, setSmoothWriting] = useState<boolean>(() => {
+    try {
+      const saved = window.localStorage.getItem('obee_flipchart_smooth_v1');
+      return saved === null ? true : saved === 'true';
+    } catch {
+      return true;
+    }
+  });
+
+  const toggleSmoothWriting = () => {
+    setSmoothWriting((prev) => {
+      const next = !prev;
+      try {
+        window.localStorage.setItem('obee_flipchart_smooth_v1', String(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  };
 
   // Undo/Redo stacks per page id
   const [redoMap, setRedoMap] = useState<
@@ -438,6 +490,12 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
   const lastLocalWriteTsRef = useRef<number>(0);
   const lastAppliedRemoteTsRef = useRef<number>(0);
   const wasOpenRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    if (!isOpen || !readOnlyMirror) {
+      setMirrorBarHovered(false);
+    }
+  }, [isOpen, readOnlyMirror]);
 
   const safeIndex = Math.min(activePageIndex, Math.max(0, pages.length - 1));
   const currentPage = pages[safeIndex] || pages[0];
@@ -645,8 +703,8 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
     const canvas = canvasRef.current!;
     const rect = canvas.getBoundingClientRect();
     return {
-      x: Math.round(((e.clientX - rect.left) / rect.width) * VIRTUAL_WIDTH),
-      y: Math.round(((e.clientY - rect.top) / rect.height) * VIRTUAL_HEIGHT),
+      x: roundCoord(((e.clientX - rect.left) / rect.width) * VIRTUAL_WIDTH),
+      y: roundCoord(((e.clientY - rect.top) / rect.height) * VIRTUAL_HEIGHT),
     };
   };
 
@@ -733,10 +791,21 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
     }
 
     const last = pts[pts.length - 1];
+    const minSq = smoothWriting && (activeTool === 'pen' || activeTool === 'highlighter') ? 4 : 9;
     if (last) {
       const dx = pt.x - last.x;
       const dy = pt.y - last.y;
-      if (dx * dx + dy * dy < 9) {
+      if (dx * dx + dy * dy < minSq) {
+        return;
+      }
+      if (smoothWriting && (activeTool === 'pen' || activeTool === 'highlighter')) {
+        // Live anti-tremor EMA stabilizer (0 ms latensi)
+        const alpha = 0.62;
+        pts.push({
+          x: roundCoord(last.x + alpha * dx),
+          y: roundCoord(last.y + alpha * dy),
+        });
+        redrawCanvas();
         return;
       }
     }
@@ -744,11 +813,31 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
     redrawCanvas();
   };
 
-  const handlePointerUp = () => {
+  const handlePointerUp = (e?: React.PointerEvent<HTMLCanvasElement>) => {
     if (readOnlyMirror || !isDrawingRef.current || !draftStrokeRef.current) return;
     isDrawingRef.current = false;
-    const finishedStroke = draftStrokeRef.current;
+    const rawStroke = draftStrokeRef.current;
     draftStrokeRef.current = null;
+
+    let finalPoints = rawStroke.points;
+    if (
+      smoothWriting &&
+      (rawStroke.tool === 'pen' || rawStroke.tool === 'highlighter')
+    ) {
+      if (e && canvasRef.current) {
+        const endPt = getVirtualCoords(e);
+        const lastPt = finalPoints[finalPoints.length - 1];
+        if (!lastPt || Math.hypot(endPt.x - lastPt.x, endPt.y - lastPt.y) >= 1.5) {
+          finalPoints = [...finalPoints, endPt];
+        }
+      }
+      finalPoints = smoothHandwritingPoints(finalPoints);
+    }
+
+    const finishedStroke: FlipchartStroke = {
+      ...rawStroke,
+      points: finalPoints,
+    };
 
     const curIdx = Math.min(activePageIndexRef.current, Math.max(0, pagesRef.current.length - 1));
     const curPg = pagesRef.current[curIdx];
@@ -1015,6 +1104,23 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
                   />
                 ))}
               </div>
+
+              <button
+                type="button"
+                onClick={toggleSmoothWriting}
+                className={`w-9 h-9 rounded-lg flex items-center justify-center cursor-pointer shrink-0 transition-colors ${
+                  smoothWriting
+                    ? 'bg-[#2A9D8F] text-white shadow-xs'
+                    : 'bg-white/10 hover:bg-white/20 text-white/75'
+                }`}
+                title={
+                  smoothWriting
+                    ? 'Penghalus Tulisan Otomatis: AKTIF (Klik untuk matikan)'
+                    : 'Penghalus Tulisan Otomatis: MATI (Klik untuk aktifkan)'
+                }
+              >
+                <Sparkles className="w-4 h-4" />
+              </button>
 
               <button
                 type="button"
@@ -1296,6 +1402,36 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
                         </>
                       )}
                     </select>
+
+                    {/* Toggle Penghalus Tulisan Tangan (Opsi 1) */}
+                    <button
+                      type="button"
+                      onClick={toggleSmoothWriting}
+                      className={`w-full rounded-lg px-2.5 py-1.5 text-xs font-bold flex items-center justify-between gap-2 border cursor-pointer transition-colors ${
+                        smoothWriting
+                          ? 'bg-[#E3F5F2] border-[#2A9D8F]/40 text-[#1F3A5F]'
+                          : 'bg-white border-[#1F3A5F]/15 text-[#1F3A5F]/70 hover:bg-slate-50'
+                      }`}
+                      title="Menghaluskan lengkungan tulisan spidol secara otomatis agar lebih rapi dan tidak bergerigi (0 ms delay)"
+                    >
+                      <span className="flex items-center gap-1.5">
+                        <Sparkles
+                          className={`w-3.5 h-3.5 ${
+                            smoothWriting ? 'text-[#2A9D8F]' : 'text-slate-400'
+                          }`}
+                        />
+                        <span>Haluskan Tulisan</span>
+                      </span>
+                      <span
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-extrabold ${
+                          smoothWriting
+                            ? 'bg-[#2A9D8F] text-white'
+                            : 'bg-slate-200 text-slate-600'
+                        }`}
+                      >
+                        {smoothWriting ? 'AKTIF' : 'MATI'}
+                      </span>
+                    </button>
                   </div>
 
                   {/* Paper Style & Formula Templates */}
@@ -1475,16 +1611,35 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
                   height: 'min(100cqh, calc(100cqw * 9 / 16))',
                 }}
               >
-                {/* Read-only indicator for 2nd Screen Projector or Remote Tablet Sync */}
+                {/* Read-only floating controls (auto-hidden until mouse hovers top bar area) */}
                 {readOnlyMirror && (
-                  <div className="absolute top-3 left-4 right-4 z-10 flex items-center justify-between gap-2 pointer-events-none">
-                    <div className="px-3 py-1 rounded-full bg-[#1F3A5F]/85 text-white text-xs font-bold shadow-xs">
+                  <div
+                    onMouseEnter={() => setMirrorBarHovered(true)}
+                    onMouseLeave={() => setMirrorBarHovered(false)}
+                    onPointerDown={(e) => {
+                      if (e.pointerType !== 'mouse') {
+                        setMirrorBarHovered((prev) => !prev);
+                      }
+                    }}
+                    className="absolute top-0 left-0 right-0 h-16 z-20 px-4 pt-3 flex items-start justify-between gap-2"
+                  >
+                    <div
+                      className={`px-3.5 py-1.5 rounded-full bg-[#1F3A5F]/90 backdrop-blur-md text-white text-xs font-bold shadow-lg border border-white/15 transition-all duration-200 pointer-events-none ${
+                        mirrorBarHovered
+                          ? 'opacity-100 translate-y-0'
+                          : 'opacity-0 -translate-y-2'
+                      }`}
+                    >
                       Papan Simulasi Kelas · {currentPage.title}
                     </div>
                     <button
                       type="button"
                       onClick={onClose}
-                      className="pointer-events-auto px-3 py-1 rounded-full bg-rose-600/90 hover:bg-rose-700 text-white text-xs font-bold flex items-center gap-1 shadow-xs cursor-pointer"
+                      className={`px-3.5 py-1.5 rounded-full bg-rose-600/95 hover:bg-rose-700 backdrop-blur-md text-white text-xs font-bold flex items-center gap-1.5 shadow-lg border border-white/20 cursor-pointer transition-all duration-200 ${
+                        mirrorBarHovered
+                          ? 'opacity-100 translate-y-0 pointer-events-auto'
+                          : 'opacity-0 -translate-y-2 pointer-events-none'
+                      }`}
                       title="Tutup tampilan papan tulis di layar ini"
                     >
                       <X className="w-3.5 h-3.5" />
