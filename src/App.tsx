@@ -252,6 +252,7 @@ export default function App() {
   const [qnaList, setQnaList] = useState<QnaDoc[]>([]);
   const [pollVotes, setPollVotes] = useState<PollVoteDoc[]>([]);
   const [flipchartRemote, setFlipchartRemote] = useState<FlipchartBoardDoc | null>(null);
+  const flipchartRevisionRef = useRef<number>(0);
   const [boardDeviceId] = useState<string>(() => {
     const fallback = `board_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     try {
@@ -676,6 +677,12 @@ export default function App() {
       (snap) => {
         if (snap.exists()) {
           const data = snap.data() as FlipchartBoardDoc;
+          const incomingUpdatedAt =
+            typeof data.updatedAt === 'number' ? data.updatedAt : Date.now();
+          flipchartRevisionRef.current = Math.max(
+            flipchartRevisionRef.current,
+            incomingUpdatedAt
+          );
           setFlipchartRemote({
             isOpen: Boolean(data.isOpen),
             syncToProjector:
@@ -683,7 +690,7 @@ export default function App() {
             activePageIndex: typeof data.activePageIndex === 'number' ? data.activePageIndex : 0,
             pagesJson: typeof data.pagesJson === 'string' ? data.pagesJson : '[]',
             sourceDeviceId: typeof data.sourceDeviceId === 'string' ? data.sourceDeviceId : '',
-            updatedAt: typeof data.updatedAt === 'number' ? data.updatedAt : Date.now(),
+            updatedAt: incomingUpdatedAt,
           });
         } else {
           setFlipchartRemote(null);
@@ -702,14 +709,21 @@ export default function App() {
       syncToProjector: boolean;
       activePageIndex: number;
       pagesJson: string;
+      revision?: number;
     }) => {
+      const monotonicUpdatedAt = Math.max(
+        flipchartRevisionRef.current + 1,
+        typeof payload.revision === 'number' ? payload.revision : 0,
+        Date.now()
+      );
+      flipchartRevisionRef.current = monotonicUpdatedAt;
       const nextDoc: FlipchartBoardDoc = {
         isOpen: payload.isOpen,
         syncToProjector: payload.syncToProjector,
         activePageIndex: Math.max(0, Math.min(25, payload.activePageIndex)),
         pagesJson: payload.pagesJson.slice(0, 450000),
         sourceDeviceId: boardDeviceId,
-        updatedAt: Date.now(),
+        updatedAt: monotonicUpdatedAt,
       };
       try {
         await setDoc(doc(db, 'flipchart', 'active'), nextDoc);

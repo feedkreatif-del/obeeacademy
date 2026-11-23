@@ -166,6 +166,46 @@ export function loadFlipchartStateLocal(): FlipchartSyncPayload {
   };
 }
 
+function compactStrokePoints(points: FlipchartPoint[], minDistSq: number): FlipchartPoint[] {
+  if (points.length <= 2) return points;
+  const result: FlipchartPoint[] = [points[0]];
+  let last = points[0];
+  for (let i = 1; i < points.length - 1; i++) {
+    const pt = points[i];
+    const dx = pt.x - last.x;
+    const dy = pt.y - last.y;
+    if (dx * dx + dy * dy >= minDistSq) {
+      result.push(pt);
+      last = pt;
+    }
+  }
+  result.push(points[points.length - 1]);
+  return result;
+}
+
+function serializePagesSafely(pages: FlipchartPage[], maxBytes = 435000): string {
+  const raw = JSON.stringify(pages);
+  if (raw.length <= maxBytes) return raw;
+
+  // Progressively compact redundant points on freehand strokes if dense drawing approaches Firestore limit
+  for (const distSq of [25, 64, 144, 324]) {
+    const compacted = pages.map((pg) => ({
+      ...pg,
+      strokes: pg.strokes.map((stk) =>
+        stk.tool === 'line' || stk.tool === 'arrow' || stk.tool === 'rect'
+          ? { ...stk, points: stk.points.length >= 2 ? [stk.points[0], stk.points[stk.points.length - 1]] : stk.points }
+          : { ...stk, points: compactStrokePoints(stk.points, distSq) }
+      ),
+    }));
+    const candidate = JSON.stringify(compacted);
+    if (candidate.length <= maxBytes) {
+      return candidate;
+    }
+  }
+
+  return raw.slice(0, maxBytes);
+}
+
 function saveAndBroadcastFlipchartState(payload: FlipchartSyncPayload): void {
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
@@ -342,6 +382,7 @@ interface FlipchartCanvasModalProps {
     syncToProjector: boolean;
     activePageIndex: number;
     pagesJson: string;
+    revision?: number;
   }) => void;
 }
 
@@ -388,6 +429,12 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const draftStrokeRef = useRef<FlipchartStroke | null>(null);
   const isDrawingRef = useRef<boolean>(false);
+  const pagesRef = useRef<FlipchartPage[]>(pages);
+  const activePageIndexRef = useRef<number>(activePageIndex);
+  const syncToProjectorRef = useRef<boolean>(syncToProjector);
+  const revisionRef = useRef<number>(0);
+  const hasLocalEditsRef = useRef<boolean>(false);
+  const pendingRemoteRef = useRef<FlipchartBoardDoc | null>(null);
   const lastLocalWriteTsRef = useRef<number>(0);
   const lastAppliedRemoteTsRef = useRef<number>(0);
   const wasOpenRef = useRef<boolean>(false);
@@ -398,8 +445,9 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
   const publishSnapshot = useCallback(
     (nextOpen: boolean, nextSync: boolean, nextPages: FlipchartPage[], nextIdx: number) => {
       if (readOnlyMirror) return;
-      const now = Date.now();
-      lastLocalWriteTsRef.current = now;
+      const nextRev = Math.max(revisionRef.current + 1, Date.now());
+      revisionRef.current = nextRev;
+      lastLocalWriteTsRef.current = nextRev;
       saveAndBroadcastFlipchartState({
         isOpen: nextOpen,
         pages: nextPages,
@@ -408,15 +456,14 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
 
       if (onPublishFlipchart) {
         try {
-          const serialized = JSON.stringify(nextPages);
-          if (serialized.length <= 440000) {
-            onPublishFlipchart({
-              isOpen: nextOpen,
-              syncToProjector: nextSync,
-              activePageIndex: Math.min(Math.max(0, nextIdx), 25),
-              pagesJson: serialized,
-            });
-          }
+          const serialized = serializePagesSafely(nextPages);
+          onPublishFlipchart({
+            isOpen: nextOpen,
+            syncToProjector: nextSync,
+            activePageIndex: Math.min(Math.max(0, nextIdx), 25),
+            pagesJson: serialized,
+            revision: nextRev,
+          });
         } catch {
           // ignore serialization errors
         }
@@ -425,46 +472,120 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
     [readOnlyMirror, onPublishFlipchart]
   );
 
-  // Apply incoming remote updates from Firestore (e.g. Tablet Remote -> Laptop Projector, or shared board edits)
+  // Synchronous local commit helper: updates refs immediately before React state so rapid consecutive strokes never drop
+  const commitLocalChange = useCallback(
+    (
+      nextPages: FlipchartPage[],
+      nextIdx: number,
+      nextSync: boolean = syncToProjectorRef.current,
+      shouldPublish = true
+    ) => {
+      const clampedIdx = Math.min(Math.max(0, nextIdx), Math.max(0, nextPages.length - 1));
+      pagesRef.current = nextPages;
+      activePageIndexRef.current = clampedIdx;
+      syncToProjectorRef.current = nextSync;
+      hasLocalEditsRef.current = true;
+
+      setPages(nextPages);
+      setActivePageIndex(clampedIdx);
+      setSyncToProjector(nextSync);
+
+      if (shouldPublish && isOpen) {
+        publishSnapshot(true, nextSync, nextPages, clampedIdx);
+      } else {
+        saveAndBroadcastFlipchartState({
+          isOpen,
+          pages: nextPages,
+          activePageIndex: clampedIdx,
+        });
+      }
+    },
+    [isOpen, publishSnapshot]
+  );
+
+  const applyRemoteBoard = useCallback(
+    (remote: FlipchartBoardDoc, forceAdoptIfUntouched = false): boolean => {
+      if (!remote) return false;
+      if (!readOnlyMirror && remote.sourceDeviceId === boardDeviceId) {
+        return false;
+      }
+
+      const localHasAnyContent = pagesRef.current.some(
+        (pg) => pg.strokes.length > 0 || pg.texts.length > 0
+      );
+      const allowUntouchedAdopt =
+        forceAdoptIfUntouched && !hasLocalEditsRef.current && !localHasAnyContent;
+
+      if (!allowUntouchedAdopt && remote.updatedAt <= revisionRef.current) {
+        return false;
+      }
+      if (!readOnlyMirror && !allowUntouchedAdopt && remote.updatedAt <= lastLocalWriteTsRef.current) {
+        return false;
+      }
+
+      if (!readOnlyMirror && isDrawingRef.current) {
+        pendingRemoteRef.current = remote;
+        return false;
+      }
+
+      try {
+        const parsed = JSON.parse(remote.pagesJson);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const nextIdx = Math.min(
+            typeof remote.activePageIndex === 'number' ? remote.activePageIndex : 0,
+            parsed.length - 1
+          );
+          revisionRef.current = Math.max(revisionRef.current, remote.updatedAt);
+          lastAppliedRemoteTsRef.current = remote.updatedAt;
+          pagesRef.current = parsed;
+          activePageIndexRef.current = nextIdx;
+          setPages(parsed);
+          setActivePageIndex(nextIdx);
+          saveAndBroadcastFlipchartState({
+            isOpen: remote.isOpen,
+            pages: parsed,
+            activePageIndex: nextIdx,
+          });
+          return true;
+        }
+      } catch {
+        // ignore malformed remote JSON
+      }
+      return false;
+    },
+    [boardDeviceId, readOnlyMirror]
+  );
+
+  // Apply incoming remote updates from Firestore without re-publishing (prevents echo ping-pong loop)
   useEffect(() => {
     if (!flipchartRemote) return;
-    if (
-      flipchartRemote.sourceDeviceId === boardDeviceId &&
-      !readOnlyMirror
-    ) {
-      return;
-    }
-    if (flipchartRemote.updatedAt <= lastAppliedRemoteTsRef.current) return;
-    if (!readOnlyMirror && flipchartRemote.updatedAt <= lastLocalWriteTsRef.current) return;
+    applyRemoteBoard(flipchartRemote, !hasLocalEditsRef.current);
+  }, [flipchartRemote, applyRemoteBoard]);
 
-    try {
-      const parsed = JSON.parse(flipchartRemote.pagesJson);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        lastAppliedRemoteTsRef.current = flipchartRemote.updatedAt;
-        setPages(parsed);
-        setActivePageIndex(
-          Math.min(
-            typeof flipchartRemote.activePageIndex === 'number' ? flipchartRemote.activePageIndex : 0,
-            parsed.length - 1
-          )
-        );
-      }
-    } catch {
-      // ignore malformed remote JSON
-    }
-  }, [flipchartRemote, boardDeviceId, readOnlyMirror]);
-
-  // Publish on open/close transitions and local edits when interactive
+  // Publish ONLY on explicit open/close modal transitions (never on every remote pages state update)
   useEffect(() => {
     if (readOnlyMirror) return;
-    if (isOpen) {
+    if (isOpen && !wasOpenRef.current) {
       wasOpenRef.current = true;
-      publishSnapshot(true, syncToProjector, pages, safeIndex);
-    } else if (wasOpenRef.current) {
+      if (flipchartRemote) {
+        applyRemoteBoard(flipchartRemote, true);
+      }
+      publishSnapshot(
+        true,
+        syncToProjectorRef.current,
+        pagesRef.current,
+        activePageIndexRef.current
+      );
+    } else if (!isOpen && wasOpenRef.current) {
       wasOpenRef.current = false;
-      publishSnapshot(false, syncToProjector, pages, safeIndex);
+      publishSnapshot(
+        false,
+        syncToProjectorRef.current,
+        pagesRef.current,
+        activePageIndexRef.current
+      );
     }
-  }, [isOpen, syncToProjector, pages, safeIndex, readOnlyMirror, publishSnapshot]);
+  }, [isOpen, readOnlyMirror, flipchartRemote, applyRemoteBoard, publishSnapshot]);
 
   // Listen to BroadcastChannel in same-browser Extend Projector Mirror mode (zero latency)
   useEffect(() => {
@@ -524,8 +645,8 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
     const canvas = canvasRef.current!;
     const rect = canvas.getBoundingClientRect();
     return {
-      x: ((e.clientX - rect.left) / rect.width) * VIRTUAL_WIDTH,
-      y: ((e.clientY - rect.top) / rect.height) * VIRTUAL_HEIGHT,
+      x: Math.round(((e.clientX - rect.left) / rect.width) * VIRTUAL_WIDTH),
+      y: Math.round(((e.clientY - rect.top) / rect.height) * VIRTUAL_HEIGHT),
     };
   };
 
@@ -533,27 +654,27 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
     if (!textEditor) return;
     const trimmed = textEditor.value.trim();
     if (trimmed) {
-      setPages((prev) =>
-        prev.map((pg, idx) => {
-          if (idx !== safeIndex) return pg;
-          const nextTexts = textEditor.editingId
-            ? pg.texts.map((t) =>
-                t.id === textEditor.editingId ? { ...t, text: trimmed, color, fontSize: textFontSize } : t
-              )
-            : [
-                ...pg.texts,
-                {
-                  id: `txt_${Date.now()}`,
-                  x: textEditor.x,
-                  y: textEditor.y,
-                  text: trimmed,
-                  color: pg.paper === 'chalkboard' && color === '#1F3A5F' ? '#FFFFFF' : color,
-                  fontSize: textFontSize,
-                },
-              ];
-          return { ...pg, texts: nextTexts };
-        })
-      );
+      const curIdx = Math.min(activePageIndexRef.current, Math.max(0, pagesRef.current.length - 1));
+      const nextPages = pagesRef.current.map((pg, idx) => {
+        if (idx !== curIdx) return pg;
+        const nextTexts = textEditor.editingId
+          ? pg.texts.map((t) =>
+              t.id === textEditor.editingId ? { ...t, text: trimmed, color, fontSize: textFontSize } : t
+            )
+          : [
+              ...pg.texts,
+              {
+                id: `txt_${Date.now()}`,
+                x: textEditor.x,
+                y: textEditor.y,
+                text: trimmed,
+                color: pg.paper === 'chalkboard' && color === '#1F3A5F' ? '#FFFFFF' : color,
+                fontSize: textFontSize,
+              },
+            ];
+        return { ...pg, texts: nextTexts };
+      });
+      commitLocalChange(nextPages, curIdx);
     }
     setTextEditor(null);
   };
@@ -583,8 +704,9 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
     e.currentTarget.setPointerCapture(e.pointerId);
     isDrawingRef.current = true;
 
+    const activePg = pagesRef.current[activePageIndexRef.current] || currentPage;
     const effectiveColor =
-      currentPage.paper === 'chalkboard' && (color === '#1F3A5F' || color === '#111827')
+      activePg.paper === 'chalkboard' && (color === '#1F3A5F' || color === '#111827')
         ? '#FFFFFF'
         : color;
 
@@ -601,12 +723,20 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
   const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (readOnlyMirror || !isDrawingRef.current || !draftStrokeRef.current) return;
     const pt = getVirtualCoords(e);
+    const activeTool = draftStrokeRef.current.tool;
     const pts = draftStrokeRef.current.points;
+
+    if (activeTool === 'line' || activeTool === 'arrow' || activeTool === 'rect') {
+      draftStrokeRef.current.points = [pts[0], pt];
+      redrawCanvas();
+      return;
+    }
+
     const last = pts[pts.length - 1];
     if (last) {
       const dx = pt.x - last.x;
       const dy = pt.y - last.y;
-      if (dx * dx + dy * dy < 6.25 && draftStrokeRef.current.tool !== 'line' && draftStrokeRef.current.tool !== 'arrow' && draftStrokeRef.current.tool !== 'rect') {
+      if (dx * dx + dy * dy < 9) {
         return;
       }
     }
@@ -620,114 +750,125 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
     const finishedStroke = draftStrokeRef.current;
     draftStrokeRef.current = null;
 
-    setPages((prev) =>
-      prev.map((pg, idx) =>
-        idx === safeIndex ? { ...pg, strokes: [...pg.strokes, finishedStroke] } : pg
-      )
+    const curIdx = Math.min(activePageIndexRef.current, Math.max(0, pagesRef.current.length - 1));
+    const curPg = pagesRef.current[curIdx];
+    const nextPages = pagesRef.current.map((pg, idx) =>
+      idx === curIdx ? { ...pg, strokes: [...pg.strokes, finishedStroke] } : pg
     );
-    // Clear redo stack on new action
-    setRedoMap((prev) => ({ ...prev, [currentPage.id]: [] }));
+    commitLocalChange(nextPages, curIdx);
+    pendingRemoteRef.current = null;
+    if (curPg) {
+      setRedoMap((prev) => ({ ...prev, [curPg.id]: [] }));
+    }
   };
 
   const handleUndo = () => {
-    if (!currentPage) return;
-    if (currentPage.strokes.length === 0 && currentPage.texts.length === 0) return;
+    const curIdx = Math.min(activePageIndexRef.current, Math.max(0, pagesRef.current.length - 1));
+    const curPg = pagesRef.current[curIdx];
+    if (!curPg) return;
+    if (curPg.strokes.length === 0 && curPg.texts.length === 0) return;
 
-    const snapshot = { strokes: currentPage.strokes, texts: currentPage.texts };
+    const snapshot = { strokes: curPg.strokes, texts: curPg.texts };
     setRedoMap((prev) => ({
       ...prev,
-      [currentPage.id]: [...(prev[currentPage.id] || []), snapshot],
+      [curPg.id]: [...(prev[curPg.id] || []), snapshot],
     }));
 
-    setPages((prev) =>
-      prev.map((pg, idx) => {
-        if (idx !== safeIndex) return pg;
-        if (pg.strokes.length > 0) {
-          return { ...pg, strokes: pg.strokes.slice(0, -1) };
-        }
-        return { ...pg, texts: pg.texts.slice(0, -1) };
-      })
-    );
+    const nextPages = pagesRef.current.map((pg, idx) => {
+      if (idx !== curIdx) return pg;
+      if (pg.strokes.length > 0) {
+        return { ...pg, strokes: pg.strokes.slice(0, -1) };
+      }
+      return { ...pg, texts: pg.texts.slice(0, -1) };
+    });
+    commitLocalChange(nextPages, curIdx);
   };
 
   const handleRedo = () => {
-    if (!currentPage) return;
-    const stack = redoMap[currentPage.id] || [];
+    const curIdx = Math.min(activePageIndexRef.current, Math.max(0, pagesRef.current.length - 1));
+    const curPg = pagesRef.current[curIdx];
+    if (!curPg) return;
+    const stack = redoMap[curPg.id] || [];
     if (stack.length === 0) return;
     const last = stack[stack.length - 1];
     setRedoMap((prev) => ({
       ...prev,
-      [currentPage.id]: stack.slice(0, -1),
+      [curPg.id]: stack.slice(0, -1),
     }));
-    setPages((prev) =>
-      prev.map((pg, idx) =>
-        idx === safeIndex ? { ...pg, strokes: last.strokes, texts: last.texts } : pg
-      )
+    const nextPages = pagesRef.current.map((pg, idx) =>
+      idx === curIdx ? { ...pg, strokes: last.strokes, texts: last.texts } : pg
     );
+    commitLocalChange(nextPages, curIdx);
   };
 
   const handleClearCurrentPage = () => {
-    if (!currentPage) return;
-    const snapshot = { strokes: currentPage.strokes, texts: currentPage.texts };
+    const curIdx = Math.min(activePageIndexRef.current, Math.max(0, pagesRef.current.length - 1));
+    const curPg = pagesRef.current[curIdx];
+    if (!curPg) return;
+    const snapshot = { strokes: curPg.strokes, texts: curPg.texts };
     setRedoMap((prev) => ({
       ...prev,
-      [currentPage.id]: [...(prev[currentPage.id] || []), snapshot],
+      [curPg.id]: [...(prev[curPg.id] || []), snapshot],
     }));
-    setPages((prev) =>
-      prev.map((pg, idx) => (idx === safeIndex ? { ...pg, strokes: [], texts: [] } : pg))
+    const nextPages = pagesRef.current.map((pg, idx) =>
+      idx === curIdx ? { ...pg, strokes: [], texts: [] } : pg
     );
+    commitLocalChange(nextPages, curIdx);
   };
 
   const handleAddPage = () => {
-    const nextNum = pages.length + 1;
+    const nextNum = pagesRef.current.length + 1;
     const newPg = DEFAULT_PAGE(nextNum);
-    setPages((prev) => [...prev, newPg]);
-    setActivePageIndex(pages.length);
+    const nextPages = [...pagesRef.current, newPg];
+    commitLocalChange(nextPages, nextPages.length - 1);
   };
 
   const handleDeletePage = (idxToDelete: number) => {
-    if (pages.length <= 1) {
+    if (pagesRef.current.length <= 1) {
       handleClearCurrentPage();
       return;
     }
-    setPages((prev) => prev.filter((_, i) => i !== idxToDelete));
-    if (safeIndex >= pages.length - 1) {
-      setActivePageIndex(Math.max(0, pages.length - 2));
-    }
+    const nextPages = pagesRef.current.filter((_, i) => i !== idxToDelete);
+    const curIdx = activePageIndexRef.current;
+    const nextIdx =
+      curIdx >= nextPages.length ? Math.max(0, nextPages.length - 1) : curIdx;
+    commitLocalChange(nextPages, nextIdx);
   };
 
   const handleChangePaper = (paper: FlipchartPaperStyle) => {
-    setPages((prev) =>
-      prev.map((pg, idx) => (idx === safeIndex ? { ...pg, paper } : pg))
+    const curIdx = Math.min(activePageIndexRef.current, Math.max(0, pagesRef.current.length - 1));
+    const nextPages = pagesRef.current.map((pg, idx) =>
+      idx === curIdx ? { ...pg, paper } : pg
     );
     if (paper === 'chalkboard' && (color === '#1F3A5F' || color === '#111827')) {
       setColor('#FFFFFF');
     } else if (paper !== 'chalkboard' && color === '#FFFFFF') {
       setColor('#1F3A5F');
     }
+    commitLocalChange(nextPages, curIdx);
   };
 
   const handleInsertTemplate = (templateText: string) => {
-    setPages((prev) =>
-      prev.map((pg, idx) => {
-        if (idx !== safeIndex) return pg;
-        const offset = (pg.texts.length % 3) * 35;
-        return {
-          ...pg,
-          texts: [
-            ...pg.texts,
-            {
-              id: `tpl_${Date.now()}`,
-              x: 70 + offset,
-              y: 65 + offset,
-              text: templateText,
-              color: pg.paper === 'chalkboard' ? '#FFFFFF' : '#1F3A5F',
-              fontSize: 26,
-            },
-          ],
-        };
-      })
-    );
+    const curIdx = Math.min(activePageIndexRef.current, Math.max(0, pagesRef.current.length - 1));
+    const nextPages = pagesRef.current.map((pg, idx) => {
+      if (idx !== curIdx) return pg;
+      const offset = (pg.texts.length % 3) * 35;
+      return {
+        ...pg,
+        texts: [
+          ...pg.texts,
+          {
+            id: `tpl_${Date.now()}`,
+            x: 70 + offset,
+            y: 65 + offset,
+            text: templateText,
+            color: pg.paper === 'chalkboard' ? '#FFFFFF' : '#1F3A5F',
+            fontSize: 26,
+          },
+        ],
+      };
+    });
+    commitLocalChange(nextPages, curIdx);
     setShowTemplates(false);
   };
 
@@ -889,7 +1030,13 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
                 {onPublishFlipchart && (
                   <button
                     type="button"
-                    onClick={() => setSyncToProjector(!syncToProjector)}
+                    onClick={() =>
+                      commitLocalChange(
+                        pagesRef.current,
+                        activePageIndexRef.current,
+                        !syncToProjectorRef.current
+                      )
+                    }
                     className={`w-9 h-8 rounded-lg flex items-center justify-center cursor-pointer transition-colors ${
                       syncToProjector
                         ? 'bg-[#2A9D8F] hover:bg-[#218276] text-white'
@@ -903,7 +1050,9 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
 
                 <button
                   type="button"
-                  onClick={() => setActivePageIndex(Math.max(0, safeIndex - 1))}
+                  onClick={() =>
+                    commitLocalChange(pagesRef.current, Math.max(0, safeIndex - 1))
+                  }
                   disabled={safeIndex === 0}
                   className="w-8 h-6 rounded bg-white/10 hover:bg-white/20 disabled:opacity-35 flex items-center justify-center cursor-pointer"
                   title="Lembar sebelumnya"
@@ -915,7 +1064,9 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
                 </span>
                 <button
                   type="button"
-                  onClick={() => setActivePageIndex(Math.min(pages.length - 1, safeIndex + 1))}
+                  onClick={() =>
+                    commitLocalChange(pagesRef.current, Math.min(pages.length - 1, safeIndex + 1))
+                  }
                   disabled={safeIndex === pages.length - 1}
                   className="w-8 h-6 rounded bg-white/10 hover:bg-white/20 disabled:opacity-35 flex items-center justify-center cursor-pointer"
                   title="Lembar berikutnya"
@@ -1008,7 +1159,7 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
                         >
                           <button
                             type="button"
-                            onClick={() => setActivePageIndex(idx)}
+                            onClick={() => commitLocalChange(pagesRef.current, idx)}
                             className="flex-1 text-left px-2.5 py-1.5 cursor-pointer truncate"
                           >
                             {pg.title}
@@ -1230,7 +1381,13 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
                   {onPublishFlipchart && (
                     <button
                       type="button"
-                      onClick={() => setSyncToProjector(!syncToProjector)}
+                      onClick={() =>
+                        commitLocalChange(
+                          pagesRef.current,
+                          activePageIndexRef.current,
+                          !syncToProjectorRef.current
+                        )
+                      }
                       className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors ${
                         syncToProjector
                           ? 'bg-[#2A9D8F] hover:bg-[#218276] text-white shadow-xs'
