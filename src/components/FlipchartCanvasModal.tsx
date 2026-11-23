@@ -22,6 +22,11 @@ import {
   Maximize2,
   Minimize2,
   Monitor,
+  ChevronUp,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Info,
 } from 'lucide-react';
 
 export type FlipchartTool =
@@ -361,6 +366,8 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
   const [strokeSize, setStrokeSize] = useState<number>(4);
   const [textFontSize, setTextFontSize] = useState<number>(28);
   const [isMaximized, setIsMaximized] = useState<boolean>(false);
+  const [isTopToolbarCollapsed, setIsTopToolbarCollapsed] = useState<boolean>(false);
+  const [isFooterExpanded, setIsFooterExpanded] = useState<boolean>(false);
   const [showTemplates, setShowTemplates] = useState<boolean>(false);
 
   // Undo/Redo stacks per page id
@@ -785,16 +792,16 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
   return (
     <div
       className={`fixed inset-0 z-50 bg-[#0F1E33]/92 backdrop-blur-xs flex flex-col ${
-        isMaximized || readOnlyMirror ? 'p-1 sm:p-2' : 'p-2 sm:p-4 lg:p-6'
+        isMaximized || readOnlyMirror || isTopToolbarCollapsed ? 'p-1 sm:p-2' : 'p-2 sm:p-4 lg:p-6'
       }`}
     >
       <div
         className={`flex-1 flex flex-col bg-white rounded-2xl overflow-hidden shadow-2xl border-2 border-[#1F3A5F]/20 mx-auto w-full ${
-          isMaximized || readOnlyMirror ? 'max-w-full' : 'max-w-7xl'
+          isMaximized || readOnlyMirror || isTopToolbarCollapsed ? 'max-w-full' : 'max-w-7xl'
         }`}
       >
-        {/* TOP HEADER & PAGE TABS */}
-        {!readOnlyMirror && (
+        {/* TOP HEADER & PAGE TABS (HIDDEN WHEN COLLAPSED OR IN MIRROR) */}
+        {!readOnlyMirror && !isTopToolbarCollapsed && (
           <div className="bg-[#1F3A5F] text-white px-3 sm:px-4 py-2.5 flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#F28C28] text-white text-xs font-black uppercase tracking-wider">
@@ -887,6 +894,16 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
 
               <button
                 type="button"
+                onClick={() => setIsTopToolbarCollapsed(true)}
+                className="px-2.5 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                title="Ciutkan menu atas agar papan tulis tampil jauh lebih lega"
+              >
+                <ChevronUp className="w-3.5 h-3.5 text-[#F28C28]" />
+                <span className="hidden sm:inline">Ciutkan Menu</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => setIsMaximized(!isMaximized)}
                 className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white cursor-pointer"
                 title={isMaximized ? 'Perkecil jendela' : 'Perbesar penuh'}
@@ -906,8 +923,8 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
           </div>
         )}
 
-        {/* TOOLBAR ALAT TULIS (HIDDEN IN EXTEND PROJECTOR MIRROR) */}
-        {!readOnlyMirror && (
+        {/* TOOLBAR ALAT TULIS (HIDDEN WHEN COLLAPSED OR IN EXTEND PROJECTOR MIRROR) */}
+        {!readOnlyMirror && !isTopToolbarCollapsed && (
           <div className="bg-[#FFF7EC] border-b border-[#1F3A5F]/15 px-3 py-2 flex flex-wrap items-center justify-between gap-2">
             {/* Drawing Tools */}
             <div className="flex flex-wrap items-center gap-1">
@@ -1097,7 +1114,142 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
         )}
 
         {/* DRAWING STAGE (16:9 ASPECT-PRESERVED CANVAS) */}
-        <div className="flex-1 bg-slate-200/80 flex items-center justify-center p-2 sm:p-4 overflow-hidden relative">
+        <div
+          className={`flex-1 bg-slate-200/80 flex items-center justify-center overflow-hidden relative ${
+            isTopToolbarCollapsed ? 'p-1.5 sm:p-2.5' : 'p-2 sm:p-3.5'
+          }`}
+        >
+          {/* Floating Compact Bar when Top Toolbar is Collapsed */}
+          {!readOnlyMirror && isTopToolbarCollapsed && (
+            <div className="absolute top-2.5 left-1/2 -translate-x-1/2 z-20 max-w-[calc(100%-1rem)] flex items-center gap-1 sm:gap-1.5 bg-[#1F3A5F]/92 backdrop-blur-md text-white px-2 py-1.5 rounded-xl shadow-lg border border-white/15 overflow-x-auto no-scrollbar">
+              <button
+                type="button"
+                onClick={() => setIsTopToolbarCollapsed(false)}
+                className="px-2.5 py-1 rounded-lg bg-[#F28C28] hover:bg-[#d97719] text-white text-xs font-bold flex items-center gap-1 cursor-pointer shrink-0 whitespace-nowrap"
+                title="Tampilkan kembali seluruh menu atas & alat lengkap"
+              >
+                <ChevronDown className="w-3.5 h-3.5" />
+                <span>Menu</span>
+              </button>
+
+              <div className="w-px h-5 bg-white/20 shrink-0" />
+
+              {/* Quick essential drawing tools */}
+              {(
+                [
+                  { id: 'pen', label: 'Spidol', icon: PenTool },
+                  { id: 'highlighter', label: 'Stabilo', icon: Highlighter },
+                  { id: 'text', label: 'Teks', icon: Type },
+                  { id: 'eraser', label: 'Hapus', icon: Eraser },
+                ] as const
+              ).map((item) => {
+                const Icon = item.icon;
+                const active = tool === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setTool(item.id)}
+                    title={item.label}
+                    className={`p-1.5 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors shrink-0 ${
+                      active
+                        ? 'bg-white text-[#1F3A5F]'
+                        : 'bg-white/10 text-white hover:bg-white/20'
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                  </button>
+                );
+              })}
+
+              {/* Quick color dots */}
+              <div className="flex items-center gap-1 px-1 shrink-0">
+                {PEN_COLORS.slice(0, 5).map((c) => (
+                  <button
+                    key={c.value}
+                    type="button"
+                    onClick={() => {
+                      setColor(c.value);
+                      if (tool === 'eraser') setTool('pen');
+                    }}
+                    title={c.label}
+                    className={`w-4 h-4 rounded-full border cursor-pointer transition-transform ${
+                      color === c.value ? 'scale-125 ring-2 ring-[#F28C28]' : 'border-white/50'
+                    }`}
+                    style={{ backgroundColor: c.value }}
+                  />
+                ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={handleUndo}
+                className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white cursor-pointer shrink-0"
+                title="Undo coretan terakhir"
+              >
+                <Undo2 className="w-3.5 h-3.5" />
+              </button>
+
+              <div className="w-px h-5 bg-white/20 shrink-0" />
+
+              {/* Compact Page Switcher */}
+              <div className="flex items-center gap-0.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setActivePageIndex(Math.max(0, safeIndex - 1))}
+                  disabled={safeIndex === 0}
+                  className="p-1 rounded bg-white/10 hover:bg-white/20 disabled:opacity-35 cursor-pointer"
+                  title="Lembar sebelumnya"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                </button>
+                <span className="px-1.5 text-[11px] font-mono font-bold tabular-nums whitespace-nowrap">
+                  {safeIndex + 1}/{pages.length}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setActivePageIndex(Math.min(pages.length - 1, safeIndex + 1))}
+                  disabled={safeIndex === pages.length - 1}
+                  className="p-1 rounded bg-white/10 hover:bg-white/20 disabled:opacity-35 cursor-pointer"
+                  title="Lembar berikutnya"
+                >
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAddPage}
+                  className="p-1 ml-0.5 rounded bg-[#2A9D8F] hover:bg-[#218276] text-white cursor-pointer"
+                  title="Tambah Lembar Baru"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={onClose}
+                className="p-1.5 ml-0.5 rounded-lg bg-rose-500 hover:bg-rose-600 text-white cursor-pointer shrink-0"
+                title="Tutup Papan Tulis"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
+          {/* Subtle Bottom-Right Tips Expand Trigger when Footer is Collapsed */}
+          {!readOnlyMirror && !isFooterExpanded && (
+            <button
+              type="button"
+              onClick={() => setIsFooterExpanded(true)}
+              className="absolute bottom-3 right-3 z-20 px-2.5 py-1 rounded-lg bg-white/90 hover:bg-white text-[#1F3A5F] border border-[#1F3A5F]/20 shadow-sm text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-colors"
+              title="Tampilkan info tips penggunaan Tab & Laptop"
+            >
+              <Info className="w-3.5 h-3.5 text-[#2A9D8F]" />
+              <span>Tips</span>
+              <ChevronUp className="w-3 h-3 text-[#1F3A5F]/60" />
+            </button>
+          )}
+
           <div
             className="relative w-full h-full max-w-full max-h-full aspect-video rounded-xl shadow-lg overflow-hidden border border-[#1F3A5F]/15"
             style={paperBgStyle}
@@ -1186,15 +1338,26 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
           </div>
         </div>
 
-        {/* BOTTOM FOOTER INFO */}
-        {!readOnlyMirror && (
-          <div className="bg-slate-50 border-t border-slate-200 px-4 py-1.5 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-600">
-            <span>
-              <strong>Tips Tab & Laptop:</strong> Coret langsung pakai jari/stylus di Tab yang di-mirror ke Laptop, atau pakai alat <strong>Ketik Teks / Sisipkan Rumus</strong> jika sedang memegang mouse laptop.
-            </span>
-            <span className="font-semibold text-[#2A9D8F]">
-              Hanya tampil di Layar Presentasi/Proyektor (HP peserta tetap fokus ke materi)
-            </span>
+        {/* COLLAPSIBLE BOTTOM FOOTER INFO (DEFAULT COLLAPSED) */}
+        {!readOnlyMirror && isFooterExpanded && (
+          <div className="bg-slate-50 border-t border-slate-200 px-4 py-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-600 shrink-0">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 flex-1 min-w-0">
+              <span>
+                <strong>Tips Tab & Laptop:</strong> Coret langsung pakai jari/stylus di Tab yang di-mirror ke Laptop, atau pakai alat <strong>Ketik Teks / Sisipkan Rumus</strong> jika sedang memegang mouse laptop.
+              </span>
+              <span className="font-semibold text-[#2A9D8F]">
+                Hanya tampil di Layar Presentasi/Proyektor (HP peserta tetap fokus ke materi)
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsFooterExpanded(false)}
+              className="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-100 border border-slate-300 text-[#1F3A5F] text-[11px] font-bold flex items-center gap-1 cursor-pointer shrink-0"
+              title="Ciutkan footer agar papan tulis lebih lega"
+            >
+              <span>Ciutkan</span>
+              <ChevronDown className="w-3.5 h-3.5" />
+            </button>
           </div>
         )}
       </div>
