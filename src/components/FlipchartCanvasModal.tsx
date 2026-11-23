@@ -366,7 +366,9 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
   const [strokeSize, setStrokeSize] = useState<number>(4);
   const [textFontSize, setTextFontSize] = useState<number>(28);
   const [isMaximized, setIsMaximized] = useState<boolean>(false);
-  const [isTopToolbarCollapsed, setIsTopToolbarCollapsed] = useState<boolean>(false);
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState<boolean>(() =>
+    typeof window !== 'undefined' ? window.innerWidth >= 1024 : true
+  );
   const [isFooterExpanded, setIsFooterExpanded] = useState<boolean>(false);
   const [showTemplates, setShowTemplates] = useState<boolean>(false);
 
@@ -789,357 +791,47 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
             }
           : { backgroundColor: '#FFFFFF' };
 
+  const quickColors =
+    currentPage.paper === 'chalkboard'
+      ? [PEN_COLORS[5], PEN_COLORS[1], PEN_COLORS[2], PEN_COLORS[3], PEN_COLORS[4]]
+      : PEN_COLORS.slice(0, 5);
+
   return (
     <div
       className={`fixed inset-0 z-50 bg-[#0F1E33]/92 backdrop-blur-xs flex flex-col ${
-        isMaximized || readOnlyMirror || isTopToolbarCollapsed ? 'p-1 sm:p-2' : 'p-2 sm:p-4 lg:p-6'
+        isMaximized || readOnlyMirror || !isSidebarExpanded ? 'p-1 sm:p-2' : 'p-2 sm:p-4'
       }`}
     >
       <div
-        className={`flex-1 flex flex-col bg-white rounded-2xl overflow-hidden shadow-2xl border-2 border-[#1F3A5F]/20 mx-auto w-full ${
-          isMaximized || readOnlyMirror || isTopToolbarCollapsed ? 'max-w-full' : 'max-w-7xl'
+        className={`flex-1 flex flex-col bg-white rounded-2xl overflow-hidden shadow-2xl border-2 border-[#1F3A5F]/20 mx-auto w-full min-h-0 ${
+          isMaximized || readOnlyMirror || !isSidebarExpanded ? 'max-w-full' : 'max-w-[1440px]'
         }`}
       >
-        {/* TOP HEADER & PAGE TABS (HIDDEN WHEN COLLAPSED OR IN MIRROR) */}
-        {!readOnlyMirror && !isTopToolbarCollapsed && (
-          <div className="bg-[#1F3A5F] text-white px-3 sm:px-4 py-2.5 flex flex-wrap items-center justify-between gap-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#F28C28] text-white text-xs font-black uppercase tracking-wider">
-                <PenTool className="w-3.5 h-3.5" />
-                <span>Papan Tulis / Flipchart</span>
-              </span>
-
-              {/* Multi-Page Flipchart Tabs */}
-              <div className="flex items-center gap-1.5 overflow-x-auto max-w-md sm:max-w-xl py-0.5">
-                {pages.map((pg, idx) => (
-                  <div
-                    key={pg.id}
-                    className={`flex items-center rounded-lg text-xs font-bold transition-colors shrink-0 ${
-                      idx === safeIndex
-                        ? 'bg-white text-[#1F3A5F] shadow-xs'
-                        : 'bg-white/15 text-white/85 hover:bg-white/25'
-                    }`}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => setActivePageIndex(idx)}
-                      className="px-2.5 py-1.5 cursor-pointer"
-                    >
-                      {pg.title}
-                    </button>
-                    {pages.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => handleDeletePage(idx)}
-                        className="pr-1.5 opacity-60 hover:opacity-100 hover:text-rose-500 cursor-pointer"
-                        title="Hapus lembar ini"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    )}
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={handleAddPage}
-                  className="px-2.5 py-1.5 rounded-lg bg-[#2A9D8F] hover:bg-[#218276] text-white text-xs font-bold flex items-center gap-1 cursor-pointer shrink-0"
-                  title="Tambah Lembar Flipchart Baru (simpan coretan lembar sebelumnya)"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Lembar Baru</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-1.5">
-              {onPublishFlipchart && (
-                <button
-                  type="button"
-                  onClick={() => setSyncToProjector(!syncToProjector)}
-                  className={`px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors ${
-                    syncToProjector
-                      ? 'bg-[#2A9D8F] hover:bg-[#218276] text-white shadow-xs'
-                      : 'bg-white/15 hover:bg-white/25 text-white/85'
-                  }`}
-                  title={
-                    syncToProjector
-                      ? 'Coretan di perangkat ini langsung tampil live di layar Proyektor/Slide utama'
-                      : 'Mode catatan pribadi lokal (tidak disiarkan ke layar Proyektor)'
-                  }
-                >
-                  <Monitor className="w-3.5 h-3.5" />
-                  <span>{syncToProjector ? 'Proyektor: LIVE' : 'Hanya Lokal'}</span>
-                </button>
-              )}
-
+        {/* MAIN WORKSPACE: LEFT SIDEBAR + RIGHT CANVAS STAGE */}
+        <div className="flex-1 flex min-h-0 relative overflow-hidden">
+          {/* COLLAPSED SLIM VERTICAL RAIL (NON-OVERLAPPING LEFT SIDEBAR) */}
+          {!readOnlyMirror && !isSidebarExpanded && (
+            <aside
+              aria-label="Alat Cepat Papan Tulis"
+              className="w-[52px] shrink-0 bg-[#1F3A5F] text-white flex flex-col items-center py-2 px-1.5 gap-1.5 border-r border-white/15 overflow-y-auto no-scrollbar z-20"
+            >
               <button
                 type="button"
-                onClick={handleDownloadPng}
-                className="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-bold flex items-center gap-1 cursor-pointer"
-                title="Unduh lembar ini sebagai gambar PNG"
+                onClick={() => setIsSidebarExpanded(true)}
+                className="w-9 h-9 rounded-lg bg-[#F28C28] hover:bg-[#d97719] text-white flex items-center justify-center cursor-pointer shrink-0 shadow-xs transition-colors"
+                title="Perluas menu lengkap papan tulis"
               >
-                <Download className="w-3.5 h-3.5 text-[#F28C28]" />
-                <span className="hidden sm:inline">PNG</span>
+                <ChevronRight className="w-4 h-4" />
               </button>
 
-              <button
-                type="button"
-                onClick={handleDownloadAllPdf}
-                className="px-2.5 py-1.5 rounded-lg bg-[#2A9D8F] hover:bg-[#218276] text-white text-xs font-bold flex items-center gap-1 cursor-pointer"
-                title="Unduh seluruh lembar flipchart menjadi PDF untuk dikirim ke grup WA peserta"
-              >
-                <FileText className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">PDF Flipchart</span>
-              </button>
+              <div className="w-6 h-px bg-white/15 shrink-0" />
 
-              <button
-                type="button"
-                onClick={() => setIsTopToolbarCollapsed(true)}
-                className="px-2.5 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
-                title="Ciutkan menu atas agar papan tulis tampil jauh lebih lega"
-              >
-                <ChevronUp className="w-3.5 h-3.5 text-[#F28C28]" />
-                <span className="hidden sm:inline">Ciutkan Menu</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setIsMaximized(!isMaximized)}
-                className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white cursor-pointer"
-                title={isMaximized ? 'Perkecil jendela' : 'Perbesar penuh'}
-              >
-                {isMaximized ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-              </button>
-
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-3 py-1.5 rounded-lg bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold flex items-center gap-1 cursor-pointer"
-              >
-                <X className="w-3.5 h-3.5" />
-                <span>Tutup Papan</span>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* TOOLBAR ALAT TULIS (HIDDEN WHEN COLLAPSED OR IN EXTEND PROJECTOR MIRROR) */}
-        {!readOnlyMirror && !isTopToolbarCollapsed && (
-          <div className="bg-[#FFF7EC] border-b border-[#1F3A5F]/15 px-3 py-2 flex flex-wrap items-center justify-between gap-2">
-            {/* Drawing Tools */}
-            <div className="flex flex-wrap items-center gap-1">
+              {/* Core Drawing Tools */}
               {(
                 [
                   { id: 'pen', label: 'Spidol', icon: PenTool },
                   { id: 'highlighter', label: 'Stabilo', icon: Highlighter },
                   { id: 'text', label: 'Ketik Teks', icon: Type },
-                  { id: 'arrow', label: 'Panah', icon: ArrowUpRight },
-                  { id: 'line', label: 'Garis', icon: Minus },
-                  { id: 'rect', label: 'Kotak', icon: Square },
-                  { id: 'eraser', label: 'Hapus', icon: Eraser },
-                ] as const
-              ).map((item) => {
-                const Icon = item.icon;
-                const active = tool === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => setTool(item.id)}
-                    className={`px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors ${
-                      active
-                        ? 'bg-[#1F3A5F] text-white shadow-xs'
-                        : 'bg-white text-[#1F3A5F] border border-[#1F3A5F]/15 hover:bg-slate-100'
-                    }`}
-                  >
-                    <Icon className="w-3.5 h-3.5" />
-                    <span className="hidden md:inline">{item.label}</span>
-                  </button>
-                );
-              })}
-
-              <span className="mx-1 text-[#1F3A5F]/20">|</span>
-
-              {/* Colors */}
-              <div className="flex items-center gap-1 bg-white px-2 py-1 rounded-lg border border-[#1F3A5F]/15">
-                {PEN_COLORS.map((c) => (
-                  <button
-                    key={c.value}
-                    type="button"
-                    onClick={() => {
-                      setColor(c.value);
-                      if (tool === 'eraser') setTool('pen');
-                    }}
-                    title={c.label}
-                    className={`w-5 h-5 rounded-full border cursor-pointer transition-transform ${
-                      color === c.value ? 'scale-125 ring-2 ring-[#F28C28]' : 'border-slate-300'
-                    }`}
-                    style={{ backgroundColor: c.value }}
-                  />
-                ))}
-              </div>
-
-              {/* Thickness */}
-              <select
-                value={tool === 'text' ? textFontSize : strokeSize}
-                onChange={(e) => {
-                  const val = Number(e.target.value);
-                  if (tool === 'text') setTextFontSize(val);
-                  else setStrokeSize(val);
-                }}
-                className="rounded-lg border border-[#1F3A5F]/20 bg-white px-2 py-1 text-xs font-bold text-[#1F3A5F] cursor-pointer"
-                title={tool === 'text' ? 'Ukuran Huruf' : 'Ketebalan Garis'}
-              >
-                {tool === 'text' ? (
-                  <>
-                    <option value={22}>Teks Kecil</option>
-                    <option value={28}>Teks Sedang</option>
-                    <option value={36}>Teks Besar</option>
-                    <option value={46}>Judul Besar</option>
-                  </>
-                ) : (
-                  <>
-                    <option value={2}>Tipis</option>
-                    <option value={4}>Sedang</option>
-                    <option value={8}>Tebal</option>
-                  </>
-                )}
-              </select>
-            </div>
-
-            {/* Right Utility Tools: Templates, Paper Style, Undo/Redo, Clear */}
-            <div className="flex flex-wrap items-center gap-1.5 relative">
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setShowTemplates(!showTemplates)}
-                  className="px-2.5 py-1.5 rounded-lg bg-[#F28C28] hover:bg-[#d97719] text-white text-xs font-bold flex items-center gap-1 cursor-pointer shadow-xs"
-                  title="Tempel kerangka rumus simulasi UMKM ke papan tulis"
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Sisipkan Rumus</span>
-                </button>
-                {showTemplates && (
-                  <div className="absolute right-0 mt-1.5 w-60 bg-white border border-[#1F3A5F]/20 rounded-xl shadow-xl p-1.5 z-30 space-y-1">
-                    {QUICK_TEMPLATES.map((tpl) => (
-                      <button
-                        key={tpl.label}
-                        type="button"
-                        onClick={() => handleInsertTemplate(tpl.text)}
-                        className="w-full text-left px-3 py-2 rounded-lg text-xs font-bold text-[#1F3A5F] hover:bg-[#FFF7EC] cursor-pointer"
-                      >
-                        + {tpl.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Paper Backgrounds */}
-              <div className="flex items-center gap-0.5 bg-white p-0.5 rounded-lg border border-[#1F3A5F]/15">
-                <button
-                  type="button"
-                  onClick={() => handleChangePaper('white')}
-                  className={`px-2 py-1 rounded text-[11px] font-bold cursor-pointer ${
-                    currentPage.paper === 'white' ? 'bg-[#1F3A5F] text-white' : 'text-[#1F3A5F]'
-                  }`}
-                  title="Kertas Putih Polos"
-                >
-                  Polos
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleChangePaper('grid')}
-                  className={`px-2 py-1 rounded text-[11px] font-bold flex items-center gap-1 cursor-pointer ${
-                    currentPage.paper === 'grid' ? 'bg-[#1F3A5F] text-white' : 'text-[#1F3A5F]'
-                  }`}
-                  title="Kertas Kotak-Kotak (Cocok untuk Hitungan)"
-                >
-                  <Grid className="w-3 h-3" />
-                  <span className="hidden sm:inline">Kotak</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleChangePaper('lined')}
-                  className={`px-2 py-1 rounded text-[11px] font-bold flex items-center gap-1 cursor-pointer ${
-                    currentPage.paper === 'lined' ? 'bg-[#1F3A5F] text-white' : 'text-[#1F3A5F]'
-                  }`}
-                  title="Kertas Flipchart Bergaris"
-                >
-                  <AlignJustify className="w-3 h-3" />
-                  <span className="hidden sm:inline">Garis</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleChangePaper('chalkboard')}
-                  className={`px-2 py-1 rounded text-[11px] font-bold cursor-pointer ${
-                    currentPage.paper === 'chalkboard'
-                      ? 'bg-[#14332C] text-white'
-                      : 'text-[#1F3A5F]'
-                  }`}
-                  title="Papan Hijau Klasik"
-                >
-                  Gelap
-                </button>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleUndo}
-                className="p-1.5 rounded-lg bg-white border border-[#1F3A5F]/15 text-[#1F3A5F] hover:bg-slate-100 cursor-pointer"
-                title="Undo"
-              >
-                <Undo2 className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                onClick={handleRedo}
-                disabled={!(redoMap[currentPage.id]?.length > 0)}
-                className="p-1.5 rounded-lg bg-white border border-[#1F3A5F]/15 text-[#1F3A5F] hover:bg-slate-100 disabled:opacity-35 cursor-pointer"
-                title="Redo"
-              >
-                <Redo2 className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                onClick={handleClearCurrentPage}
-                className="px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold flex items-center gap-1 cursor-pointer"
-                title="Bersihkan seluruh coretan di lembar ini"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Bersihkan</span>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* DRAWING STAGE (16:9 ASPECT-PRESERVED CANVAS) */}
-        <div
-          className={`flex-1 bg-slate-200/80 flex items-center justify-center overflow-hidden relative ${
-            isTopToolbarCollapsed ? 'p-1.5 sm:p-2.5' : 'p-2 sm:p-3.5'
-          }`}
-        >
-          {/* Floating Compact Bar when Top Toolbar is Collapsed */}
-          {!readOnlyMirror && isTopToolbarCollapsed && (
-            <div className="absolute top-2.5 left-1/2 -translate-x-1/2 z-20 max-w-[calc(100%-1rem)] flex items-center gap-1 sm:gap-1.5 bg-[#1F3A5F]/92 backdrop-blur-md text-white px-2 py-1.5 rounded-xl shadow-lg border border-white/15 overflow-x-auto no-scrollbar">
-              <button
-                type="button"
-                onClick={() => setIsTopToolbarCollapsed(false)}
-                className="px-2.5 py-1 rounded-lg bg-[#F28C28] hover:bg-[#d97719] text-white text-xs font-bold flex items-center gap-1 cursor-pointer shrink-0 whitespace-nowrap"
-                title="Tampilkan kembali seluruh menu atas & alat lengkap"
-              >
-                <ChevronDown className="w-3.5 h-3.5" />
-                <span>Menu</span>
-              </button>
-
-              <div className="w-px h-5 bg-white/20 shrink-0" />
-
-              {/* Quick essential drawing tools */}
-              {(
-                [
-                  { id: 'pen', label: 'Spidol', icon: PenTool },
-                  { id: 'highlighter', label: 'Stabilo', icon: Highlighter },
-                  { id: 'text', label: 'Teks', icon: Type },
                   { id: 'eraser', label: 'Hapus', icon: Eraser },
                 ] as const
               ).map((item) => {
@@ -1151,20 +843,22 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
                     type="button"
                     onClick={() => setTool(item.id)}
                     title={item.label}
-                    className={`p-1.5 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors shrink-0 ${
+                    className={`w-9 h-9 rounded-lg flex items-center justify-center cursor-pointer transition-colors shrink-0 ${
                       active
-                        ? 'bg-white text-[#1F3A5F]'
+                        ? 'bg-white text-[#1F3A5F] shadow-xs'
                         : 'bg-white/10 text-white hover:bg-white/20'
                     }`}
                   >
-                    <Icon className="w-3.5 h-3.5" />
+                    <Icon className="w-4 h-4" />
                   </button>
                 );
               })}
 
-              {/* Quick color dots */}
-              <div className="flex items-center gap-1 px-1 shrink-0">
-                {PEN_COLORS.slice(0, 5).map((c) => (
+              <div className="w-6 h-px bg-white/15 shrink-0" />
+
+              {/* Quick Color Swatches */}
+              <div className="flex flex-col items-center gap-1.5 py-0.5 shrink-0">
+                {quickColors.map((c) => (
                   <button
                     key={c.value}
                     type="button"
@@ -1173,8 +867,8 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
                       if (tool === 'eraser') setTool('pen');
                     }}
                     title={c.label}
-                    className={`w-4 h-4 rounded-full border cursor-pointer transition-transform ${
-                      color === c.value ? 'scale-125 ring-2 ring-[#F28C28]' : 'border-white/50'
+                    className={`w-5 h-5 rounded-full border cursor-pointer transition-transform ${
+                      color === c.value ? 'scale-120 ring-2 ring-[#F28C28]' : 'border-white/50'
                     }`}
                     style={{ backgroundColor: c.value }}
                   />
@@ -1184,157 +878,529 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
               <button
                 type="button"
                 onClick={handleUndo}
-                className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white cursor-pointer shrink-0"
+                className="w-9 h-9 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center cursor-pointer shrink-0"
                 title="Undo coretan terakhir"
               >
-                <Undo2 className="w-3.5 h-3.5" />
+                <Undo2 className="w-4 h-4" />
               </button>
 
-              <div className="w-px h-5 bg-white/20 shrink-0" />
+              {/* Bottom Controls inside Rail: Projector Sync, Page Switcher, Close */}
+              <div className="mt-auto pt-1.5 border-t border-white/15 flex flex-col items-center gap-1 w-full shrink-0">
+                {onPublishFlipchart && (
+                  <button
+                    type="button"
+                    onClick={() => setSyncToProjector(!syncToProjector)}
+                    className={`w-9 h-8 rounded-lg flex items-center justify-center cursor-pointer transition-colors ${
+                      syncToProjector
+                        ? 'bg-[#2A9D8F] hover:bg-[#218276] text-white'
+                        : 'bg-white/10 hover:bg-white/20 text-white/75'
+                    }`}
+                    title={syncToProjector ? 'Proyektor: LIVE (Klik untuk lokal saja)' : 'Mode Lokal (Klik untuk LIVE ke proyektor)'}
+                  >
+                    <Monitor className="w-4 h-4" />
+                  </button>
+                )}
 
-              {/* Compact Page Switcher */}
-              <div className="flex items-center gap-0.5 shrink-0">
                 <button
                   type="button"
                   onClick={() => setActivePageIndex(Math.max(0, safeIndex - 1))}
                   disabled={safeIndex === 0}
-                  className="p-1 rounded bg-white/10 hover:bg-white/20 disabled:opacity-35 cursor-pointer"
+                  className="w-8 h-6 rounded bg-white/10 hover:bg-white/20 disabled:opacity-35 flex items-center justify-center cursor-pointer"
                   title="Lembar sebelumnya"
                 >
-                  <ChevronLeft className="w-3.5 h-3.5" />
+                  <ChevronUp className="w-3.5 h-3.5" />
                 </button>
-                <span className="px-1.5 text-[11px] font-mono font-bold tabular-nums whitespace-nowrap">
+                <span className="text-[11px] font-mono font-bold tabular-nums leading-none py-0.5">
                   {safeIndex + 1}/{pages.length}
                 </span>
                 <button
                   type="button"
                   onClick={() => setActivePageIndex(Math.min(pages.length - 1, safeIndex + 1))}
                   disabled={safeIndex === pages.length - 1}
-                  className="p-1 rounded bg-white/10 hover:bg-white/20 disabled:opacity-35 cursor-pointer"
+                  className="w-8 h-6 rounded bg-white/10 hover:bg-white/20 disabled:opacity-35 flex items-center justify-center cursor-pointer"
                   title="Lembar berikutnya"
                 >
-                  <ChevronRight className="w-3.5 h-3.5" />
+                  <ChevronDown className="w-3.5 h-3.5" />
                 </button>
                 <button
                   type="button"
                   onClick={handleAddPage}
-                  className="p-1 ml-0.5 rounded bg-[#2A9D8F] hover:bg-[#218276] text-white cursor-pointer"
+                  className="w-9 h-7 rounded-lg bg-[#2A9D8F] hover:bg-[#218276] text-white flex items-center justify-center cursor-pointer mt-0.5"
                   title="Tambah Lembar Baru"
                 >
                   <Plus className="w-3.5 h-3.5" />
                 </button>
-              </div>
 
-              <button
-                type="button"
-                onClick={onClose}
-                className="p-1.5 ml-0.5 rounded-lg bg-rose-500 hover:bg-rose-600 text-white cursor-pointer shrink-0"
-                title="Tutup Papan Tulis"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
-
-          {/* Subtle Bottom-Right Tips Expand Trigger when Footer is Collapsed */}
-          {!readOnlyMirror && !isFooterExpanded && (
-            <button
-              type="button"
-              onClick={() => setIsFooterExpanded(true)}
-              className="absolute bottom-3 right-3 z-20 px-2.5 py-1 rounded-lg bg-white/90 hover:bg-white text-[#1F3A5F] border border-[#1F3A5F]/20 shadow-sm text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-colors"
-              title="Tampilkan info tips penggunaan Tab & Laptop"
-            >
-              <Info className="w-3.5 h-3.5 text-[#2A9D8F]" />
-              <span>Tips</span>
-              <ChevronUp className="w-3 h-3 text-[#1F3A5F]/60" />
-            </button>
-          )}
-
-          <div
-            className="relative w-full h-full max-w-full max-h-full aspect-video rounded-xl shadow-lg overflow-hidden border border-[#1F3A5F]/15"
-            style={paperBgStyle}
-          >
-            {/* Read-only indicator for 2nd Screen Projector or Remote Tablet Sync */}
-            {readOnlyMirror && (
-              <div className="absolute top-3 left-4 right-4 z-10 flex items-center justify-between gap-2 pointer-events-none">
-                <div className="px-3 py-1 rounded-full bg-[#1F3A5F]/85 text-white text-xs font-bold shadow-xs">
-                  Papan Simulasi Kelas · {currentPage.title}
-                </div>
                 <button
                   type="button"
                   onClick={onClose}
-                  className="pointer-events-auto px-3 py-1 rounded-full bg-rose-600/90 hover:bg-rose-700 text-white text-xs font-bold flex items-center gap-1 shadow-xs cursor-pointer"
-                  title="Tutup tampilan papan tulis di layar ini"
+                  className="w-9 h-9 mt-1 rounded-lg bg-rose-500 hover:bg-rose-600 text-white flex items-center justify-center cursor-pointer"
+                  title="Tutup Papan Tulis"
                 >
-                  <X className="w-3.5 h-3.5" />
-                  <span>Tutup</span>
+                  <X className="w-4 h-4" />
                 </button>
               </div>
-            )}
+            </aside>
+          )}
 
-            <canvas
-              ref={canvasRef}
-              width={VIRTUAL_WIDTH}
-              height={VIRTUAL_HEIGHT}
-              onPointerDown={handlePointerDown}
-              onPointerMove={handlePointerMove}
-              onPointerUp={handlePointerUp}
-              onPointerCancel={handlePointerUp}
-              style={{ touchAction: 'none' }}
-              className={`w-full h-full block ${
-                readOnlyMirror
-                  ? 'cursor-default'
-                  : tool === 'text'
-                    ? 'cursor-text'
-                    : tool === 'eraser'
-                      ? 'cursor-cell'
-                      : 'cursor-crosshair'
-              }`}
-            />
-
-            {/* Editable Text Overlay Input */}
-            {textEditor && !readOnlyMirror && (
+          {/* EXPANDED LEFT SIDEBAR (DOCKED ON MD+, SLIDE-OVER DRAWER ON MOBILE) */}
+          {!readOnlyMirror && isSidebarExpanded && (
+            <>
               <div
-                style={{
-                  left: `${(textEditor.x / VIRTUAL_WIDTH) * 100}%`,
-                  top: `${(textEditor.y / VIRTUAL_HEIGHT) * 100}%`,
-                }}
-                className="absolute z-20 bg-white/95 border-2 border-[#F28C28] rounded-xl shadow-xl p-2 min-w-[240px] max-w-[380px]"
+                onClick={() => setIsSidebarExpanded(false)}
+                className="md:hidden absolute inset-0 bg-slate-900/45 z-20"
+                aria-hidden="true"
+              />
+              <aside
+                aria-label="Menu Lengkap Papan Tulis"
+                className="absolute md:static inset-y-0 left-0 z-30 w-[272px] md:w-[264px] shrink-0 bg-white border-r border-[#1F3A5F]/15 flex flex-col min-h-0 shadow-2xl md:shadow-none"
               >
-                <textarea
-                  autoFocus
-                  rows={3}
-                  value={textEditor.value}
-                  onChange={(e) => setTextEditor({ ...textEditor, value: e.target.value })}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      commitTextItem();
-                    } else if (e.key === 'Escape') {
-                      setTextEditor(null);
-                    }
-                  }}
-                  placeholder="Ketik angka / catatan simulasi... (Enter untuk tempel, Shift+Enter baris baru)"
-                  className="w-full text-sm font-bold text-[#1F3A5F] bg-transparent focus:outline-none resize-y"
-                />
-                <div className="flex items-center justify-end gap-1.5 pt-1 border-t border-slate-200">
-                  <button
-                    type="button"
-                    onClick={() => setTextEditor(null)}
-                    className="px-2 py-1 rounded text-xs text-slate-500 hover:bg-slate-100 cursor-pointer"
-                  >
-                    Batal
-                  </button>
-                  <button
-                    type="button"
-                    onClick={commitTextItem}
-                    className="px-3 py-1 rounded bg-[#1F3A5F] text-white text-xs font-bold cursor-pointer"
-                  >
-                    Tempel di Papan
-                  </button>
+                {/* Sidebar Header */}
+                <div className="bg-[#1F3A5F] text-white px-3 py-2.5 flex items-center justify-between gap-2 shrink-0">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="w-7 h-7 rounded-lg bg-[#F28C28] text-white flex items-center justify-center shrink-0">
+                      <PenTool className="w-3.5 h-3.5" />
+                    </span>
+                    <span className="text-xs font-extrabold tracking-wide truncate">
+                      Papan Tulis
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setIsSidebarExpanded(false)}
+                      className="px-2 py-1 rounded-lg bg-white/15 hover:bg-white/25 text-white text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                      title="Ciutkan sidebar menjadi bilah ikon tipis"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5 text-[#F28C28]" />
+                      <span>Ciutkan</span>
+                    </button>
+                  </div>
                 </div>
-              </div>
+
+                {/* Scrollable Tools & Pages Area */}
+                <div className="flex-1 overflow-y-auto bg-[#FFF7EC]/55 p-3 space-y-3.5 min-h-0">
+                  {/* Pages Section */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[11px] font-bold text-[#1F3A5F]/75">
+                        Lembar Flipchart ({pages.length})
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleAddPage}
+                        className="px-2 py-1 rounded-lg bg-[#2A9D8F] hover:bg-[#218276] text-white text-[11px] font-bold flex items-center gap-1 cursor-pointer shrink-0"
+                        title="Tambah Lembar Flipchart Baru"
+                      >
+                        <Plus className="w-3 h-3" />
+                        <span>Baru</span>
+                      </button>
+                    </div>
+                    <div className="space-y-1 max-h-32 overflow-y-auto pr-0.5">
+                      {pages.map((pg, idx) => (
+                        <div
+                          key={pg.id}
+                          className={`flex items-center justify-between rounded-lg text-xs font-bold transition-colors ${
+                            idx === safeIndex
+                              ? 'bg-[#1F3A5F] text-white shadow-xs'
+                              : 'bg-white text-[#1F3A5F] border border-[#1F3A5F]/15 hover:bg-slate-50'
+                          }`}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => setActivePageIndex(idx)}
+                            className="flex-1 text-left px-2.5 py-1.5 cursor-pointer truncate"
+                          >
+                            {pg.title}
+                          </button>
+                          {pages.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeletePage(idx)}
+                              className="px-2 py-1.5 opacity-65 hover:opacity-100 hover:text-rose-400 cursor-pointer shrink-0"
+                              title="Hapus lembar ini"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Drawing Tools */}
+                  <div className="space-y-1.5 pt-2 border-t border-[#1F3A5F]/10">
+                    <span className="block text-[11px] font-bold text-[#1F3A5F]/75">
+                      Alat Tulis
+                    </span>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {(
+                        [
+                          { id: 'pen', label: 'Spidol', icon: PenTool },
+                          { id: 'highlighter', label: 'Stabilo', icon: Highlighter },
+                          { id: 'text', label: 'Ketik Teks', icon: Type },
+                          { id: 'arrow', label: 'Panah', icon: ArrowUpRight },
+                          { id: 'line', label: 'Garis', icon: Minus },
+                          { id: 'rect', label: 'Kotak', icon: Square },
+                          { id: 'eraser', label: 'Hapus', icon: Eraser },
+                        ] as const
+                      ).map((item) => {
+                        const Icon = item.icon;
+                        const active = tool === item.id;
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => setTool(item.id)}
+                            className={`px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap ${
+                              active
+                                ? 'bg-[#1F3A5F] text-white shadow-xs'
+                                : 'bg-white text-[#1F3A5F] border border-[#1F3A5F]/15 hover:bg-slate-100'
+                            }`}
+                          >
+                            <Icon className="w-3.5 h-3.5 shrink-0" />
+                            <span className="truncate">{item.label}</span>
+                          </button>
+                        );
+                      })}
+                      <button
+                        type="button"
+                        onClick={handleClearCurrentPage}
+                        className="px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                        title="Bersihkan seluruh coretan di lembar ini"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 shrink-0" />
+                        <span>Bersihkan</span>
+                      </button>
+                    </div>
+
+                    {/* Undo & Redo Row */}
+                    <div className="grid grid-cols-2 gap-1.5 pt-0.5">
+                      <button
+                        type="button"
+                        onClick={handleUndo}
+                        className="px-2.5 py-1.5 rounded-lg bg-white border border-[#1F3A5F]/15 text-[#1F3A5F] hover:bg-slate-100 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
+                        title="Undo"
+                      >
+                        <Undo2 className="w-3.5 h-3.5" />
+                        <span>Undo</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleRedo}
+                        disabled={!(redoMap[currentPage.id]?.length > 0)}
+                        className="px-2.5 py-1.5 rounded-lg bg-white border border-[#1F3A5F]/15 text-[#1F3A5F] hover:bg-slate-100 disabled:opacity-35 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
+                        title="Redo"
+                      >
+                        <Redo2 className="w-3.5 h-3.5" />
+                        <span>Redo</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Colors & Thickness */}
+                  <div className="space-y-2 pt-2 border-t border-[#1F3A5F]/10">
+                    <span className="block text-[11px] font-bold text-[#1F3A5F]/75">
+                      Warna & Ukuran
+                    </span>
+                    <div className="flex items-center justify-between gap-1 bg-white px-2.5 py-1.5 rounded-lg border border-[#1F3A5F]/15">
+                      {PEN_COLORS.map((c) => (
+                        <button
+                          key={c.value}
+                          type="button"
+                          onClick={() => {
+                            setColor(c.value);
+                            if (tool === 'eraser') setTool('pen');
+                          }}
+                          title={c.label}
+                          className={`w-6 h-6 rounded-full border cursor-pointer transition-transform ${
+                            color === c.value ? 'scale-120 ring-2 ring-[#F28C28]' : 'border-slate-300'
+                          }`}
+                          style={{ backgroundColor: c.value }}
+                        />
+                      ))}
+                    </div>
+                    <select
+                      value={tool === 'text' ? textFontSize : strokeSize}
+                      onChange={(e) => {
+                        const val = Number(e.target.value);
+                        if (tool === 'text') setTextFontSize(val);
+                        else setStrokeSize(val);
+                      }}
+                      className="w-full rounded-lg border border-[#1F3A5F]/20 bg-white px-2.5 py-1.5 text-xs font-bold text-[#1F3A5F] cursor-pointer"
+                      title={tool === 'text' ? 'Ukuran Huruf' : 'Ketebalan Garis'}
+                    >
+                      {tool === 'text' ? (
+                        <>
+                          <option value={22}>Ukuran: Teks Kecil</option>
+                          <option value={28}>Ukuran: Teks Sedang</option>
+                          <option value={36}>Ukuran: Teks Besar</option>
+                          <option value={46}>Ukuran: Judul Besar</option>
+                        </>
+                      ) : (
+                        <>
+                          <option value={2}>Ketebalan: Tipis</option>
+                          <option value={4}>Ketebalan: Sedang</option>
+                          <option value={8}>Ketebalan: Tebal</option>
+                        </>
+                      )}
+                    </select>
+                  </div>
+
+                  {/* Paper Style & Formula Templates */}
+                  <div className="space-y-2 pt-2 border-t border-[#1F3A5F]/10">
+                    <span className="block text-[11px] font-bold text-[#1F3A5F]/75">
+                      Jenis Kertas & Rumus
+                    </span>
+                    <div className="grid grid-cols-4 gap-1 bg-white p-1 rounded-lg border border-[#1F3A5F]/15">
+                      <button
+                        type="button"
+                        onClick={() => handleChangePaper('white')}
+                        className={`py-1 rounded text-[11px] font-bold cursor-pointer ${
+                          currentPage.paper === 'white' ? 'bg-[#1F3A5F] text-white' : 'text-[#1F3A5F]'
+                        }`}
+                        title="Kertas Putih Polos"
+                      >
+                        Polos
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleChangePaper('grid')}
+                        className={`py-1 rounded text-[11px] font-bold flex items-center justify-center gap-0.5 cursor-pointer ${
+                          currentPage.paper === 'grid' ? 'bg-[#1F3A5F] text-white' : 'text-[#1F3A5F]'
+                        }`}
+                        title="Kertas Kotak-Kotak"
+                      >
+                        <Grid className="w-3 h-3" />
+                        <span>Kotak</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleChangePaper('lined')}
+                        className={`py-1 rounded text-[11px] font-bold flex items-center justify-center gap-0.5 cursor-pointer ${
+                          currentPage.paper === 'lined' ? 'bg-[#1F3A5F] text-white' : 'text-[#1F3A5F]'
+                        }`}
+                        title="Kertas Bergaris"
+                      >
+                        <AlignJustify className="w-3 h-3" />
+                        <span>Garis</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleChangePaper('chalkboard')}
+                        className={`py-1 rounded text-[11px] font-bold cursor-pointer ${
+                          currentPage.paper === 'chalkboard'
+                            ? 'bg-[#14332C] text-white'
+                            : 'text-[#1F3A5F]'
+                        }`}
+                        title="Papan Hijau Klasik"
+                      >
+                        Gelap
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowTemplates(!showTemplates)}
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-[#F28C28] hover:bg-[#d97719] text-white text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                      title="Tempel kerangka rumus simulasi UMKM ke papan tulis"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Sisipkan Rumus</span>
+                    </button>
+                    {showTemplates && (
+                      <div className="bg-white border border-[#1F3A5F]/20 rounded-xl p-1.5 space-y-1 shadow-xs">
+                        {QUICK_TEMPLATES.map((tpl) => (
+                          <button
+                            key={tpl.label}
+                            type="button"
+                            onClick={() => handleInsertTemplate(tpl.text)}
+                            className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-bold text-[#1F3A5F] hover:bg-[#FFF7EC] cursor-pointer"
+                          >
+                            + {tpl.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Sidebar Bottom Actions: Sync, Export, Window, Close */}
+                <div className="p-2.5 bg-white border-t border-[#1F3A5F]/15 space-y-1.5 shrink-0">
+                  {onPublishFlipchart && (
+                    <button
+                      type="button"
+                      onClick={() => setSyncToProjector(!syncToProjector)}
+                      className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors ${
+                        syncToProjector
+                          ? 'bg-[#2A9D8F] hover:bg-[#218276] text-white shadow-xs'
+                          : 'bg-slate-100 hover:bg-slate-200 text-[#1F3A5F]'
+                      }`}
+                    >
+                      <Monitor className="w-3.5 h-3.5" />
+                      <span>{syncToProjector ? 'Proyektor: LIVE' : 'Hanya Lokal'}</span>
+                    </button>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <button
+                      type="button"
+                      onClick={handleDownloadPng}
+                      className="px-2 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#1F3A5F] text-xs font-bold flex items-center justify-center gap-1 cursor-pointer"
+                      title="Unduh lembar ini sebagai gambar PNG"
+                    >
+                      <Download className="w-3.5 h-3.5 text-[#F28C28]" />
+                      <span>PNG</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDownloadAllPdf}
+                      className="px-2 py-1.5 rounded-lg bg-[#2A9D8F] hover:bg-[#218276] text-white text-xs font-bold flex items-center justify-center gap-1 cursor-pointer"
+                      title="Unduh seluruh lembar flipchart menjadi PDF"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      <span>PDF</span>
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setIsMaximized(!isMaximized)}
+                      className="hidden sm:flex px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#1F3A5F] text-xs font-bold items-center justify-center gap-1 cursor-pointer"
+                      title={isMaximized ? 'Perkecil jendela' : 'Perbesar penuh'}
+                    >
+                      {isMaximized ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      className="flex-1 px-3 py-1.5 rounded-lg bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold flex items-center justify-center gap-1 cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                      <span>Tutup Papan</span>
+                    </button>
+                  </div>
+                </div>
+              </aside>
+            </>
+          )}
+
+          {/* DRAWING STAGE (16:9 ASPECT-PRESERVED CANVAS — NEVER COVERED BY SIDEBAR) */}
+          <div
+            className={`flex-1 bg-slate-200/80 flex items-center justify-center overflow-hidden relative min-w-0 min-h-0 ${
+              !isSidebarExpanded ? 'p-1.5 sm:p-2.5' : 'p-2 sm:p-3.5'
+            }`}
+          >
+            {/* Subtle Bottom-Right Tips Expand Trigger when Footer is Collapsed */}
+            {!readOnlyMirror && !isFooterExpanded && (
+              <button
+                type="button"
+                onClick={() => setIsFooterExpanded(true)}
+                className="absolute bottom-2.5 right-2.5 z-20 px-2.5 py-1 rounded-lg bg-white/90 hover:bg-white text-[#1F3A5F] border border-[#1F3A5F]/20 shadow-sm text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                title="Tampilkan info tips penggunaan Tab & Laptop"
+              >
+                <Info className="w-3.5 h-3.5 text-[#2A9D8F]" />
+                <span>Tips</span>
+                <ChevronUp className="w-3 h-3 text-[#1F3A5F]/60" />
+              </button>
             )}
+
+            <div
+              className="w-full h-full flex items-center justify-center min-w-0 min-h-0"
+              style={{ containerType: 'size' }}
+            >
+              <div
+                className="relative rounded-xl shadow-lg overflow-hidden border border-[#1F3A5F]/15"
+                style={{
+                  ...paperBgStyle,
+                  width: 'min(100cqw, calc(100cqh * 16 / 9))',
+                  height: 'min(100cqh, calc(100cqw * 9 / 16))',
+                }}
+              >
+                {/* Read-only indicator for 2nd Screen Projector or Remote Tablet Sync */}
+                {readOnlyMirror && (
+                  <div className="absolute top-3 left-4 right-4 z-10 flex items-center justify-between gap-2 pointer-events-none">
+                    <div className="px-3 py-1 rounded-full bg-[#1F3A5F]/85 text-white text-xs font-bold shadow-xs">
+                      Papan Simulasi Kelas · {currentPage.title}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      className="pointer-events-auto px-3 py-1 rounded-full bg-rose-600/90 hover:bg-rose-700 text-white text-xs font-bold flex items-center gap-1 shadow-xs cursor-pointer"
+                      title="Tutup tampilan papan tulis di layar ini"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                      <span>Tutup</span>
+                    </button>
+                  </div>
+                )}
+
+                <canvas
+                  ref={canvasRef}
+                  width={VIRTUAL_WIDTH}
+                  height={VIRTUAL_HEIGHT}
+                  onPointerDown={handlePointerDown}
+                  onPointerMove={handlePointerMove}
+                  onPointerUp={handlePointerUp}
+                  onPointerCancel={handlePointerUp}
+                  style={{ touchAction: 'none' }}
+                  className={`w-full h-full block ${
+                    readOnlyMirror
+                      ? 'cursor-default'
+                      : tool === 'text'
+                        ? 'cursor-text'
+                        : tool === 'eraser'
+                          ? 'cursor-cell'
+                          : 'cursor-crosshair'
+                  }`}
+                />
+
+                {/* Editable Text Overlay Input */}
+                {textEditor && !readOnlyMirror && (
+                  <div
+                    style={{
+                      left: `${(textEditor.x / VIRTUAL_WIDTH) * 100}%`,
+                      top: `${(textEditor.y / VIRTUAL_HEIGHT) * 100}%`,
+                    }}
+                    className="absolute z-20 bg-white/95 border-2 border-[#F28C28] rounded-xl shadow-xl p-2 min-w-[240px] max-w-[380px]"
+                  >
+                    <textarea
+                      autoFocus
+                      rows={3}
+                      value={textEditor.value}
+                      onChange={(e) => setTextEditor({ ...textEditor, value: e.target.value })}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          commitTextItem();
+                        } else if (e.key === 'Escape') {
+                          setTextEditor(null);
+                        }
+                      }}
+                      placeholder="Ketik angka / catatan simulasi... (Enter untuk tempel, Shift+Enter baris baru)"
+                      className="w-full text-sm font-bold text-[#1F3A5F] bg-transparent focus:outline-none resize-y"
+                    />
+                    <div className="flex items-center justify-end gap-1.5 pt-1 border-t border-slate-200">
+                      <button
+                        type="button"
+                        onClick={() => setTextEditor(null)}
+                        className="px-2 py-1 rounded text-xs text-slate-500 hover:bg-slate-100 cursor-pointer"
+                      >
+                        Batal
+                      </button>
+                      <button
+                        type="button"
+                        onClick={commitTextItem}
+                        className="px-3 py-1 rounded bg-[#1F3A5F] text-white text-xs font-bold cursor-pointer"
+                      >
+                        Tempel di Papan
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
