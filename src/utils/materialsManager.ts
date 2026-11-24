@@ -8,6 +8,7 @@ import {
   SlideDefinition,
 } from '../data/seminarData';
 import { SESI_4_BRANDING_CURRICULUM } from '../data/sesi4Branding';
+import { SESI_5_MARKETING_CURRICULUM } from '../data/sesi5Marketing';
 import { CustomContentDoc, SavedMaterial, BrandThemeConfig } from '../types';
 export type { SavedMaterial };
 import { DEFAULT_BRAND_THEME, sanitizeBrandTheme } from '../brandTheme';
@@ -1576,6 +1577,7 @@ export const INITIAL_PRESET_MATERIALS: SavedMaterial[] = [
   SESI_2_ACTION_PLAN_CURRICULUM,
   SESI_3_BRANDING_MARKETING_SELLING_CURRICULUM,
   SESI_4_BRANDING_CURRICULUM,
+  SESI_5_MARKETING_CURRICULUM,
   COPYWRITING_MATERIAL_PRESET,
 ];
 
@@ -1597,6 +1599,7 @@ export function getSavedMaterialsLocal(): SavedMaterial[] {
       const hasSesi2 = parsed.some((m) => m.id === SESI_2_ACTION_PLAN_CURRICULUM.id);
       const hasSesi3 = parsed.some((m) => m.id === SESI_3_BRANDING_MARKETING_SELLING_CURRICULUM.id);
       const hasSesi4 = parsed.some((m) => m.id === SESI_4_BRANDING_CURRICULUM.id);
+      const hasSesi5 = parsed.some((m) => m.id === SESI_5_MARKETING_CURRICULUM.id);
       const hasCopywriting = parsed.some((m) => m.id === COPYWRITING_MATERIAL_PRESET.id);
 
       let updated = [...parsed];
@@ -1679,6 +1682,24 @@ export function getSavedMaterialsLocal(): SavedMaterial[] {
             !currentSesi4?.content?.polls?.some((p: LivePollConfig) => p.id === 'poll_s4_persepsi_branding');
           if (needsSesi4Refresh && currentSesi4) {
             updated[sesi4Idx] = SESI_4_BRANDING_CURRICULUM;
+            changed = true;
+          }
+        }
+      }
+      if (!hasSesi5) {
+        const sesi4Pos = updated.findIndex((m) => m.id === SESI_4_BRANDING_CURRICULUM.id);
+        updated.splice(sesi4Pos >= 0 ? sesi4Pos + 1 : 5, 0, SESI_5_MARKETING_CURRICULUM);
+        changed = true;
+      } else {
+        const sesi5Idx = updated.findIndex((m) => m.id === SESI_5_MARKETING_CURRICULUM.id);
+        if (sesi5Idx >= 0) {
+          const currentSesi5 = updated[sesi5Idx];
+          const needsSesi5Refresh =
+            !currentSesi5?.updatedAt ||
+            currentSesi5.updatedAt < 1733800000000 ||
+            !currentSesi5?.content?.polls?.some((p: LivePollConfig) => p.id === 'poll_s5_sumber_pembeli');
+          if (needsSesi5Refresh && currentSesi5) {
+            updated[sesi5Idx] = SESI_5_MARKETING_CURRICULUM;
             changed = true;
           }
         }
