@@ -684,111 +684,115 @@ export const ContentEditorView: React.FC<ContentEditorViewProps> = ({
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 pb-24">
       {/* Header Studio Editor */}
-      <div className="bg-white border border-[#1F3A5F]/15 rounded-2xl p-6 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-        <div className="space-y-1">
+      <div className="bg-white border border-[#1F3A5F]/15 rounded-2xl p-5 sm:p-6 shadow-xs space-y-4">
+        <div className="space-y-1.5 max-w-4xl">
           <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#F28C28]">
-            <Sparkles className="w-4 h-4" />
+            <Sparkles className="w-4 h-4 shrink-0" />
             <span>Custom Content Studio — Tanpa Ubah Kode</span>
           </div>
-          <h1 className="font-display text-2xl sm:text-3xl font-bold text-[#1F3A5F]">
+          <h1 className="font-display text-2xl sm:text-3xl font-bold text-[#1F3A5F] leading-tight">
             Editor Materi Slide, Pertanyaan, Polling & Topik Q&A
           </h1>
-          <p className="text-sm text-[#1F3A5F]/75">
-            Ubah seluruh materi untuk topik seminar berikutnya. Begitu Anda klik <strong>Simpan & Terapkan ke Seminar</strong>, layar Proyektor dan HP Peserta langsung berubah secara *real-time*.
+          <p className="text-sm text-[#1F3A5F]/75 leading-relaxed">
+            Ubah seluruh materi untuk topik kelas atau seminar berikutnya. Begitu Anda klik{' '}
+            <strong>Simpan & Terapkan ke Seminar</strong>, layar Proyektor dan HP Peserta langsung berubah secara{' '}
+            <em>real-time</em>.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-          <button
-            type="button"
-            onClick={async () => {
-              const url = `${window.location.origin}/?view=preview`;
-              await navigator.clipboard.writeText(url);
-              setCopiedPreviewLink(true);
-              setTimeout(() => setCopiedPreviewLink(false), 2500);
-            }}
-            className="px-3.5 py-2.5 rounded-xl bg-emerald-50 border border-emerald-300 hover:bg-emerald-100 text-emerald-900 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
-            title="Salin tautan preview materi aman (tanpa tombol edit) untuk dibagikan ke panitia"
-          >
-            {copiedPreviewLink ? (
-              <>
-                <Check className="w-3.5 h-3.5 text-emerald-700" />
-                <span>Link Panitia Tersalin!</span>
-              </>
-            ) : (
-              <>
-                <Eye className="w-3.5 h-3.5 text-emerald-700" />
-                <span>Salin Link Preview Panitia (Read-Only)</span>
-              </>
-            )}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              if (onOpenBankModal) onOpenBankModal();
-              else setActiveTab('bank');
-            }}
-            className="px-3.5 py-2.5 rounded-xl bg-[#FFF7EC] border border-[#F28C28]/40 hover:bg-[#F28C28] text-[#1F3A5F] hover:text-white text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 shadow-2xs"
-            title="Buka Bank Materi untuk memilih, memuat, atau menduplikasi materi seminar"
-          >
-            <Layers className="w-3.5 h-3.5 text-[#F28C28]" />
-            <span>Bank Materi ({materials.length})</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setSaveCopyTitle(`Salinan ${seminarTitle}`);
-              setSaveCopyNotice(`Salinan modul dibuat pada ${new Date().toLocaleDateString('id-ID')}`);
-              setIsSaveCopyModalOpen(true);
-            }}
-            className="px-3.5 py-2.5 rounded-xl bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 text-indigo-900 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 shadow-2xs"
-            title="Simpan perubahan materi saat ini sebagai materi baru terpisah tanpa menimpa materi sebelumnya"
-          >
-            <Copy className="w-3.5 h-3.5 text-indigo-600" />
-            <span>Simpan sebagai Salinan Baru...</span>
-          </button>
-
-          {!confirmReset ? (
+        <div className="pt-4 border-t border-[#1F3A5F]/10 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              onClick={() => setConfirmReset(true)}
-              className="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-[#1F3A5F] text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+              onClick={async () => {
+                const url = `${window.location.origin}/?view=preview`;
+                await navigator.clipboard.writeText(url);
+                setCopiedPreviewLink(true);
+                setTimeout(() => setCopiedPreviewLink(false), 2500);
+              }}
+              className="px-3.5 py-2 rounded-xl bg-emerald-50 border border-emerald-300 hover:bg-emerald-100 text-emerald-900 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs whitespace-nowrap"
+              title="Salin tautan preview materi aman (tanpa tombol edit) untuk dibagikan ke panitia"
             >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Reset ke Materi Asli Bawaan</span>
+              {copiedPreviewLink ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                  <span>Link Panitia Tersalin!</span>
+                </>
+              ) : (
+                <>
+                  <Eye className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                  <span>Salin Link Preview Panitia (Read-Only)</span>
+                </>
+              )}
             </button>
-          ) : (
-            <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-300 px-3 py-1.5 rounded-xl">
-              <span className="text-xs font-bold text-amber-900">Kembalikan ke 7 Pertanyaan & 17 Slide Asli?</span>
+
+            <button
+              type="button"
+              onClick={() => {
+                if (onOpenBankModal) onOpenBankModal();
+                else setActiveTab('bank');
+              }}
+              className="px-3.5 py-2 rounded-xl bg-[#FFF7EC] border border-[#F28C28]/40 hover:bg-[#F28C28] text-[#1F3A5F] hover:text-white text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 shadow-2xs whitespace-nowrap"
+              title="Buka Bank Materi untuk memilih, memuat, atau menduplikasi materi seminar"
+            >
+              <Layers className="w-3.5 h-3.5 text-[#F28C28] shrink-0" />
+              <span>Bank Materi ({materials.length})</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setSaveCopyTitle(`Salinan ${seminarTitle}`);
+                setSaveCopyNotice(`Salinan modul dibuat pada ${new Date().toLocaleDateString('id-ID')}`);
+                setIsSaveCopyModalOpen(true);
+              }}
+              className="px-3.5 py-2 rounded-xl bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 text-indigo-900 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 shadow-2xs whitespace-nowrap"
+              title="Simpan perubahan materi saat ini sebagai materi baru terpisah tanpa menimpa materi sebelumnya"
+            >
+              <Copy className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+              <span>Simpan sebagai Salinan Baru</span>
+            </button>
+
+            {!confirmReset ? (
               <button
                 type="button"
-                onClick={async () => {
-                  await onResetToPartnerUpDefault();
-                  setConfirmReset(false);
-                }}
-                className="px-2.5 py-1 rounded bg-[#1F3A5F] text-white text-xs font-bold cursor-pointer"
+                onClick={() => setConfirmReset(true)}
+                className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-[#1F3A5F] text-xs font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
               >
-                Ya, Reset
+                <RotateCcw className="w-3.5 h-3.5 shrink-0" />
+                <span>Reset ke Materi Asli Bawaan</span>
               </button>
-              <button
-                type="button"
-                onClick={() => setConfirmReset(false)}
-                className="px-2.5 py-1 rounded bg-white text-slate-700 text-xs font-semibold cursor-pointer"
-              >
-                Batal
-              </button>
-            </div>
-          )}
+            ) : (
+              <div className="flex flex-wrap items-center gap-1.5 bg-amber-50 border border-amber-300 px-3 py-1.5 rounded-xl">
+                <span className="text-xs font-bold text-amber-900">Kembalikan ke Materi Asli?</span>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await onResetToPartnerUpDefault();
+                    setConfirmReset(false);
+                  }}
+                  className="px-2.5 py-1 rounded bg-[#1F3A5F] text-white text-xs font-bold cursor-pointer"
+                >
+                  Ya, Reset
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmReset(false)}
+                  className="px-2.5 py-1 rounded bg-white text-slate-700 text-xs font-semibold cursor-pointer"
+                >
+                  Batal
+                </button>
+              </div>
+            )}
+          </div>
 
           <button
             type="button"
             onClick={handleSaveAll}
             disabled={saving}
-            className="px-5 py-3 rounded-xl bg-[#2A9D8F] hover:bg-[#218276] text-white font-display font-bold text-sm flex items-center gap-2 shadow-sm cursor-pointer"
+            className="w-full lg:w-auto px-5 py-2.5 rounded-xl bg-[#2A9D8F] hover:bg-[#218276] text-white font-display font-bold text-sm flex items-center justify-center gap-2 shadow-sm cursor-pointer shrink-0 whitespace-nowrap"
           >
-            <Save className="w-4 h-4" />
+            <Save className="w-4 h-4 shrink-0" />
             <span>{saving ? 'Menyimpan...' : 'Simpan & Terapkan ke Seminar'}</span>
           </button>
         </div>
@@ -806,84 +810,92 @@ export const ContentEditorView: React.FC<ContentEditorViewProps> = ({
       )}
 
       {/* Global Seminar Identity & Backup JSON Bar */}
-      <div className="bg-white border border-[#1F3A5F]/15 rounded-2xl p-5 grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-        <div className="md:col-span-5">
-          <label className="block text-xs font-bold uppercase text-[#1F3A5F]/70 mb-1">
-            Nama / Tema Seminar Aktif
-          </label>
-          <input
-            type="text"
-            maxLength={120}
-            value={seminarTitle}
-            onChange={(e) => setSeminarTitle(e.target.value)}
-            className="w-full rounded-xl border border-[#1F3A5F]/25 px-3.5 py-2.5 text-sm font-bold text-[#1F3A5F]"
-          />
+      <div className="bg-white border border-[#1F3A5F]/15 rounded-2xl p-5 shadow-xs space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          <div className="lg:col-span-7">
+            <label className="block text-xs font-bold uppercase text-[#1F3A5F]/70 mb-1.5">
+              Nama / Tema Seminar Aktif
+            </label>
+            <input
+              type="text"
+              maxLength={120}
+              value={seminarTitle}
+              onChange={(e) => setSeminarTitle(e.target.value)}
+              className="w-full rounded-xl border border-[#1F3A5F]/25 px-3.5 py-2.5 text-sm font-bold text-[#1F3A5F] focus:outline-none focus:ring-2 focus:ring-[#F28C28]/40"
+            />
+          </div>
+          <div className="lg:col-span-5">
+            <label className="block text-xs font-bold uppercase text-[#1F3A5F]/70 mb-1.5">
+              Nama Program / Penyelenggara (Footer Slide)
+            </label>
+            <input
+              type="text"
+              maxLength={100}
+              value={organizerName}
+              onChange={(e) => setOrganizerName(e.target.value)}
+              className="w-full rounded-xl border border-[#1F3A5F]/25 px-3.5 py-2.5 text-sm font-semibold text-[#1F3A5F] focus:outline-none focus:ring-2 focus:ring-[#F28C28]/40"
+            />
+          </div>
         </div>
-        <div className="md:col-span-4">
-          <label className="block text-xs font-bold uppercase text-[#1F3A5F]/70 mb-1">
-            Nama Program / Penyelenggara (Footer Slide)
-          </label>
-          <input
-            type="text"
-            maxLength={100}
-            value={organizerName}
-            onChange={(e) => setOrganizerName(e.target.value)}
-            className="w-full rounded-xl border border-[#1F3A5F]/25 px-3.5 py-2.5 text-sm font-semibold text-[#1F3A5F]"
-          />
-        </div>
-        <div className="md:col-span-3 flex flex-wrap items-center justify-end gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              exportFacilitatorDeepDivePdf({
-                materialId: customContent.materialId,
-                seminarTitle,
-                organizerName,
-                description: customContent.description,
-                slides,
-                questions,
-                polls,
-                brandTheme,
-              });
-            }}
-            className="px-3 py-2.5 rounded-xl bg-[#1F3A5F] hover:bg-[#162a45] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
-            title="Unduh Modul Pendalaman Materi Khusus Pemateri (.pdf) lengkap dengan rumus, studi kasus F&B/Kriya/Persewaan, & skrip mengajar"
-          >
-            <FileText className="w-3.5 h-3.5 text-[#F28C28]" />
-            <span>PDF Pendalaman</span>
-          </button>
-          <button
-            type="button"
-            onClick={async () => {
-              await exportCurriculumToPowerPoint({
-                seminarTitle,
-                organizerName,
-                slides,
-                questions,
-                brandTheme,
-                fileName: seminarTitle,
-              });
-            }}
-            className="px-3 py-2.5 rounded-xl bg-[#E76F51] hover:bg-[#D45A3D] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
-            title="Unduh seluruh materi dalam format presentasi Microsoft PowerPoint (.pptx) lengkap dengan catatan pemateri"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>Unduh PPTX</span>
-          </button>
-          <button
-            type="button"
-            onClick={handleExportJson}
-            className="px-3 py-2.5 rounded-xl border border-[#1F3A5F]/20 hover:bg-[#FFF7EC] text-xs font-bold text-[#1F3A5F] flex items-center gap-1.5 cursor-pointer"
-            title="Simpan file cadangan materi ke laptop"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>Ekspor JSON</span>
-          </button>
-          <label className="px-3 py-2.5 rounded-xl border border-[#1F3A5F]/20 hover:bg-[#FFF7EC] text-xs font-bold text-[#1F3A5F] flex items-center gap-1.5 cursor-pointer">
-            <Upload className="w-3.5 h-3.5" />
-            <span>Impor JSON</span>
-            <input type="file" accept=".json" onChange={handleImportJson} className="hidden" />
-          </label>
+
+        <div className="pt-3 border-t border-[#1F3A5F]/10 flex flex-wrap items-center justify-between gap-2.5">
+          <span className="text-xs font-semibold text-[#1F3A5F]/65">
+            Ekspor & Cadangan Modul:
+          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                exportFacilitatorDeepDivePdf({
+                  materialId: customContent.materialId,
+                  seminarTitle,
+                  organizerName,
+                  description: customContent.description,
+                  slides,
+                  questions,
+                  polls,
+                  brandTheme,
+                });
+              }}
+              className="px-3.5 py-2 rounded-xl bg-[#1F3A5F] hover:bg-[#162a45] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs whitespace-nowrap"
+              title="Unduh Modul Pendalaman Materi Khusus Pemateri (.pdf) lengkap dengan rumus, studi kasus F&B/Kriya/Persewaan, & skrip mengajar"
+            >
+              <FileText className="w-3.5 h-3.5 text-[#F28C28] shrink-0" />
+              <span>PDF Pendalaman</span>
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                await exportCurriculumToPowerPoint({
+                  seminarTitle,
+                  organizerName,
+                  slides,
+                  questions,
+                  brandTheme,
+                  fileName: seminarTitle,
+                });
+              }}
+              className="px-3.5 py-2 rounded-xl bg-[#E76F51] hover:bg-[#D45A3D] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs whitespace-nowrap"
+              title="Unduh seluruh materi dalam format presentasi Microsoft PowerPoint (.pptx) lengkap dengan catatan pemateri"
+            >
+              <Download className="w-3.5 h-3.5 shrink-0" />
+              <span>Unduh PPTX</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleExportJson}
+              className="px-3.5 py-2 rounded-xl border border-[#1F3A5F]/20 hover:bg-[#FFF7EC] text-xs font-bold text-[#1F3A5F] flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+              title="Simpan file cadangan materi ke laptop"
+            >
+              <Download className="w-3.5 h-3.5 shrink-0" />
+              <span>Ekspor JSON</span>
+            </button>
+            <label className="px-3.5 py-2 rounded-xl border border-[#1F3A5F]/20 hover:bg-[#FFF7EC] text-xs font-bold text-[#1F3A5F] flex items-center gap-1.5 cursor-pointer whitespace-nowrap">
+              <Upload className="w-3.5 h-3.5 shrink-0" />
+              <span>Impor JSON</span>
+              <input type="file" accept=".json" onChange={handleImportJson} className="hidden" />
+            </label>
+          </div>
         </div>
       </div>
 
