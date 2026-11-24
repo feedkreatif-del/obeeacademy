@@ -53,6 +53,8 @@ interface ProjectorViewProps {
   onToggleLockAnswers?: (locked: boolean, notice?: string) => void;
   flipchartRemote?: FlipchartBoardDoc | null;
   boardDeviceId?: string;
+  dismissedFlipchartTs?: number;
+  onDismissFlipchartRemote?: (updatedAt: number) => void;
   onPublishFlipchart?: (payload: {
     isOpen: boolean;
     syncToProjector: boolean;
@@ -83,6 +85,8 @@ export const ProjectorView: React.FC<ProjectorViewProps> = ({
   onToggleLockAnswers,
   flipchartRemote = null,
   boardDeviceId = '',
+  dismissedFlipchartTs = 0,
+  onDismissFlipchartRemote,
   onPublishFlipchart,
 }) => {
   const [showQrModal, setShowQrModal] = useState(false);
@@ -92,11 +96,12 @@ export const ProjectorView: React.FC<ProjectorViewProps> = ({
   const [copiedLink, setCopiedLink] = useState(false);
   const [downloadingQr, setDownloadingQr] = useState(false);
 
+  const effectiveDismissedTs = Math.max(dismissedRemoteTs, dismissedFlipchartTs);
   const isRemoteMirrorActive = Boolean(
     flipchartRemote?.isOpen &&
       flipchartRemote?.syncToProjector &&
       flipchartRemote?.sourceDeviceId !== boardDeviceId &&
-      flipchartRemote.updatedAt > dismissedRemoteTs
+      flipchartRemote.updatedAt > effectiveDismissedTs
   );
 
   const isAnswersLocked = Boolean(sessionState.answersLocked);
@@ -1235,6 +1240,7 @@ export const ProjectorView: React.FC<ProjectorViewProps> = ({
             setIsFlipchartOpen(false);
           } else if (flipchartRemote) {
             setDismissedRemoteTs(flipchartRemote.updatedAt);
+            onDismissFlipchartRemote?.(flipchartRemote.updatedAt);
           }
         }}
         seminarTitle={seminarTitle}

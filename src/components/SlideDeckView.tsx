@@ -209,6 +209,8 @@ interface SlideDeckViewProps {
   activeMode: InteractiveMode;
   flipchartRemote?: FlipchartBoardDoc | null;
   boardDeviceId?: string;
+  dismissedFlipchartTs?: number;
+  onDismissFlipchartRemote?: (updatedAt: number) => void;
   onPublishFlipchart?: (payload: {
     isOpen: boolean;
     syncToProjector: boolean;
@@ -255,6 +257,8 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
   activeMode,
   flipchartRemote = null,
   boardDeviceId = '',
+  dismissedFlipchartTs = 0,
+  onDismissFlipchartRemote,
   onPublishFlipchart,
 }) => {
   const stageRef = useRef<HTMLDivElement>(null);
@@ -266,11 +270,12 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
   const [isExtendFlipchartOpen, setIsExtendFlipchartOpen] = useState<boolean>(() =>
     isAudienceExtendWindow ? loadFlipchartStateLocal().isOpen : false
   );
+  const effectiveDismissedTs = Math.max(dismissedRemoteTs, dismissedFlipchartTs);
   const isRemoteMirrorActive = Boolean(
     flipchartRemote?.isOpen &&
       flipchartRemote?.syncToProjector &&
       flipchartRemote?.sourceDeviceId !== boardDeviceId &&
-      flipchartRemote.updatedAt > dismissedRemoteTs
+      flipchartRemote.updatedAt > effectiveDismissedTs
   );
   const [slideDirection, setSlideDirection] = useState<1 | -1>(1);
   const prevSlideRef = useRef<number>(activeSlideIndex);
@@ -2211,8 +2216,19 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
           onClose={() => {
             if (isExtendFlipchartOpen) {
               setIsExtendFlipchartOpen(false);
-            } else if (flipchartRemote) {
+              try {
+                const cur = loadFlipchartStateLocal();
+                window.localStorage.setItem(
+                  'partnerup_flipchart_state_v1',
+                  JSON.stringify({ ...cur, isOpen: false })
+                );
+              } catch {
+                // ignore
+              }
+            }
+            if (flipchartRemote) {
               setDismissedRemoteTs(flipchartRemote.updatedAt);
+              onDismissFlipchartRemote?.(flipchartRemote.updatedAt);
             }
           }}
           readOnlyMirror
@@ -2981,6 +2997,7 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
             setIsFlipchartOpen(false);
           } else if (flipchartRemote) {
             setDismissedRemoteTs(flipchartRemote.updatedAt);
+            onDismissFlipchartRemote?.(flipchartRemote.updatedAt);
           }
         }}
         seminarTitle={seminarTitle}

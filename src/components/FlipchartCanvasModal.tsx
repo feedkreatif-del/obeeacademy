@@ -1076,6 +1076,27 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
     }
   }, [isOpen, readOnlyMirror, flipchartRemote, applyRemoteBoard, publishSnapshot]);
 
+  // Pastikan status isOpen tidak tertinggal 'true' di Firestore/localStorage saat pindah tab menu atau menutup browser
+  useEffect(() => {
+    if (readOnlyMirror) return;
+    const closeIfStillOpen = () => {
+      if (wasOpenRef.current) {
+        wasOpenRef.current = false;
+        publishSnapshot(
+          false,
+          syncToProjectorRef.current,
+          pagesRef.current,
+          activePageIndexRef.current
+        );
+      }
+    };
+    window.addEventListener('pagehide', closeIfStillOpen);
+    return () => {
+      window.removeEventListener('pagehide', closeIfStillOpen);
+      closeIfStillOpen();
+    };
+  }, [readOnlyMirror, publishSnapshot]);
+
   // Listen to BroadcastChannel in same-browser Extend Projector Mirror mode (zero latency)
   useEffect(() => {
     if (!readOnlyMirror) return;

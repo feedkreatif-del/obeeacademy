@@ -253,7 +253,29 @@ export default function App() {
   const [qnaList, setQnaList] = useState<QnaDoc[]>([]);
   const [pollVotes, setPollVotes] = useState<PollVoteDoc[]>([]);
   const [flipchartRemote, setFlipchartRemote] = useState<FlipchartBoardDoc | null>(null);
+  const [dismissedFlipchartTs, setDismissedFlipchartTs] = useState<number>(() => {
+    try {
+      const saved = window.localStorage.getItem('partnerup_flipchart_dismissed_ts_v1');
+      const parsed = saved ? Number(saved) : 0;
+      return Number.isFinite(parsed) ? parsed : 0;
+    } catch {
+      return 0;
+    }
+  });
+  const appStartedAtRef = useRef<number>(Date.now());
   const flipchartRevisionRef = useRef<number>(0);
+
+  const handleDismissFlipchartRemote = useCallback((updatedAt: number) => {
+    setDismissedFlipchartTs((prev) => {
+      const next = Math.max(prev, updatedAt);
+      try {
+        window.localStorage.setItem('partnerup_flipchart_dismissed_ts_v1', String(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  }, []);
   const [boardDeviceId] = useState<string>(() => {
     const fallback = `board_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     try {
@@ -709,6 +731,13 @@ export default function App() {
             flipchartRevisionRef.current,
             incomingUpdatedAt
           );
+          // Abaikan sisa sesi Flipchart lama (>2 menit sebelum tab ini dibuka) agar tidak muncul sendiri saat pindah tab
+          if (
+            data.isOpen &&
+            incomingUpdatedAt < appStartedAtRef.current - 2 * 60 * 1000
+          ) {
+            handleDismissFlipchartRemote(incomingUpdatedAt);
+          }
           setFlipchartRemote({
             isOpen: Boolean(data.isOpen),
             syncToProjector:
@@ -727,7 +756,7 @@ export default function App() {
       }
     );
     return () => unsubBoard();
-  }, [viewRole]);
+  }, [viewRole, handleDismissFlipchartRemote]);
 
   const handlePublishFlipchart = useCallback(
     async (payload: {
@@ -1318,6 +1347,8 @@ export default function App() {
         activeMode={sessionState.activeMode}
         flipchartRemote={flipchartRemote}
         boardDeviceId={boardDeviceId}
+        dismissedFlipchartTs={dismissedFlipchartTs}
+        onDismissFlipchartRemote={handleDismissFlipchartRemote}
         onPublishFlipchart={handlePublishFlipchart}
       />
     );
@@ -1528,6 +1559,8 @@ export default function App() {
             }
             flipchartRemote={flipchartRemote}
             boardDeviceId={boardDeviceId}
+            dismissedFlipchartTs={dismissedFlipchartTs}
+            onDismissFlipchartRemote={handleDismissFlipchartRemote}
             onPublishFlipchart={handlePublishFlipchart}
           />
         )}
@@ -1587,6 +1620,8 @@ export default function App() {
             activeMode={sessionState.activeMode}
             flipchartRemote={flipchartRemote}
             boardDeviceId={boardDeviceId}
+            dismissedFlipchartTs={dismissedFlipchartTs}
+            onDismissFlipchartRemote={handleDismissFlipchartRemote}
             onPublishFlipchart={handlePublishFlipchart}
           />
         )}
