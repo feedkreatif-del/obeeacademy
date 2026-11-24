@@ -14,7 +14,8 @@ export default defineConfig(() => {
         includeAssets: ['icon.svg', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png'],
         manifest: {
           id: '/',
-          name: 'obeeAcademy — Platform Kelas & Workshop Interaktif',
+          lang: 'id',
+          name: 'obeeAcademy - Platform Kelas & Workshop Interaktif',
           short_name: 'obeeAcademy',
           description: 'Platform presentasi interaktif, tanya-jawab real-time, lembar kerja peserta, polling live, dan papan tulis untuk kelas & workshop obeeAcademy oleh Obeecreatives.',
           theme_color: '#1F3A5F',

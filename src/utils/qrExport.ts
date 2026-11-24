@@ -62,7 +62,7 @@ export async function downloadQrCodeAsPng(
           ctx.font = 'bold 22px system-ui, -apple-system, sans-serif';
           ctx.textAlign = 'center';
           ctx.fillText(
-            (options.organizerName || 'PROGRAM PARTNERUP | OBEE CREATIVES').toUpperCase(),
+            (options.organizerName || 'obeeAcademy | Obeecreatives').toUpperCase(),
             canvas.width / 2,
             90
           );
@@ -75,7 +75,7 @@ export async function downloadQrCodeAsPng(
           // Header Subtitle
           ctx.fillStyle = '#E2E8F0';
           ctx.font = '500 20px system-ui, -apple-system, sans-serif';
-          const titleSnippet = options.seminarTitle || 'Platform Seminar Interaktif UMKM';
+          const titleSnippet = options.seminarTitle || 'Platform Kelas & Workshop Interaktif';
           ctx.fillText(titleSnippet.length > 55 ? titleSnippet.slice(0, 52) + '...' : titleSnippet, canvas.width / 2, 185);
 
           // 3. Central White QR Card Box
