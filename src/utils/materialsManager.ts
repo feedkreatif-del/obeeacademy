@@ -10,6 +10,7 @@ import {
 import { SESI_4_BRANDING_CURRICULUM } from '../data/sesi4Branding';
 import { SESI_5_MARKETING_CURRICULUM } from '../data/sesi5Marketing';
 import { SESI_6_SELLING_CURRICULUM } from '../data/sesi6Selling';
+import { STROBIST_LIGHTING_CURRICULUM } from '../data/strobistLightingMastery';
 import { CustomContentDoc, SavedMaterial, BrandThemeConfig } from '../types';
 export type { SavedMaterial };
 import { DEFAULT_BRAND_THEME, sanitizeBrandTheme } from '../brandTheme';
@@ -1580,6 +1581,7 @@ export const INITIAL_PRESET_MATERIALS: SavedMaterial[] = [
   SESI_4_BRANDING_CURRICULUM,
   SESI_5_MARKETING_CURRICULUM,
   SESI_6_SELLING_CURRICULUM,
+  STROBIST_LIGHTING_CURRICULUM,
   COPYWRITING_MATERIAL_PRESET,
 ];
 
@@ -1603,6 +1605,7 @@ export function getSavedMaterialsLocal(): SavedMaterial[] {
       const hasSesi4 = parsed.some((m) => m.id === SESI_4_BRANDING_CURRICULUM.id);
       const hasSesi5 = parsed.some((m) => m.id === SESI_5_MARKETING_CURRICULUM.id);
       const hasSesi6 = parsed.some((m) => m.id === SESI_6_SELLING_CURRICULUM.id);
+      const hasStrobist1 = parsed.some((m) => m.id === STROBIST_LIGHTING_CURRICULUM.id);
       const hasCopywriting = parsed.some((m) => m.id === COPYWRITING_MATERIAL_PRESET.id);
 
       let updated = [...parsed];
@@ -1721,6 +1724,24 @@ export function getSavedMaterialsLocal(): SavedMaterial[] {
             !currentSesi6?.content?.polls?.some((p: LivePollConfig) => p.id === 'poll_s6_momen_chat_mati');
           if (needsSesi6Refresh && currentSesi6) {
             updated[sesi6Idx] = SESI_6_SELLING_CURRICULUM;
+            changed = true;
+          }
+        }
+      }
+      if (!hasStrobist1) {
+        const sesi6Pos = updated.findIndex((m) => m.id === SESI_6_SELLING_CURRICULUM.id);
+        updated.splice(sesi6Pos >= 0 ? sesi6Pos + 1 : 7, 0, STROBIST_LIGHTING_CURRICULUM);
+        changed = true;
+      } else {
+        const strobistIdx = updated.findIndex((m) => m.id === STROBIST_LIGHTING_CURRICULUM.id);
+        if (strobistIdx >= 0) {
+          const currentStrobist = updated[strobistIdx];
+          const needsStrobistRefresh =
+            !currentStrobist?.updatedAt ||
+            currentStrobist.updatedAt < 1734200000000 ||
+            !currentStrobist?.content?.polls?.some((p: LivePollConfig) => p.id === 'poll_strobist_tebak_efek');
+          if (needsStrobistRefresh && currentStrobist) {
+            updated[strobistIdx] = STROBIST_LIGHTING_CURRICULUM;
             changed = true;
           }
         }
