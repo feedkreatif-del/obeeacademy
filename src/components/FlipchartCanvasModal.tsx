@@ -810,7 +810,7 @@ export const FlipchartCanvasModal: React.FC<FlipchartCanvasModalProps> = ({
   // Drawing Tool States
   const [tool, setTool] = useState<FlipchartTool>('pen');
   const [color, setColor] = useState<string>('#1F3A5F');
-  const [strokeSize, setStrokeSize] = useState<number>(4);
+  const [strokeSize, setStrokeSize] = useState<number>(2);
   const [textFontSize, setTextFontSize] = useState<number>(28);
   const [isMaximized, setIsMaximized] = useState<boolean>(false);
   const [isSidebarExpanded, setIsSidebarExpanded] = useState<boolean>(() =>
