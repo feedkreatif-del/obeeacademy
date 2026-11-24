@@ -7,6 +7,7 @@ import {
   LivePollConfig,
   SlideDefinition,
 } from '../data/seminarData';
+import { SESI_4_BRANDING_CURRICULUM } from '../data/sesi4Branding';
 import { CustomContentDoc, SavedMaterial, BrandThemeConfig } from '../types';
 export type { SavedMaterial };
 import { DEFAULT_BRAND_THEME, sanitizeBrandTheme } from '../brandTheme';
@@ -1574,6 +1575,7 @@ export const INITIAL_PRESET_MATERIALS: SavedMaterial[] = [
   PACKAGING_DESIGN_MARKETING_CURRICULUM,
   SESI_2_ACTION_PLAN_CURRICULUM,
   SESI_3_BRANDING_MARKETING_SELLING_CURRICULUM,
+  SESI_4_BRANDING_CURRICULUM,
   COPYWRITING_MATERIAL_PRESET,
 ];
 
@@ -1594,6 +1596,7 @@ export function getSavedMaterialsLocal(): SavedMaterial[] {
       const hasPackaging = parsed.some((m) => m.id === PACKAGING_DESIGN_MARKETING_CURRICULUM.id);
       const hasSesi2 = parsed.some((m) => m.id === SESI_2_ACTION_PLAN_CURRICULUM.id);
       const hasSesi3 = parsed.some((m) => m.id === SESI_3_BRANDING_MARKETING_SELLING_CURRICULUM.id);
+      const hasSesi4 = parsed.some((m) => m.id === SESI_4_BRANDING_CURRICULUM.id);
       const hasCopywriting = parsed.some((m) => m.id === COPYWRITING_MATERIAL_PRESET.id);
 
       let updated = [...parsed];
@@ -1658,6 +1661,24 @@ export function getSavedMaterialsLocal(): SavedMaterial[] {
             !currentSesi3?.content?.polls?.some((p: LivePollConfig) => p.id === 'poll_s3_salah_kaprah_umkm');
           if (needsSesi3Refresh && currentSesi3) {
             updated[sesi3Idx] = SESI_3_BRANDING_MARKETING_SELLING_CURRICULUM;
+            changed = true;
+          }
+        }
+      }
+      if (!hasSesi4) {
+        const sesi3Pos = updated.findIndex((m) => m.id === SESI_3_BRANDING_MARKETING_SELLING_CURRICULUM.id);
+        updated.splice(sesi3Pos >= 0 ? sesi3Pos + 1 : 4, 0, SESI_4_BRANDING_CURRICULUM);
+        changed = true;
+      } else {
+        const sesi4Idx = updated.findIndex((m) => m.id === SESI_4_BRANDING_CURRICULUM.id);
+        if (sesi4Idx >= 0) {
+          const currentSesi4 = updated[sesi4Idx];
+          const needsSesi4Refresh =
+            !currentSesi4?.updatedAt ||
+            currentSesi4.updatedAt < 1733600000000 ||
+            !currentSesi4?.content?.polls?.some((p: LivePollConfig) => p.id === 'poll_s4_persepsi_branding');
+          if (needsSesi4Refresh && currentSesi4) {
+            updated[sesi4Idx] = SESI_4_BRANDING_CURRICULUM;
             changed = true;
           }
         }
