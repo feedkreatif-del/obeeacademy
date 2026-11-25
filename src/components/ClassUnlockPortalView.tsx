@@ -18,7 +18,9 @@ import {
   Flame,
   Image as ImageIcon,
   Instagram,
+  Layers,
   Lock,
+  MapPin,
   MessageCircle,
   Plus,
   QrCode,
@@ -32,11 +34,16 @@ import {
   Trash2,
   Trophy,
   Upload,
+  Video,
   Wallet,
   X,
 } from 'lucide-react';
 import {
+  CoachingScopeType,
+  DeliveryModeType,
   MaterialPricingConfig,
+  MaterialProgramConfig,
+  ProgramFormatType,
   SavedMaterial,
   UnlockCampaignDoc,
   UnlockCampaignStatus,
@@ -55,6 +62,14 @@ import {
   getMaterialCoverImageUrl,
   renderMaterialPosterDataUrl,
 } from '../utils/posterExport';
+import {
+  DELIVERY_MODE_META,
+  PROGRAM_FORMAT_META,
+  getDeliveryDisplayLabel,
+  getProgramQuotaBadgeText,
+  getProgramShortPillText,
+  resolveMaterialProgram,
+} from '../utils/programTier';
 import {
   DEFAULT_GOPAY_MERCHANT_NAME,
   DEFAULT_GOPAY_MERCHANT_NMID,
@@ -244,6 +259,9 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
       paymentMode: cfg.paymentMode === 'direct_pay' ? 'direct_pay' : 'pay_when_go',
     };
   };
+
+  const getMaterialProgram = (mat: SavedMaterial): MaterialProgramConfig =>
+    resolveMaterialProgram(mat, campaign);
 
   const baseBursaUrl = useMemo(() => {
     if (typeof window === 'undefined') return '/?view=bursa';
@@ -439,8 +457,12 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
   const [isRenderingStudio, setIsRenderingStudio] = useState<boolean>(false);
   const studioQrWrapRef = useRef<HTMLDivElement | null>(null);
 
-  // Poster Catalog Filter & Visibility Toggle State (Host)
+  // Poster Catalog Filter, Visibility, Pricing & Program Tier State
+  const [publicProgramFilter, setPublicProgramFilter] = useState<'all' | ProgramFormatType>('all');
+  const [publicDeliveryFilter, setPublicDeliveryFilter] = useState<'all' | DeliveryModeType>('all');
   const [posterFilterMode, setPosterFilterMode] = useState<'all' | 'visible' | 'hidden'>('all');
+  const [posterProgramFilter, setPosterProgramFilter] = useState<'all' | ProgramFormatType>('all');
+  const [posterDeliveryFilter, setPosterDeliveryFilter] = useState<'all' | DeliveryModeType>('all');
   const [posterSearchQuery, setPosterSearchQuery] = useState<string>('');
   const [togglingPosterId, setTogglingPosterId] = useState<string | null>(null);
   const [editingPricingMaterialId, setEditingPricingMaterialId] = useState<string | null>(null);
@@ -449,6 +471,17 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
     price: 50000,
     originalPrice: undefined,
     paymentMode: 'pay_when_go',
+  });
+  const [editingProgramMaterialId, setEditingProgramMaterialId] = useState<string | null>(null);
+  const [programForm, setProgramForm] = useState<MaterialProgramConfig>({
+    format: 'seminar',
+    deliveryMode: 'online',
+    locationLabel: DELIVERY_MODE_META.online.defaultLocation,
+    durationLabel: '60–90 Menit',
+    quotaOverride: 15,
+    coachingScope: 'one_on_one',
+    targetCategory: BUSINESS_CATEGORIES[0],
+    prerequisiteNote: '',
   });
 
   // Dynamic QRIS Payment Modal State (Public)
@@ -466,6 +499,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
   const [crmStageFilter, setCrmStageFilter] = useState<string>('all');
   const [crmCategoryFilter, setCrmCategoryFilter] = useState<string>('all');
   const [crmTopicFilter, setCrmTopicFilter] = useState<string>('all');
+  const [crmProgramFilter, setCrmProgramFilter] = useState<'all' | ProgramFormatType>('all');
   const [crmPaymentFilter, setCrmPaymentFilter] = useState<string>('all');
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editingNoteText, setEditingNoteText] = useState<string>('');
@@ -525,6 +559,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
           deadlineLabel: campaign.deadlineLabel,
           slotsSummary: slotsSummaryText,
           pricing: getMaterialPricing(posterModalMaterial.id),
+          program: getMaterialProgram(posterModalMaterial),
           qrCanvas,
         });
         if (!cancelled) setPosterPreviewUrl(url);
@@ -543,6 +578,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
     campaign.minQuota,
     campaign.deadlineLabel,
     campaign.materialPricing,
+    campaign.materialProgram,
     slotsSummaryText,
   ]);
 
@@ -566,6 +602,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
           ctaLabel: studioCtaLabel,
           customNote: studioCustomNote,
           pricing: getMaterialPricing(studioMaterial.id),
+          program: getMaterialProgram(studioMaterial),
           qrCanvas,
         });
         if (!cancelled) setStudioPreviewUrl(url);
@@ -586,6 +623,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
     campaign.minQuota,
     campaign.deadlineLabel,
     campaign.materialPricing,
+    campaign.materialProgram,
     slotsSummaryText,
     studioCtaLabel,
     studioCustomNote,
@@ -736,8 +774,11 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
       return;
     }
 
-    const topicTitle =
-      materials.find((m) => m.id === primaryMaterialId)?.seminarTitle || primaryMaterialId;
+    const primaryMatObj = materials.find((m) => m.id === primaryMaterialId);
+    const topicTitle = primaryMatObj?.seminarTitle || primaryMaterialId;
+    const chosenProgram = primaryMatObj ? getMaterialProgram(primaryMatObj) : null;
+    const isOneOnOneCoaching =
+      chosenProgram?.format === 'coaching' && chosenProgram.coachingScope === 'one_on_one';
     const chosenPricing = getMaterialPricing(primaryMaterialId);
     const uniqueCode =
       myExistingVote?.paymentUniqueCode && myExistingVote.paymentUniqueCode > 0
@@ -764,11 +805,11 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
           displayName: cleanName,
           businessName: cleanBiz,
           primaryMaterialId: primaryMaterialId.slice(0, 100),
-          secondaryMaterialIds: secondaryMaterialIds
-            .filter((id) => id !== primaryMaterialId)
-            .slice(0, 3),
+          secondaryMaterialIds: isOneOnOneCoaching
+            ? []
+            : secondaryMaterialIds.filter((id) => id !== primaryMaterialId).slice(0, 3),
           availableSlotIds: availableSlotIds.slice(0, 8),
-          flexibleTopic,
+          flexibleTopic: isOneOnOneCoaching ? false : flexibleTopic,
           mainChallenge: cleanChallenge,
           status: myExistingVote?.status === 'confirmed_h1' ? 'confirmed_h1' : 'committed',
           paymentStatus: nextPaymentStatus,
@@ -805,7 +846,11 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
         setIsPaymentModalOpen(true);
       } else {
         setFormSuccess(
-          isPaidTopic
+          isOneOnOneCoaching
+            ? isPaidTopic
+              ? `Pengajuan Coaching Privat (${formatRupiah(chosenPricing.price)}) tercatat! Mentor akan mengonfirmasi jadwal sesi 1-on-1 via WhatsApp.`
+              : 'Pengajuan sesi Coaching Privat 1-on-1 berhasil dikirim! Mentor akan segera menghubungimu.'
+            : isPaidTopic
             ? `Pilihan kelas berbayar (${formatRupiah(chosenPricing.price)}) tercatat! QRIS pembayaran otomatis terbuka saat kelas mencapai kuota GO.`
             : myExistingVote
             ? 'Pilihan topik, jadwal & data UMKM kamu berhasil diperbarui!'
@@ -866,6 +911,8 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
       'Kategori Usaha',
       'WhatsApp',
       'Instagram',
+      'Jenjang Program',
+      'Metode & Lokasi',
       'Topik yang Dipilih',
       'Jadwal Bisa Hadir',
       'Status Kehadiran',
@@ -880,10 +927,22 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
 
     const rows = votes.map((v) => {
       const contact = contactMap.get(v.id);
+      const matObj = materials.find((m) => m.id === v.primaryMaterialId);
+      const matProgram = matObj ? getMaterialProgram(matObj) : null;
+      const programLabel = matProgram
+        ? `${PROGRAM_FORMAT_META[matProgram.format].label}${
+            matProgram.format === 'coaching'
+              ? matProgram.coachingScope === 'category_group'
+                ? ` (${matProgram.targetCategory || 'Kategori'})`
+                : ' (1-on-1 Privat)'
+              : ''
+          }`
+        : 'Seminar';
+      const deliveryLabel = matProgram
+        ? getDeliveryDisplayLabel(matProgram)
+        : 'ONLINE · Via Zoom / Google Meet';
       const matTitle =
-        contact?.interestedTopicTitle ||
-        materials.find((m) => m.id === v.primaryMaterialId)?.seminarTitle ||
-        v.primaryMaterialId;
+        contact?.interestedTopicTitle || matObj?.seminarTitle || v.primaryMaterialId;
       const slotLabels = (v.availableSlotIds || [])
         .map((sid) => campaign.timeSlots.find((s) => s.id === sid)?.label || sid)
         .join(' | ');
@@ -906,6 +965,8 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
         esc(contact?.businessCategory || '-'),
         esc(isVerifiedMentorAdmin ? contact?.whatsapp || '-' : '(Verifikasi Admin)'),
         esc(isVerifiedMentorAdmin ? contact?.instagram || '-' : '(Verifikasi Admin)'),
+        esc(programLabel),
+        esc(deliveryLabel),
         esc(matTitle),
         esc(slotLabels),
         esc(v.status),
@@ -1014,14 +1075,29 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
       const isVisible = visiblePosterIdSet.has(mat.id);
       if (posterFilterMode === 'visible' && !isVisible) return false;
       if (posterFilterMode === 'hidden' && isVisible) return false;
+      const matProgram = resolveMaterialProgram(mat, campaign);
+      if (posterProgramFilter !== 'all' && matProgram.format !== posterProgramFilter) return false;
+      const matDelivery: DeliveryModeType =
+        matProgram.deliveryMode === 'offline' ? 'offline' : 'online';
+      if (posterDeliveryFilter !== 'all' && matDelivery !== posterDeliveryFilter) return false;
       if (!q) return true;
       return (
         mat.seminarTitle.toLowerCase().includes(q) ||
         (mat.category || '').toLowerCase().includes(q) ||
-        (mat.description || '').toLowerCase().includes(q)
+        (mat.description || '').toLowerCase().includes(q) ||
+        PROGRAM_FORMAT_META[matProgram.format].label.toLowerCase().includes(q) ||
+        (matProgram.locationLabel || '').toLowerCase().includes(q)
       );
     });
-  }, [materials, visiblePosterIdSet, posterFilterMode, posterSearchQuery]);
+  }, [
+    materials,
+    visiblePosterIdSet,
+    posterFilterMode,
+    posterProgramFilter,
+    posterDeliveryFilter,
+    posterSearchQuery,
+    campaign,
+  ]);
 
   const hiddenPosterCount = useMemo(
     () => materials.filter((m) => !visiblePosterIdSet.has(m.id)).length,
@@ -1085,14 +1161,83 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
     }
   };
 
+  const handleSavePosterProgram = async (materialId: string) => {
+    const format: ProgramFormatType =
+      programForm.format === 'workshop' || programForm.format === 'coaching'
+        ? programForm.format
+        : 'seminar';
+    const meta = PROGRAM_FORMAT_META[format];
+    const deliveryMode: DeliveryModeType =
+      programForm.deliveryMode === 'offline' ? 'offline' : 'online';
+    const deliveryMeta = DELIVERY_MODE_META[deliveryMode];
+    const cleanLocation =
+      (programForm.locationLabel || '').trim().slice(0, 64) || deliveryMeta.defaultLocation;
+
+    const coachingScope: CoachingScopeType | undefined =
+      format === 'coaching'
+        ? programForm.coachingScope === 'category_group'
+          ? 'category_group'
+          : 'one_on_one'
+        : undefined;
+    const rawQuota = Number(programForm.quotaOverride);
+    const defaultQuota =
+      format === 'coaching'
+        ? coachingScope === 'category_group'
+          ? 5
+          : 1
+        : format === 'workshop'
+        ? 8
+        : Math.max(5, campaign.minQuota || 15);
+    const cleanQuota =
+      !Number.isNaN(rawQuota) && rawQuota >= 1
+        ? Math.min(200, Math.round(rawQuota))
+        : defaultQuota;
+
+    const nextEntry: MaterialProgramConfig = {
+      format,
+      deliveryMode,
+      locationLabel: cleanLocation,
+      durationLabel: (programForm.durationLabel || '').trim().slice(0, 48) || meta.defaultDuration,
+      quotaOverride: cleanQuota,
+      ...(coachingScope ? { coachingScope } : {}),
+      ...(coachingScope === 'category_group'
+        ? { targetCategory: (programForm.targetCategory || BUSINESS_CATEGORIES[0]).slice(0, 48) }
+        : {}),
+      ...(programForm.prerequisiteNote?.trim()
+        ? { prerequisiteNote: programForm.prerequisiteNote.trim().slice(0, 140) }
+        : {}),
+    };
+
+    const nextProgramMap: Record<string, MaterialProgramConfig> = {
+      ...(campaign.materialProgram || {}),
+      [materialId]: nextEntry,
+    };
+
+    setIsBusyHost(true);
+    try {
+      await onSaveCampaign({
+        ...campaign,
+        materialProgram: nextProgramMap,
+        updatedAt: Date.now(),
+      });
+      const matTitle = materials.find((m) => m.id === materialId)?.seminarTitle || materialId;
+      setHostMessage(
+        `Jenjang "${matTitle}" disimpan: ${PROGRAM_FORMAT_META[format].label} (${deliveryMeta.label} · ${nextEntry.durationLabel}).`
+      );
+      setEditingProgramMaterialId(null);
+    } finally {
+      setIsBusyHost(false);
+    }
+  };
+
   // CRM Funnel counts & filtered records (must be unconditional before early return)
   const crmRecords = useMemo(() => {
     return votes.map((v) => {
       const contact = contactByVoteId.get(v.id);
+      const matObj = materials.find((m) => m.id === v.primaryMaterialId);
+      const matProgram = matObj ? resolveMaterialProgram(matObj, campaign) : null;
       const topicTitle =
-        contact?.interestedTopicTitle ||
-        materials.find((m) => m.id === v.primaryMaterialId)?.seminarTitle ||
-        v.primaryMaterialId;
+        contact?.interestedTopicTitle || matObj?.seminarTitle || v.primaryMaterialId;
       const matPricing = getMaterialPricing(v.primaryMaterialId);
       const paymentStatus: UnlockPaymentStatus =
         contact?.paymentStatus ||
@@ -1111,6 +1256,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
         vote: v,
         contact,
         topicTitle,
+        matProgram,
         matPricing,
         paymentStatus,
         paymentUniqueCode,
@@ -1122,7 +1268,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
         mentorNotes: contact?.mentorNotes || '',
       };
     });
-  }, [votes, contactByVoteId, materials, campaign.materialPricing, campaign.id]);
+  }, [votes, contactByVoteId, materials, campaign]);
 
   const crmFunnelStats = useMemo(() => {
     return {
@@ -1141,6 +1287,12 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
       if (crmStageFilter !== 'all' && r.stage !== crmStageFilter) return false;
       if (crmCategoryFilter !== 'all' && r.category !== crmCategoryFilter) return false;
       if (crmTopicFilter !== 'all' && r.vote.primaryMaterialId !== crmTopicFilter) return false;
+      if (
+        crmProgramFilter !== 'all' &&
+        (r.matProgram?.format || 'seminar') !== crmProgramFilter
+      ) {
+        return false;
+      }
       if (crmPaymentFilter !== 'all' && r.paymentStatus !== crmPaymentFilter) return false;
       if (!q) return true;
       return (
@@ -1153,7 +1305,15 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
         r.mentorNotes.toLowerCase().includes(q)
       );
     });
-  }, [crmRecords, crmSearch, crmStageFilter, crmCategoryFilter, crmTopicFilter, crmPaymentFilter]);
+  }, [
+    crmRecords,
+    crmSearch,
+    crmStageFilter,
+    crmCategoryFilter,
+    crmTopicFilter,
+    crmProgramFilter,
+    crmPaymentFilter,
+  ]);
 
   const posterDownloadModalJsx = posterModalMaterial ? (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-xs">
@@ -1208,6 +1368,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                 deadlineLabel: campaign.deadlineLabel,
                 slotsSummary: slotsSummaryText,
                 pricing: getMaterialPricing(posterModalMaterial.id),
+                program: getMaterialProgram(posterModalMaterial),
                 qrCanvas,
               });
             }}
@@ -1251,6 +1412,32 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
     const remainingToMin = Math.max(0, (campaign.minQuota || 15) - analytics.bestEffective);
     const chosenModalMaterial =
       materials.find((m) => m.id === primaryMaterialId) || candidateMaterials[0] || null;
+    const chosenModalProgram = chosenModalMaterial
+      ? getMaterialProgram(chosenModalMaterial)
+      : null;
+    const isModalOneOnOneCoaching =
+      chosenModalProgram?.format === 'coaching' &&
+      chosenModalProgram.coachingScope === 'one_on_one';
+
+    const programCounts = {
+      seminar: analytics.candidateStats.filter(
+        (c) => getMaterialProgram(c.material).format === 'seminar'
+      ).length,
+      workshop: analytics.candidateStats.filter(
+        (c) => getMaterialProgram(c.material).format === 'workshop'
+      ).length,
+      coaching: analytics.candidateStats.filter(
+        (c) => getMaterialProgram(c.material).format === 'coaching'
+      ).length,
+    };
+
+    const visiblePublicStats = analytics.candidateStats.filter((c) => {
+      const prog = getMaterialProgram(c.material);
+      if (publicProgramFilter !== 'all' && prog.format !== publicProgramFilter) return false;
+      const mode: DeliveryModeType = prog.deliveryMode === 'offline' ? 'offline' : 'online';
+      if (publicDeliveryFilter !== 'all' && mode !== publicDeliveryFilter) return false;
+      return true;
+    });
 
     return (
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-9 space-y-8">
@@ -1459,185 +1646,371 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                 Galeri Poster Kelas Pilihan Moderator
               </h2>
               <p className="text-xs sm:text-sm text-[#1F3A5F]/75 mt-1">
-                Baca inti materi pada masing-masing poster di bawah, lalu klik <strong>Vote Poster Ini</strong> untuk mengisi data diri (Nama, WhatsApp & Instagram) dan jadwal pilihanmu.
+                Pilih <strong>Seminar</strong> untuk dasar konsep, <strong>Workshop</strong> untuk praktik intensif, atau <strong>Coaching</strong> untuk pendalaman 1-on-1 / per kategori usaha.
               </p>
             </div>
             <span className="text-xs font-semibold text-[#1F3A5F]/70 tabular-nums">
-              {candidateMaterials.length} Poster Tersedia
+              {visiblePublicStats.length} dari {candidateMaterials.length} Poster
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {analytics.candidateStats.map(({ material, primaryCount, sharePct }) => {
-              const coverUrl = getMaterialCoverImageUrl(material);
-              const highlights = extractMaterialCoreHighlights(material).slice(0, 3);
-              const themePrimary = material.content.brandTheme?.primaryColor || '#1F3A5F';
-              const isMyVote = myExistingVote?.primaryMaterialId === material.id;
-              const isLeading = analytics.leadingMaterialId === material.id && primaryCount > 0;
-              const pricing = getMaterialPricing(material.id);
+          {/* 3-Tier Program + Online/Offline Filter Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setPublicProgramFilter('all')}
+                className={`px-3.5 py-2 rounded-xl text-xs font-extrabold border transition-colors cursor-pointer tabular-nums ${
+                  publicProgramFilter === 'all'
+                    ? 'bg-[#1F3A5F] border-[#1F3A5F] text-white shadow-xs'
+                    : 'bg-white border-slate-200 text-[#1F3A5F] hover:bg-slate-50'
+                }`}
+              >
+                Semua Program ({analytics.candidateStats.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setPublicProgramFilter('seminar')}
+                className={`px-3.5 py-2 rounded-xl text-xs font-extrabold border transition-colors cursor-pointer tabular-nums ${
+                  publicProgramFilter === 'seminar'
+                    ? 'bg-sky-600 border-sky-600 text-white shadow-xs'
+                    : 'bg-sky-50 border-sky-200 text-sky-900 hover:bg-sky-100'
+                }`}
+              >
+                Seminar Dasar ({programCounts.seminar})
+              </button>
+              <button
+                type="button"
+                onClick={() => setPublicProgramFilter('workshop')}
+                className={`px-3.5 py-2 rounded-xl text-xs font-extrabold border transition-colors cursor-pointer tabular-nums ${
+                  publicProgramFilter === 'workshop'
+                    ? 'bg-[#F28C28] border-[#F28C28] text-white shadow-xs'
+                    : 'bg-orange-50 border-orange-200 text-orange-900 hover:bg-orange-100'
+                }`}
+              >
+                Workshop Praktik ({programCounts.workshop})
+              </button>
+              <button
+                type="button"
+                onClick={() => setPublicProgramFilter('coaching')}
+                className={`px-3.5 py-2 rounded-xl text-xs font-extrabold border transition-colors cursor-pointer tabular-nums ${
+                  publicProgramFilter === 'coaching'
+                    ? 'bg-amber-400 border-amber-500 text-[#1F3A5F] shadow-xs'
+                    : 'bg-amber-50 border-amber-200 text-amber-950 hover:bg-amber-100'
+                }`}
+              >
+                Coaching ({programCounts.coaching})
+              </button>
+            </div>
 
-              return (
-                <article
-                  key={material.id}
-                  className={`rounded-3xl overflow-hidden flex flex-col border transition-all shadow-sm ${
-                    isMyVote
-                      ? 'border-[#F28C28] ring-2 ring-[#F28C28]/30'
-                      : 'border-[#1F3A5F]/15 hover:border-[#1F3A5F]/35'
+            <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-white border border-slate-200">
+              {(['all', 'online', 'offline'] as const).map((dm) => (
+                <button
+                  key={dm}
+                  type="button"
+                  onClick={() => setPublicDeliveryFilter(dm)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-colors cursor-pointer flex items-center gap-1 ${
+                    publicDeliveryFilter === dm
+                      ? dm === 'online'
+                        ? 'bg-emerald-600 text-white'
+                        : dm === 'offline'
+                        ? 'bg-violet-600 text-white'
+                        : 'bg-[#1F3A5F] text-white'
+                      : 'text-slate-600 hover:bg-slate-100'
                   }`}
-                  style={{ backgroundColor: themePrimary }}
                 >
-                  {/* Top Poster Masthead */}
-                  <div className="px-5 pt-4 pb-3 flex items-center justify-between gap-2 text-white">
-                    <span className="text-[11px] font-bold truncate text-white/90">
-                      {material.organizerName || 'obeeAcademy'}
-                    </span>
-                    <span className="text-[11px] text-white/70 whitespace-nowrap shrink-0 tabular-nums">
-                      {material.category || 'Materi'} · {material.content.slides.length} Slide
-                    </span>
-                  </div>
-
-                  {/* Poster Visual Showcase */}
-                  <div className="px-4">
-                    <div className="relative h-44 rounded-2xl overflow-hidden bg-slate-900">
-                      {coverUrl ? (
-                        <img
-                          src={coverUrl}
-                          alt={material.seminarTitle}
-                          referrerPolicy="no-referrer"
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            (e.currentTarget as HTMLImageElement).style.display = 'none';
-                          }}
-                        />
-                      ) : (
-                        <div className="w-full h-full flex flex-col justify-center px-5 bg-gradient-to-br from-[#0F243E] to-[#1E466E] text-white">
-                          <span className="text-[11px] font-semibold text-[#F28C28]">
-                            Modul Pelatihan UMKM
-                          </span>
-                          <p className="font-display text-base font-extrabold mt-1 line-clamp-2">
-                            {material.seminarTitle}
-                          </p>
-                        </div>
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent pointer-events-none" />
-
-                      {/* Free vs Paid Status Badge */}
-                      <div className="absolute top-3 right-3 flex flex-col items-end gap-1">
-                        {pricing.isPaid ? (
-                          <div className="px-2.5 py-1 rounded-lg bg-amber-400 text-[#1F3A5F] shadow-sm text-right">
-                            <div className="text-[11px] font-extrabold leading-tight tabular-nums">
-                              {pricing.originalPrice ? (
-                                <span className="line-through text-[#1F3A5F]/65 mr-1 font-semibold">
-                                  {formatRupiah(pricing.originalPrice)}
-                                </span>
-                              ) : null}
-                              BERBAYAR · {formatRupiah(pricing.price)}
-                            </div>
-                            <div className="text-[9px] font-bold text-[#1F3A5F]/85 leading-tight">
-                              {pricing.paymentMode === 'direct_pay'
-                                ? 'QRIS langsung setelah daftar'
-                                : 'Bayar QRIS saat kuota GO!'}
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="text-[11px] font-extrabold px-2.5 py-1 rounded-lg bg-emerald-500 text-white shadow-sm">
-                            GRATIS
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between gap-2 text-white">
-                        <span className="text-[11px] font-extrabold px-2.5 py-1 rounded-lg bg-[#F28C28] text-white whitespace-nowrap">
-                          MIN. {campaign.minQuota} PESERTA
-                        </span>
-                        {isLeading && (
-                          <span className="text-[11px] font-bold text-amber-300 flex items-center gap-1 whitespace-nowrap">
-                            <Flame className="w-3.5 h-3.5" />
-                            Unggul Sementara
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Cream Poster Editorial Body */}
-                  <div className="m-4 mb-0 rounded-2xl bg-[#FFF9F0] p-4 flex-1 flex flex-col justify-between gap-3">
-                    <div className="space-y-2.5">
-                      <h3 className="font-display text-base font-extrabold text-[#1F3A5F] leading-snug">
-                        {material.seminarTitle}
-                      </h3>
-                      {material.description && (
-                        <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
-                          {material.description}
-                        </p>
-                      )}
-
-                      <div className="border-t border-[#1F3A5F]/10 pt-2.5 space-y-1.5">
-                        <div className="text-[11px] font-bold text-[#2A9D8F]">
-                          Inti Materi yang Dibahas:
-                        </div>
-                        <ul className="space-y-1.5 text-xs text-slate-700">
-                          {highlights.map((item, idx) => (
-                            <li key={idx} className="flex items-start gap-2 leading-snug">
-                              <span className="w-4 h-4 rounded-full bg-[#1F3A5F] text-white text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5 tabular-nums">
-                                {idx + 1}
-                              </span>
-                              <span>{item}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-
-                    {/* Vote Meter */}
-                    <div className="pt-2 border-t border-[#1F3A5F]/10 space-y-1.5">
-                      <div className="flex items-center justify-between text-xs font-semibold text-[#1F3A5F] tabular-nums">
-                        <span>Perolehan Polling</span>
-                        <span>
-                          {primaryCount} suara ({sharePct}%)
-                        </span>
-                      </div>
-                      <div className="w-full h-2 rounded-full bg-slate-200 overflow-hidden">
-                        <div
-                          className="h-full rounded-full bg-[#2A9D8F] transition-all duration-300"
-                          style={{ width: `${Math.max(primaryCount > 0 ? 6 : 0, sharePct)}%` }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Poster Footer Actions */}
-                  <div className="p-4 flex items-center gap-2">
-                    <button
-                      type="button"
-                      disabled={campaign.status === 'closed'}
-                      onClick={() => openVoteModalForMaterial(material.id)}
-                      className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-extrabold transition-colors cursor-pointer whitespace-nowrap disabled:opacity-50 ${
-                        isMyVote
-                          ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
-                          : 'bg-[#F28C28] hover:bg-[#d97719] text-white'
-                      }`}
-                    >
-                      {isMyVote
-                        ? '✓ Pilihanmu (Edit)'
-                        : pricing.isPaid
-                        ? `Vote & Daftar (${formatRupiah(pricing.price)})`
-                        : 'Vote Poster Ini'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPosterModalMaterial(material)}
-                      className="py-2.5 px-3 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0"
-                      title="Unduh Poster PNG Resolusi Tinggi"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      <span>PNG</span>
-                    </button>
-                  </div>
-                </article>
-              );
-            })}
+                  {dm === 'online' && <Video className="w-3.5 h-3.5" />}
+                  {dm === 'offline' && <MapPin className="w-3.5 h-3.5" />}
+                  <span>
+                    {dm === 'all' ? 'Semua Metode' : DELIVERY_MODE_META[dm].label}
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
+
+          {visiblePublicStats.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center text-xs sm:text-sm text-slate-500">
+              Belum ada poster pada jenjang ini yang ditampilkan moderator. Pilih tab <strong>Semua Program</strong> untuk melihat kelas lainnya.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {visiblePublicStats.map(({ material, primaryCount, sharePct }) => {
+                const coverUrl = getMaterialCoverImageUrl(material);
+                const highlights = extractMaterialCoreHighlights(material).slice(0, 3);
+                const themePrimary = material.content.brandTheme?.primaryColor || '#1F3A5F';
+                const isMyVote = myExistingVote?.primaryMaterialId === material.id;
+                const isLeading = analytics.leadingMaterialId === material.id && primaryCount > 0;
+                const pricing = getMaterialPricing(material.id);
+                const program = getMaterialProgram(material);
+                const programMeta = PROGRAM_FORMAT_META[program.format];
+                const effectiveQuota = Math.max(
+                  1,
+                  program.quotaOverride || campaign.minQuota || 15
+                );
+                const isOneOnOne =
+                  program.format === 'coaching' && program.coachingScope === 'one_on_one';
+                const isCategoryCoaching =
+                  program.format === 'coaching' && program.coachingScope === 'category_group';
+                const quotaFillPct = Math.min(
+                  100,
+                  Math.round((primaryCount / effectiveQuota) * 100)
+                );
+
+                return (
+                  <article
+                    key={material.id}
+                    className={`rounded-3xl overflow-hidden flex flex-col border transition-all shadow-sm ${
+                      isMyVote
+                        ? 'border-[#F28C28] ring-2 ring-[#F28C28]/30'
+                        : 'border-[#1F3A5F]/15 hover:border-[#1F3A5F]/35'
+                    }`}
+                    style={{ backgroundColor: themePrimary }}
+                  >
+                    {/* Top Poster Masthead */}
+                    <div className="px-5 pt-4 pb-3 flex items-center justify-between gap-2 text-white">
+                      <span className="text-[11px] font-bold truncate text-white/90">
+                        {material.organizerName || 'obeeAcademy'}
+                      </span>
+                      <span className="text-[11px] text-white/70 whitespace-nowrap shrink-0 tabular-nums">
+                        {material.category || 'Materi'} · {material.content.slides.length} Slide
+                      </span>
+                    </div>
+
+                    {/* Poster Visual Showcase */}
+                    <div className="px-4">
+                      <div className="relative h-44 rounded-2xl overflow-hidden bg-slate-900">
+                        {coverUrl ? (
+                          <img
+                            src={coverUrl}
+                            alt={material.seminarTitle}
+                            referrerPolicy="no-referrer"
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex flex-col justify-center px-5 bg-gradient-to-br from-[#0F243E] to-[#1E466E] text-white">
+                            <span className="text-[11px] font-semibold text-[#F28C28]">
+                              {programMeta.tierHeadline}
+                            </span>
+                            <p className="font-display text-base font-extrabold mt-1 line-clamp-2">
+                              {material.seminarTitle}
+                            </p>
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent pointer-events-none" />
+
+                        {/* Top-Left Program Tier Pill */}
+                        <div className="absolute top-3 left-3 max-w-[58%]">
+                          <span
+                            className={`inline-block text-[10px] font-extrabold px-2.5 py-1 rounded-lg shadow-sm truncate max-w-full ${programMeta.publicChipClass}`}
+                          >
+                            {getProgramShortPillText(program)}
+                          </span>
+                        </div>
+
+                        {/* Top-Right Free vs Paid Status Badge */}
+                        <div className="absolute top-3 right-3 flex flex-col items-end gap-1">
+                          {pricing.isPaid ? (
+                            <div className="px-2.5 py-1 rounded-lg bg-amber-400 text-[#1F3A5F] shadow-sm text-right">
+                              <div className="text-[11px] font-extrabold leading-tight tabular-nums">
+                                {pricing.originalPrice ? (
+                                  <span className="line-through text-[#1F3A5F]/65 mr-1 font-semibold">
+                                    {formatRupiah(pricing.originalPrice)}
+                                  </span>
+                                ) : null}
+                                {formatRupiah(pricing.price)}
+                              </div>
+                              <div className="text-[9px] font-bold text-[#1F3A5F]/85 leading-tight">
+                                {pricing.paymentMode === 'direct_pay'
+                                  ? 'QRIS langsung'
+                                  : 'QRIS saat GO!'}
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-[11px] font-extrabold px-2.5 py-1 rounded-lg bg-emerald-500 text-white shadow-sm">
+                              GRATIS
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between gap-2 text-white">
+                          <span className="text-[10px] sm:text-[11px] font-extrabold px-2.5 py-1 rounded-lg bg-[#F28C28] text-white whitespace-nowrap truncate">
+                            {getProgramQuotaBadgeText(program, campaign.minQuota)}
+                          </span>
+                          {isLeading && (
+                            <span className="text-[11px] font-bold text-amber-300 flex items-center gap-1 whitespace-nowrap shrink-0">
+                              <Flame className="w-3.5 h-3.5" />
+                              Unggul
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Cream Poster Editorial Body */}
+                    <div className="m-4 mb-0 rounded-2xl bg-[#FFF9F0] p-4 flex-1 flex flex-col justify-between gap-3">
+                      <div className="space-y-2.5">
+                        {/* Clean Online / Offline Delivery & Location Strip above Headline */}
+                        {(() => {
+                          const dMode: DeliveryModeType =
+                            program.deliveryMode === 'offline' ? 'offline' : 'online';
+                          const dMeta = DELIVERY_MODE_META[dMode];
+                          return (
+                            <div className="flex items-center gap-1.5 text-[11px]">
+                              <span
+                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-extrabold border shrink-0 ${dMeta.badgeClass}`}
+                              >
+                                {dMode === 'offline' ? (
+                                  <MapPin className="w-3 h-3" />
+                                ) : (
+                                  <Video className="w-3 h-3" />
+                                )}
+                                <span>{dMeta.shortLabel}</span>
+                              </span>
+                              <span className="font-semibold text-slate-600 truncate">
+                                {program.locationLabel || dMeta.defaultLocation}
+                              </span>
+                            </div>
+                          );
+                        })()}
+
+                        <h3 className="font-display text-base font-extrabold text-[#1F3A5F] leading-snug">
+                          {material.seminarTitle}
+                        </h3>
+                        {material.description && (
+                          <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
+                            {material.description}
+                          </p>
+                        )}
+                        {program.prerequisiteNote && (
+                          <div className="px-2.5 py-1.5 rounded-lg bg-amber-50 border border-amber-200/80 text-[11px] font-semibold text-amber-950 leading-snug">
+                            Prasyarat: {program.prerequisiteNote}
+                          </div>
+                        )}
+
+                        <div className="border-t border-[#1F3A5F]/10 pt-2.5 space-y-1.5">
+                          <div className="text-[11px] font-bold text-[#2A9D8F]">
+                            Inti Materi yang Dibahas:
+                          </div>
+                          <ul className="space-y-1.5 text-xs text-slate-700">
+                            {highlights.map((item, idx) => (
+                              <li key={idx} className="flex items-start gap-2 leading-snug">
+                                <span className="w-4 h-4 rounded-full bg-[#1F3A5F] text-white text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5 tabular-nums">
+                                  {idx + 1}
+                                </span>
+                                <span>{item}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+
+                      {/* Tier-Aware Quota / Booking Meter */}
+                      <div className="pt-2 border-t border-[#1F3A5F]/10 space-y-1.5">
+                        {isOneOnOne ? (
+                          <div className="flex items-center justify-between text-xs font-semibold text-[#1F3A5F] tabular-nums">
+                            <span>Sesi Privat 1-on-1</span>
+                            <span>{primaryCount} UMKM mengajukan jadwal</span>
+                          </div>
+                        ) : isCategoryCoaching ? (
+                          <>
+                            <div className="flex items-center justify-between text-xs font-semibold text-[#1F3A5F] tabular-nums">
+                              <span className="truncate">
+                                Khusus {program.targetCategory || 'Kategori'}
+                              </span>
+                              <span className="shrink-0">
+                                {primaryCount} / {effectiveQuota} UMKM
+                              </span>
+                            </div>
+                            <div className="w-full h-2 rounded-full bg-slate-200 overflow-hidden">
+                              <div
+                                className="h-full rounded-full bg-amber-500 transition-all duration-300"
+                                style={{ width: `${Math.max(primaryCount > 0 ? 8 : 0, quotaFillPct)}%` }}
+                              />
+                            </div>
+                          </>
+                        ) : program.format === 'workshop' ? (
+                          <>
+                            <div className="flex items-center justify-between text-xs font-semibold text-[#1F3A5F] tabular-nums">
+                              <span>Kuota Workshop Praktik</span>
+                              <span>
+                                {primaryCount} / {effectiveQuota} Kursi
+                              </span>
+                            </div>
+                            <div className="w-full h-2 rounded-full bg-slate-200 overflow-hidden">
+                              <div
+                                className="h-full rounded-full bg-[#F28C28] transition-all duration-300"
+                                style={{ width: `${Math.max(primaryCount > 0 ? 8 : 0, quotaFillPct)}%` }}
+                              />
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="flex items-center justify-between text-xs font-semibold text-[#1F3A5F] tabular-nums">
+                              <span>Perolehan Polling</span>
+                              <span>
+                                {primaryCount} suara ({sharePct}%)
+                              </span>
+                            </div>
+                            <div className="w-full h-2 rounded-full bg-slate-200 overflow-hidden">
+                              <div
+                                className="h-full rounded-full bg-[#2A9D8F] transition-all duration-300"
+                                style={{ width: `${Math.max(primaryCount > 0 ? 6 : 0, sharePct)}%` }}
+                              />
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Poster Footer Actions */}
+                    <div className="p-4 flex items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={campaign.status === 'closed'}
+                        onClick={() => openVoteModalForMaterial(material.id)}
+                        className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-extrabold transition-colors cursor-pointer whitespace-nowrap disabled:opacity-50 ${
+                          isMyVote
+                            ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
+                            : 'bg-[#F28C28] hover:bg-[#d97719] text-white'
+                        }`}
+                      >
+                        {isMyVote
+                          ? '✓ Pilihanmu (Edit)'
+                          : isOneOnOne
+                          ? pricing.isPaid
+                            ? `Booking 1-on-1 (${formatRupiah(pricing.price)})`
+                            : 'Ajukan Coaching Privat'
+                          : isCategoryCoaching
+                          ? pricing.isPaid
+                            ? `Daftar Klaster (${formatRupiah(pricing.price)})`
+                            : 'Daftar Coaching Kategori'
+                          : program.format === 'workshop'
+                          ? pricing.isPaid
+                            ? `Daftar Workshop (${formatRupiah(pricing.price)})`
+                            : 'Daftar Workshop'
+                          : pricing.isPaid
+                          ? `Vote & Daftar (${formatRupiah(pricing.price)})`
+                          : 'Vote Poster Ini'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPosterModalMaterial(material)}
+                        className="py-2.5 px-3 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0"
+                        title="Unduh Poster PNG Resolusi Tinggi"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>PNG</span>
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
         </section>
 
         {/* Public Commitment Roster (Zero PII - no WA or IG shown publicly) */}
@@ -1702,8 +2075,28 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-[#F28C28]">
                     <span>
-                      Langkah {voteStep} dari 2 · {voteStep === 1 ? 'Identitas Peserta & UMKM' : 'Pilih Jadwal & Kunci Suara'}
+                      Langkah {voteStep} dari 2 · {voteStep === 1 ? 'Identitas Peserta & UMKM' : isModalOneOnOneCoaching ? 'Ajukan Jadwal Coaching Privat' : 'Pilih Jadwal & Kunci Suara'}
                     </span>
+                    {chosenModalMaterial && chosenModalProgram && (
+                      <>
+                        <span
+                          className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${
+                            PROGRAM_FORMAT_META[chosenModalProgram.format].publicChipClass
+                          }`}
+                        >
+                          {PROGRAM_FORMAT_META[chosenModalProgram.format].label}
+                        </span>
+                        <span
+                          className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${
+                            chosenModalProgram.deliveryMode === 'offline'
+                              ? 'bg-violet-500 text-white'
+                              : 'bg-emerald-600 text-white'
+                          }`}
+                        >
+                          {chosenModalProgram.deliveryMode === 'offline' ? 'OFFLINE' : 'ONLINE'}
+                        </span>
+                      </>
+                    )}
                     {chosenModalMaterial && (() => {
                       const mp = getMaterialPricing(chosenModalMaterial.id);
                       return mp.isPaid ? (
@@ -1891,52 +2284,94 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                       >
                         {candidateMaterials.map((mat) => {
                           const mp = getMaterialPricing(mat.id);
+                          const prog = getMaterialProgram(mat);
+                          const delLabel = prog.deliveryMode === 'offline' ? 'Offline' : 'Online';
                           return (
                             <option key={mat.id} value={mat.id}>
-                              {mp.isPaid ? `[${formatRupiah(mp.price)}] ` : '[Gratis] '}
+                              [{PROGRAM_FORMAT_META[prog.format].label} · {delLabel}]
+                              {mp.isPaid ? ` [${formatRupiah(mp.price)}] ` : ' [Gratis] '}
                               {mat.seminarTitle}
                             </option>
                           );
                         })}
                       </select>
 
-                      {candidateMaterials.length > 1 && (
-                        <div className="pt-1">
-                          <div className="text-[11px] font-semibold text-slate-600 mb-1.5">
-                            Topik cadangan jika berminat (maks. 2):
-                          </div>
-                          <div className="flex flex-wrap gap-1.5">
-                            {candidateMaterials
-                              .filter((m) => m.id !== primaryMaterialId)
-                              .map((mat) => {
-                                const checked = secondaryMaterialIds.includes(mat.id);
-                                return (
-                                  <button
-                                    key={mat.id}
-                                    type="button"
-                                    onClick={() => toggleSecondaryTopic(mat.id)}
-                                    className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-colors cursor-pointer ${
-                                      checked
-                                        ? 'bg-[#2A9D8F]/15 border-[#2A9D8F] text-[#1F3A5F]'
-                                        : 'bg-white border-slate-200 text-slate-600'
-                                    }`}
-                                  >
-                                    {checked ? '✓ ' : '+ '}
-                                    {mat.seminarTitle.length > 36
-                                      ? `${mat.seminarTitle.slice(0, 33)}...`
-                                      : mat.seminarTitle}
-                                  </button>
-                                );
-                              })}
-                          </div>
+                      {chosenModalProgram && (
+                        <div className="flex items-center gap-1.5 text-[11px] font-semibold text-[#1F3A5F]">
+                          {chosenModalProgram.deliveryMode === 'offline' ? (
+                            <MapPin className="w-3.5 h-3.5 text-violet-600 shrink-0" />
+                          ) : (
+                            <Video className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                          )}
+                          <span>
+                            Metode:{' '}
+                            <strong>
+                              {chosenModalProgram.deliveryMode === 'offline' ? 'OFFLINE' : 'ONLINE'}
+                            </strong>{' '}
+                            — {chosenModalProgram.locationLabel ||
+                              DELIVERY_MODE_META[
+                                chosenModalProgram.deliveryMode === 'offline' ? 'offline' : 'online'
+                              ].defaultLocation}
+                          </span>
                         </div>
+                      )}
+
+                      {chosenModalProgram?.format === 'coaching' &&
+                        chosenModalProgram.coachingScope === 'category_group' &&
+                        chosenModalProgram.targetCategory &&
+                        businessCategory !== chosenModalProgram.targetCategory && (
+                          <div className="p-2.5 rounded-lg bg-amber-100/75 border border-amber-300 text-[11px] font-semibold text-amber-950">
+                            Info: Sesi Coaching ini difokuskan untuk kategori{' '}
+                            <strong>{chosenModalProgram.targetCategory}</strong> (kategori usahamu tercatat:{' '}
+                            <strong>{businessCategory}</strong>). Mentor tetap meninjau kecocokan kelompok usahamu.
+                          </div>
+                        )}
+
+                      {isModalOneOnOneCoaching ? (
+                        <div className="p-2.5 rounded-lg bg-white border border-amber-300 text-[11px] text-[#1F3A5F] leading-snug">
+                          <strong>Sesi Coaching Privat 1-on-1:</strong> Pendalaman khusus langsung membedah masalah usahamu ({chosenModalProgram?.durationLabel || '90 Menit'}) tanpa harus menunggu kuota kelompok.
+                        </div>
+                      ) : (
+                        candidateMaterials.length > 1 && (
+                          <div className="pt-1">
+                            <div className="text-[11px] font-semibold text-slate-600 mb-1.5">
+                              Topik cadangan jika berminat (maks. 2):
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {candidateMaterials
+                                .filter((m) => m.id !== primaryMaterialId)
+                                .map((mat) => {
+                                  const checked = secondaryMaterialIds.includes(mat.id);
+                                  return (
+                                    <button
+                                      key={mat.id}
+                                      type="button"
+                                      onClick={() => toggleSecondaryTopic(mat.id)}
+                                      className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-colors cursor-pointer ${
+                                        checked
+                                          ? 'bg-[#2A9D8F]/15 border-[#2A9D8F] text-[#1F3A5F]'
+                                          : 'bg-white border-slate-200 text-slate-600'
+                                      }`}
+                                    >
+                                      {checked ? '✓ ' : '+ '}
+                                      {mat.seminarTitle.length > 36
+                                        ? `${mat.seminarTitle.slice(0, 33)}...`
+                                        : mat.seminarTitle}
+                                    </button>
+                                  );
+                                })}
+                            </div>
+                          </div>
+                        )
                       )}
                     </div>
 
                     {/* Time Slots Multi-Select */}
                     <div className="space-y-2">
                       <label className="block text-xs font-extrabold text-[#1F3A5F]">
-                        Centang SEMUA Jadwal yang Kamu Bisa Hadir *
+                        {isModalOneOnOneCoaching
+                          ? 'Pilih Opsi Jadwal Luangmu untuk Sesi Privat *'
+                          : 'Centang SEMUA Jadwal yang Kamu Bisa Hadir *'}
                       </label>
                       <div className="grid grid-cols-1 gap-2">
                         {analytics.slotStats.map(({ slot, totalAvailable, effectiveQuorum }) => {
@@ -1957,7 +2392,9 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                                   {slot.label} · {slot.dateText}
                                 </div>
                                 <div className="text-xs text-slate-600 mt-0.5 tabular-nums">
-                                  {slot.timeText} · {totalAvailable} bisa hadir ({effectiveQuorum}/{campaign.minQuota} kuota)
+                                  {slot.timeText}
+                                  {!isModalOneOnOneCoaching &&
+                                    ` · ${totalAvailable} bisa hadir (${effectiveQuorum}/${campaign.minQuota} kuota)`}
                                 </div>
                               </div>
                               <div
@@ -1974,17 +2411,19 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                         })}
                       </div>
 
-                      <label className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-50 border border-amber-200 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={flexibleTopic}
-                          onChange={(e) => setFlexibleTopic(e.target.checked)}
-                          className="mt-0.5 w-4 h-4 accent-[#F28C28]"
-                        />
-                        <span className="text-xs text-[#1F3A5F] leading-snug">
-                          <strong>Tetap bersedia hadir</strong> meski topik lain yang memperoleh suara terbanyak di jadwal pilihan saya (mempercepat kuota {campaign.minQuota} peserta).
-                        </span>
-                      </label>
+                      {!isModalOneOnOneCoaching && (
+                        <label className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-50 border border-amber-200 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={flexibleTopic}
+                            onChange={(e) => setFlexibleTopic(e.target.checked)}
+                            className="mt-0.5 w-4 h-4 accent-[#F28C28]"
+                          />
+                          <span className="text-xs text-[#1F3A5F] leading-snug">
+                            <strong>Tetap bersedia hadir</strong> meski topik lain yang memperoleh suara terbanyak di jadwal pilihan saya (mempercepat kuota {campaign.minQuota} peserta).
+                          </span>
+                        </label>
+                      )}
                     </div>
 
                     <div>
@@ -2066,6 +2505,8 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                           <span>
                             {isSubmittingVote
                               ? 'Menyimpan...'
+                              : isModalOneOnOneCoaching
+                              ? 'Ajukan Sesi Coaching Privat'
                               : myExistingVote
                               ? 'Perbarui Pilihan Saya'
                               : 'Kirim Voting & Kunci Kursi'}
@@ -2581,14 +3022,20 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
 
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Catatan Lokasi / Zoom untuk Peserta
+                      Catatan Lokasi / Link Kelas untuk Peserta
                     </label>
                     <textarea
                       rows={2}
                       maxLength={250}
                       value={decisionNote}
                       onChange={(e) => setDecisionNote(e.target.value)}
-                      placeholder="Contoh: Dilaksanakan via Zoom Live. Link dikirim ke WA peserta H-1."
+                      placeholder={
+                        decisionMat && getMaterialProgram(decisionMat).deliveryMode === 'offline'
+                          ? `Contoh: Dilaksanakan OFFLINE (${
+                              getMaterialProgram(decisionMat).locationLabel || 'Lokasi Studio'
+                            }). Shareloc dikirim ke WA peserta H-1.`
+                          : 'Contoh: Dilaksanakan ONLINE via Zoom Live. Link dikirim ke WA peserta H-1.'
+                      }
                       className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl"
                     />
                   </div>
@@ -2762,6 +3209,17 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                 </select>
 
                 <select
+                  value={crmProgramFilter}
+                  onChange={(e) => setCrmProgramFilter(e.target.value as 'all' | ProgramFormatType)}
+                  className="px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-300 rounded-xl"
+                >
+                  <option value="all">Semua Jenjang</option>
+                  <option value="seminar">Seminar</option>
+                  <option value="workshop">Workshop</option>
+                  <option value="coaching">Coaching</option>
+                </select>
+
+                <select
                   value={crmTopicFilter}
                   onChange={(e) => setCrmTopicFilter(e.target.value)}
                   className="px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-300 rounded-xl max-w-[210px]"
@@ -2862,6 +3320,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                         vote,
                         contact,
                         topicTitle,
+                        matProgram,
                         matPricing,
                         paymentStatus,
                         paymentUniqueCode,
@@ -2877,8 +3336,13 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                         const targetSlotLabel = decisionSlot
                           ? `${decisionSlot.label} (${decisionSlot.dateText} ${decisionSlot.timeText})`
                           : 'jadwal pilihan';
+                        const matDeliveryMode: DeliveryModeType =
+                          matProgram?.deliveryMode === 'offline' ? 'offline' : 'online';
+                        const matDeliveryLoc =
+                          matProgram?.locationLabel ||
+                          DELIVERY_MODE_META[matDeliveryMode].defaultLocation;
                         const reminderMsg = encodeURIComponent(
-                          `Halo Kak ${vote.displayName} (${vote.businessName}), mengingatkan kelas obeeAcademy "${decisionMat?.seminarTitle || topicTitle}" insyaAllah berjalan pada ${targetSlotLabel}. Mohon konfirmasi kehadirannya ya kak!`
+                          `Halo Kak ${vote.displayName} (${vote.businessName}), mengingatkan kelas obeeAcademy "${decisionMat?.seminarTitle || topicTitle}" insyaAllah berjalan secara ${matDeliveryMode.toUpperCase()} (${matDeliveryLoc}) pada ${targetSlotLabel}. Mohon konfirmasi kehadirannya ya kak!`
                         );
                         const followupMsg = encodeURIComponent(
                           `Halo Kak ${vote.displayName} dari ${vote.businessName}, terima kasih sudah ikut kelas obeeAcademy (${topicTitle}). Saya sudah sempat lihat Instagram ${igHandle || 'usahamu'} — boleh diskusi santai kalau kakak butuh bantuan optimasi visual/branding usaha?`
@@ -2889,6 +3353,9 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                           )} (sudah termasuk kode unik +Rp${paymentUniqueCode}). Terima kasih kak!`
                         );
                         const isEditingThisNote = editingNoteId === vote.id;
+                        const crmFormatMeta =
+                          PROGRAM_FORMAT_META[matProgram?.format || 'seminar'];
+                        const crmDeliveryMeta = DELIVERY_MODE_META[matDeliveryMode];
 
                         return (
                           <tr key={vote.id} className="hover:bg-slate-50/70 align-top">
@@ -2960,7 +3427,24 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                               )}
                             </td>
 
-                            <td className="py-3 px-3 max-w-[200px]">
+                            <td className="py-3 px-3 max-w-[220px]">
+                              <div className="mb-1 flex flex-wrap items-center gap-1">
+                                <span
+                                  className={`inline-flex px-2 py-0.5 rounded text-[10px] font-extrabold border ${crmFormatMeta.badgeClass}`}
+                                >
+                                  {crmFormatMeta.label}
+                                  {matProgram?.format === 'coaching'
+                                    ? matProgram.coachingScope === 'category_group'
+                                      ? ` · ${matProgram.targetCategory || 'Kategori'}`
+                                      : ' · 1-on-1'
+                                    : ''}
+                                </span>
+                                <span
+                                  className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-extrabold border ${crmDeliveryMeta.badgeClass}`}
+                                >
+                                  {crmDeliveryMeta.label}
+                                </span>
+                              </div>
                               <div className="font-semibold text-slate-800 line-clamp-2">
                                 {topicTitle}
                               </div>
@@ -3228,6 +3712,40 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                 >
                   Disembunyikan ({hiddenPosterCount})
                 </button>
+                <span className="h-4 w-px bg-slate-200 mx-1 hidden sm:inline-block" />
+                {(['all', 'seminar', 'workshop', 'coaching'] as const).map((tier) => (
+                  <button
+                    key={tier}
+                    type="button"
+                    onClick={() => setPosterProgramFilter(tier)}
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-bold cursor-pointer ${
+                      posterProgramFilter === tier
+                        ? tier === 'seminar'
+                          ? 'bg-sky-600 text-white'
+                          : tier === 'workshop'
+                          ? 'bg-[#F28C28] text-white'
+                          : tier === 'coaching'
+                          ? 'bg-amber-400 text-[#1F3A5F]'
+                          : 'bg-[#1F3A5F] text-white'
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    }`}
+                  >
+                    {tier === 'all'
+                      ? 'Semua Jenjang'
+                      : PROGRAM_FORMAT_META[tier].label}
+                  </button>
+                ))}
+                <select
+                  value={posterDeliveryFilter}
+                  onChange={(e) =>
+                    setPosterDeliveryFilter(e.target.value as 'all' | DeliveryModeType)
+                  }
+                  className="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200 cursor-pointer"
+                >
+                  <option value="all">Online & Offline</option>
+                  <option value="online">Online Saja</option>
+                  <option value="offline">Offline Saja</option>
+                </select>
               </div>
 
               <div className="relative min-w-[230px] flex-1 max-w-xs">
@@ -3236,7 +3754,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                   type="text"
                   value={posterSearchQuery}
                   onChange={(e) => setPosterSearchQuery(e.target.value)}
-                  placeholder="Cari judul atau kategori materi..."
+                  placeholder="Cari judul, kategori, atau lokasi..."
                   className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#F28C28]"
                 />
               </div>
@@ -3261,6 +3779,9 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                 ).length;
                 const matPricing = getMaterialPricing(material.id);
                 const isEditingPrice = editingPricingMaterialId === material.id;
+                const matProgram = getMaterialProgram(material);
+                const matProgramMeta = PROGRAM_FORMAT_META[matProgram.format];
+                const isEditingProgram = editingProgramMaterialId === material.id;
 
                 return (
                   <article
@@ -3344,6 +3865,14 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                         )}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent pointer-events-none" />
 
+                        <div className="absolute top-2.5 left-2.5 max-w-[56%]">
+                          <span
+                            className={`inline-block text-[10px] font-extrabold px-2 py-0.5 rounded truncate max-w-full ${matProgramMeta.publicChipClass}`}
+                          >
+                            {matProgramMeta.shortBadge}
+                          </span>
+                        </div>
+
                         <div className="absolute top-2.5 right-2.5">
                           {matPricing.isPaid ? (
                             <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-amber-400 text-[#1F3A5F] tabular-nums">
@@ -3357,10 +3886,10 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                         </div>
 
                         <div className="absolute bottom-2.5 left-3 right-3 flex items-center justify-between gap-2 text-white">
-                          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-[#F28C28] text-white whitespace-nowrap tabular-nums">
-                            MIN. {campaign.minQuota} PESERTA
+                          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-[#F28C28] text-white whitespace-nowrap truncate tabular-nums">
+                            {getProgramQuotaBadgeText(matProgram, campaign.minQuota)}
                           </span>
-                          <span className="text-[11px] font-bold text-white/90 whitespace-nowrap tabular-nums">
+                          <span className="text-[11px] font-bold text-white/90 whitespace-nowrap shrink-0 tabular-nums">
                             {voteCount} suara · {material.content.slides.length} slide
                           </span>
                         </div>
@@ -3370,9 +3899,28 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                     {/* Poster Editorial Highlights & Pricing Bar */}
                     <div className="m-4 mb-0 rounded-2xl bg-[#FFF9F0] p-4 flex-1 flex flex-col justify-between gap-3">
                       <div className="space-y-2">
-                        <div className="text-[10px] font-bold text-[#2A9D8F] truncate">
-                          {material.category || 'Modul Pelatihan'} · {material.organizerName}
-                        </div>
+                        {(() => {
+                          const dMode: DeliveryModeType =
+                            matProgram.deliveryMode === 'offline' ? 'offline' : 'online';
+                          const dMeta = DELIVERY_MODE_META[dMode];
+                          return (
+                            <div className="flex items-center justify-between gap-2 text-[10px]">
+                              <span
+                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded font-extrabold border shrink-0 ${dMeta.badgeClass}`}
+                              >
+                                {dMode === 'offline' ? (
+                                  <MapPin className="w-3 h-3" />
+                                ) : (
+                                  <Video className="w-3 h-3" />
+                                )}
+                                <span>{dMeta.shortLabel}</span>
+                              </span>
+                              <span className="font-bold text-[#2A9D8F] truncate">
+                                {matProgram.locationLabel || dMeta.defaultLocation}
+                              </span>
+                            </div>
+                          );
+                        })()}
                         <h3 className="font-display text-sm sm:text-base font-extrabold text-[#1F3A5F] leading-snug">
                           {material.seminarTitle}
                         </h3>
@@ -3386,6 +3934,303 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                             </li>
                           ))}
                         </ul>
+                      </div>
+
+                      {/* Inline Program Tier (Seminar / Workshop / Coaching) + Online/Offline Configuration */}
+                      <div className="pt-2.5 border-t border-[#1F3A5F]/10">
+                        {isEditingProgram ? (
+                          <div className="p-2.5 rounded-xl bg-white border border-slate-300 space-y-2 text-[11px]">
+                            <div className="grid grid-cols-3 gap-1">
+                              {(['seminar', 'workshop', 'coaching'] as ProgramFormatType[]).map(
+                                (fmt) => {
+                                  const active = programForm.format === fmt;
+                                  const meta = PROGRAM_FORMAT_META[fmt];
+                                  return (
+                                    <button
+                                      key={fmt}
+                                      type="button"
+                                      onClick={() =>
+                                        setProgramForm({
+                                          ...programForm,
+                                          format: fmt,
+                                          durationLabel: meta.defaultDuration,
+                                          quotaOverride:
+                                            fmt === 'coaching'
+                                              ? programForm.coachingScope === 'category_group'
+                                                ? 5
+                                                : 1
+                                              : fmt === 'workshop'
+                                              ? 8
+                                              : Math.max(5, campaign.minQuota || 15),
+                                          coachingScope:
+                                            fmt === 'coaching'
+                                              ? programForm.coachingScope || 'one_on_one'
+                                              : undefined,
+                                        })
+                                      }
+                                      className={`py-1.5 px-1 rounded-lg font-extrabold border cursor-pointer ${
+                                        active
+                                          ? 'bg-[#1F3A5F] border-[#1F3A5F] text-white'
+                                          : 'bg-slate-50 border-slate-200 text-slate-700'
+                                      }`}
+                                    >
+                                      {meta.label}
+                                    </button>
+                                  );
+                                }
+                              )}
+                            </div>
+
+                            {/* Online / Offline Toggle */}
+                            <div className="grid grid-cols-2 gap-1.5">
+                              {(['online', 'offline'] as DeliveryModeType[]).map((dm) => {
+                                const isActiveMode =
+                                  (programForm.deliveryMode || 'online') === dm;
+                                const dMeta = DELIVERY_MODE_META[dm];
+                                return (
+                                  <button
+                                    key={dm}
+                                    type="button"
+                                    onClick={() => {
+                                      const prevLoc = (programForm.locationLabel || '').trim();
+                                      const isPrevDefault =
+                                        !prevLoc ||
+                                        prevLoc === DELIVERY_MODE_META.online.defaultLocation ||
+                                        prevLoc === DELIVERY_MODE_META.offline.defaultLocation ||
+                                        prevLoc === 'Tatap Muka · Studio Praktik' ||
+                                        prevLoc === 'Tatap Muka / Studio Pendampingan';
+                                      setProgramForm({
+                                        ...programForm,
+                                        deliveryMode: dm,
+                                        locationLabel: isPrevDefault
+                                          ? dMeta.defaultLocation
+                                          : prevLoc,
+                                      });
+                                    }}
+                                    className={`py-1.5 px-2 rounded-lg font-extrabold border cursor-pointer flex items-center justify-center gap-1 ${
+                                      isActiveMode
+                                        ? dm === 'offline'
+                                          ? 'bg-violet-600 border-violet-600 text-white'
+                                          : 'bg-emerald-600 border-emerald-600 text-white'
+                                        : 'bg-slate-50 border-slate-200 text-slate-600'
+                                    }`}
+                                  >
+                                    {dm === 'offline' ? (
+                                      <MapPin className="w-3 h-3" />
+                                    ) : (
+                                      <Video className="w-3 h-3" />
+                                    )}
+                                    <span>Metode {dMeta.label}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-600">
+                                {programForm.deliveryMode === 'offline'
+                                  ? 'Lokasi Tatap Muka / Kota'
+                                  : 'Platform Online'}
+                              </label>
+                              <input
+                                type="text"
+                                maxLength={64}
+                                value={programForm.locationLabel || ''}
+                                onChange={(e) =>
+                                  setProgramForm({
+                                    ...programForm,
+                                    locationLabel: e.target.value,
+                                  })
+                                }
+                                placeholder={
+                                  programForm.deliveryMode === 'offline'
+                                    ? 'Contoh: Studio obeeCreatives, Yogyakarta'
+                                    : 'Contoh: Via Zoom / Google Meet'
+                                }
+                                className="w-full px-2 py-1 text-[11px] border border-slate-300 rounded-lg"
+                              />
+                            </div>
+
+                            {programForm.format === 'coaching' && (
+                              <div className="space-y-1.5">
+                                <div className="grid grid-cols-2 gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setProgramForm({
+                                        ...programForm,
+                                        coachingScope: 'one_on_one',
+                                        quotaOverride: 1,
+                                        durationLabel: '90 Menit Privat',
+                                      })
+                                    }
+                                    className={`py-1 px-2 rounded-lg font-bold border cursor-pointer ${
+                                      programForm.coachingScope !== 'category_group'
+                                        ? 'bg-amber-400 border-amber-500 text-[#1F3A5F]'
+                                        : 'bg-slate-50 border-slate-200 text-slate-600'
+                                    }`}
+                                  >
+                                    1-on-1 Privat
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setProgramForm({
+                                        ...programForm,
+                                        coachingScope: 'category_group',
+                                        quotaOverride: 5,
+                                        durationLabel: '2 Jam Fokus Kategori',
+                                        targetCategory:
+                                          programForm.targetCategory || BUSINESS_CATEGORIES[0],
+                                      })
+                                    }
+                                    className={`py-1 px-2 rounded-lg font-bold border cursor-pointer ${
+                                      programForm.coachingScope === 'category_group'
+                                        ? 'bg-amber-400 border-amber-500 text-[#1F3A5F]'
+                                        : 'bg-slate-50 border-slate-200 text-slate-600'
+                                    }`}
+                                  >
+                                    Per Kategori Usaha
+                                  </button>
+                                </div>
+
+                                {programForm.coachingScope === 'category_group' && (
+                                  <select
+                                    value={programForm.targetCategory || BUSINESS_CATEGORIES[0]}
+                                    onChange={(e) =>
+                                      setProgramForm({
+                                        ...programForm,
+                                        targetCategory: e.target.value,
+                                      })
+                                    }
+                                    className="w-full px-2 py-1 text-[11px] bg-slate-50 border border-slate-300 rounded-lg"
+                                  >
+                                    {BUSINESS_CATEGORIES.map((cat) => (
+                                      <option key={cat} value={cat}>
+                                        Fokus Kategori: {cat}
+                                      </option>
+                                    ))}
+                                  </select>
+                                )}
+                              </div>
+                            )}
+
+                            <div className="grid grid-cols-2 gap-1.5">
+                              <div>
+                                <label className="block text-[10px] font-bold text-slate-600">
+                                  Durasi Sesi
+                                </label>
+                                <input
+                                  type="text"
+                                  maxLength={48}
+                                  value={programForm.durationLabel}
+                                  onChange={(e) =>
+                                    setProgramForm({
+                                      ...programForm,
+                                      durationLabel: e.target.value,
+                                    })
+                                  }
+                                  placeholder="3 Jam Praktik"
+                                  className="w-full px-2 py-1 text-xs border border-slate-300 rounded-lg"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-bold text-slate-600">
+                                  Kuota Peserta
+                                </label>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  max={200}
+                                  value={programForm.quotaOverride ?? 15}
+                                  onChange={(e) =>
+                                    setProgramForm({
+                                      ...programForm,
+                                      quotaOverride: Math.max(1, Number(e.target.value) || 1),
+                                    })
+                                  }
+                                  className="w-full px-2 py-1 text-xs border border-slate-300 rounded-lg tabular-nums"
+                                />
+                              </div>
+                            </div>
+
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-600">
+                                Catatan Prasyarat (Opsional)
+                              </label>
+                              <input
+                                type="text"
+                                maxLength={140}
+                                value={programForm.prerequisiteNote || ''}
+                                onChange={(e) =>
+                                  setProgramForm({
+                                    ...programForm,
+                                    prerequisiteNote: e.target.value,
+                                  })
+                                }
+                                placeholder="Mis. Disarankan sudah ikut Seminar Dasar"
+                                className="w-full px-2 py-1 text-[11px] border border-slate-300 rounded-lg"
+                              />
+                            </div>
+
+                            <div className="flex items-center justify-end gap-1.5 pt-1">
+                              <button
+                                type="button"
+                                onClick={() => setEditingProgramMaterialId(null)}
+                                className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-600 font-bold cursor-pointer"
+                              >
+                                Batal
+                              </button>
+                              <button
+                                type="button"
+                                disabled={isBusyHost}
+                                onClick={() => handleSavePosterProgram(material.id)}
+                                className="px-3 py-1 rounded-lg bg-[#1F3A5F] text-white font-bold cursor-pointer disabled:opacity-50"
+                              >
+                                Simpan Jenjang
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-between gap-2 text-[11px]">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <Layers className="w-3.5 h-3.5 text-[#2A9D8F] shrink-0" />
+                              <span className="font-bold text-[#1F3A5F] truncate tabular-nums">
+                                {matProgramMeta.label} · {matProgram.deliveryMode === 'offline' ? 'Offline' : 'Online'} · {matProgram.durationLabel}
+                                {matProgram.format === 'coaching'
+                                  ? matProgram.coachingScope === 'category_group'
+                                    ? ` · ${matProgram.targetCategory || 'Kategori'}`
+                                    : ' · Privat 1-on-1'
+                                  : ` · Kuota ${matProgram.quotaOverride || campaign.minQuota}`}
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingProgramMaterialId(material.id);
+                                setProgramForm({
+                                  format: matProgram.format,
+                                  deliveryMode:
+                                    matProgram.deliveryMode === 'offline' ? 'offline' : 'online',
+                                  locationLabel:
+                                    matProgram.locationLabel ||
+                                    DELIVERY_MODE_META[
+                                      matProgram.deliveryMode === 'offline' ? 'offline' : 'online'
+                                    ].defaultLocation,
+                                  durationLabel: matProgram.durationLabel,
+                                  quotaOverride: matProgram.quotaOverride || campaign.minQuota,
+                                  coachingScope: matProgram.coachingScope || 'one_on_one',
+                                  targetCategory:
+                                    matProgram.targetCategory || BUSINESS_CATEGORIES[0],
+                                  prerequisiteNote: matProgram.prerequisiteNote || '',
+                                });
+                              }}
+                              className="px-2.5 py-1 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 text-[#1F3A5F] font-bold cursor-pointer whitespace-nowrap shrink-0"
+                            >
+                              Atur Jenjang
+                            </button>
+                          </div>
+                        )}
                       </div>
 
                       {/* Inline Free vs Paid Pricing Configuration */}
@@ -3648,6 +4493,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                           ctaLabel: studioCtaLabel,
                           customNote: studioCustomNote,
                           pricing: getMaterialPricing(studioMaterial.id),
+                          program: getMaterialProgram(studioMaterial),
                           qrCanvas,
                         });
                       }}

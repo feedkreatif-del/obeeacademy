@@ -269,6 +269,7 @@ service cloud.firestore {
         'winningSlotId',
         'confirmedScheduleNote',
         'materialPricing',
+        'materialProgram',
         'qrisPayload',
         'qrisMerchantName',
         'qrisMerchantNmid',
@@ -290,6 +291,7 @@ service cloud.firestore {
       data.winningSlotId is string && data.winningSlotId.size() <= 64 &&
       data.confirmedScheduleNote is string && data.confirmedScheduleNote.size() <= 250 &&
       (!('materialPricing' in data) || (data.materialPricing is map && data.materialPricing.size() <= 50)) &&
+      (!('materialProgram' in data) || (data.materialProgram is map && data.materialProgram.size() <= 50)) &&
       (!('qrisPayload' in data) || (data.qrisPayload is string && data.qrisPayload.size() <= 600)) &&
       (!('qrisMerchantName' in data) || (data.qrisMerchantName is string && data.qrisMerchantName.size() <= 100)) &&
       (!('qrisMerchantNmid' in data) || (data.qrisMerchantNmid is string && data.qrisMerchantNmid.size() <= 40)) &&
@@ -535,6 +537,7 @@ service cloud.firestore {
           'winningSlotId',
           'confirmedScheduleNote',
           'materialPricing',
+          'materialProgram',
           'qrisPayload',
           'qrisMerchantName',
           'qrisMerchantNmid',

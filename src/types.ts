@@ -120,6 +120,23 @@ export type UnlockCampaignStatus = 'open' | 'unlocked' | 'scheduled' | 'closed';
 
 export type UnlockPaymentMode = 'pay_when_go' | 'direct_pay';
 
+export type ProgramFormatType = 'seminar' | 'workshop' | 'coaching';
+
+export type CoachingScopeType = 'one_on_one' | 'category_group';
+
+export type DeliveryModeType = 'online' | 'offline';
+
+export interface MaterialProgramConfig {
+  format: ProgramFormatType;
+  deliveryMode?: DeliveryModeType;
+  locationLabel?: string;
+  durationLabel?: string;
+  quotaOverride?: number;
+  coachingScope?: CoachingScopeType;
+  targetCategory?: string;
+  prerequisiteNote?: string;
+}
+
 export interface MaterialPricingConfig {
   isPaid: boolean;
   price: number;
@@ -143,6 +160,7 @@ export interface UnlockCampaignDoc {
   winningSlotId: string;
   confirmedScheduleNote: string;
   materialPricing?: Record<string, MaterialPricingConfig>;
+  materialProgram?: Record<string, MaterialProgramConfig>;
   qrisPayload?: string;
   qrisMerchantName?: string;
   qrisMerchantNmid?: string;

@@ -446,6 +446,10 @@
           "type": "object",
           "description": "Map of materialId to paid/free pricing config (isPaid, price, originalPrice, paymentMode)"
         },
+        "materialProgram": {
+          "type": "object",
+          "description": "Map of materialId to 3-tier program classification (format: seminar|workshop|coaching, deliveryMode: online|offline, locationLabel, durationLabel, quotaOverride, coachingScope, targetCategory, prerequisiteNote)"
+        },
         "qrisPayload": {
           "type": "string",
           "maxLength": 600,

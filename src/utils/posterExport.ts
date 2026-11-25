@@ -1,5 +1,19 @@
-import { MaterialPricingConfig, SavedMaterial, UnlockCampaignDoc } from '../types';
+import {
+  MaterialPricingConfig,
+  MaterialProgramConfig,
+  SavedMaterial,
+  UnlockCampaignDoc,
+} from '../types';
 import { formatRupiah } from './qris';
+import {
+  DELIVERY_MODE_META,
+  PROGRAM_FORMAT_META,
+  getDefaultProgramForMaterial,
+  getDeliveryDisplayLabel,
+  getProgramQuotaBadgeText,
+  getProgramShortPillText,
+  resolveMaterialProgram,
+} from './programTier';
 
 export interface PosterRenderOptions {
   minQuota?: number;
@@ -8,6 +22,7 @@ export interface PosterRenderOptions {
   ctaLabel?: string;
   customNote?: string;
   pricing?: MaterialPricingConfig;
+  program?: MaterialProgramConfig;
   qrCanvas?: HTMLCanvasElement | null;
 }
 
@@ -266,13 +281,39 @@ export async function renderMaterialPosterDataUrl(
     );
   }
 
+  const resolvedProgram =
+    options.program || getDefaultProgramForMaterial(material, minQuota);
+  const programMeta = PROGRAM_FORMAT_META[resolvedProgram.format];
+
+  // Program Tier badge anchored inside visual top-left
+  const tierLabel = getProgramShortPillText(resolvedProgram).toUpperCase();
+  ctx.font = '800 18px system-ui, -apple-system, sans-serif';
+  const tierTextW = ctx.measureText(tierLabel).width;
+  const tierBadgeW = Math.min(480, tierTextW + 32);
+  ctx.fillStyle = programMeta.posterBgColor;
+  drawRoundedRect(ctx, imgX + 24, imgY + 22, tierBadgeW, 40, 10);
+  ctx.fill();
+  ctx.fillStyle = programMeta.posterTextColor;
+  ctx.fillText(
+    wrapTextLines(ctx, tierLabel, tierBadgeW - 24, 1)[0] || tierLabel,
+    imgX + 40,
+    imgY + 48
+  );
+
   // Quota badge anchored inside visual bottom-left
+  const quotaBadgeLabel = getProgramQuotaBadgeText(resolvedProgram, minQuota);
+  ctx.font = '800 19px system-ui, -apple-system, sans-serif';
+  const quotaTextW = ctx.measureText(quotaBadgeLabel).width;
+  const quotaBoxW = Math.min(imgW - 48, quotaTextW + 38);
   ctx.fillStyle = accent;
-  drawRoundedRect(ctx, imgX + 24, imgY + imgH - 64, 386, 42, 12);
+  drawRoundedRect(ctx, imgX + 24, imgY + imgH - 64, quotaBoxW, 42, 12);
   ctx.fill();
   ctx.fillStyle = '#FFFFFF';
-  ctx.font = '800 20px system-ui, -apple-system, sans-serif';
-  ctx.fillText(`SYARAT KELAS DIBUKA: MIN. ${minQuota} PESERTA`, imgX + 42, imgY + imgH - 36);
+  ctx.fillText(
+    wrapTextLines(ctx, quotaBadgeLabel, quotaBoxW - 24, 1)[0] || quotaBadgeLabel,
+    imgX + 42,
+    imgY + imgH - 36
+  );
 
   // Price badge anchored inside visual top-right (GRATIS vs BERBAYAR)
   const isPaidClass = Boolean(options.pricing?.isPaid && (options.pricing?.price || 0) > 0);
@@ -322,14 +363,36 @@ export async function renderMaterialPosterDataUrl(
   drawRoundedRect(ctx, 64, sheetY, W - 128, sheetH, 32);
   ctx.fill();
 
+  // Online / Offline Delivery Badge + Location Pill Row (clean placement above headline)
+  const deliveryMode = resolvedProgram.deliveryMode === 'offline' ? 'offline' : 'online';
+  const deliveryMeta = DELIVERY_MODE_META[deliveryMode];
+  const deliveryShort = deliveryMeta.shortLabel;
+  const deliveryLoc =
+    (resolvedProgram.locationLabel || '').trim() || deliveryMeta.defaultLocation;
+
+  ctx.font = '800 18px system-ui, -apple-system, sans-serif';
+  const delBadgeTextW = ctx.measureText(deliveryShort).width;
+  const delBadgeW = delBadgeTextW + 26;
+  const delBadgeY = sheetY + 26;
+  ctx.fillStyle = deliveryMeta.posterBgColor;
+  drawRoundedRect(ctx, 100, delBadgeY, delBadgeW, 32, 9);
+  ctx.fill();
+  ctx.fillStyle = deliveryMeta.posterTextColor;
+  ctx.fillText(deliveryShort, 113, delBadgeY + 22);
+
+  ctx.fillStyle = '#334155';
+  ctx.font = '700 20px system-ui, -apple-system, sans-serif';
+  const locText = wrapTextLines(ctx, deliveryLoc, W - 220 - delBadgeW, 1)[0] || deliveryLoc;
+  ctx.fillText(locText, 100 + delBadgeW + 14, delBadgeY + 23);
+
   // Headline
   ctx.fillStyle = primary;
-  ctx.font = '800 40px system-ui, -apple-system, sans-serif';
+  ctx.font = '800 38px system-ui, -apple-system, sans-serif';
   const titleLines = wrapTextLines(ctx, material.seminarTitle, W - 200, 2);
-  let cursorY = sheetY + 68;
+  let cursorY = sheetY + 104;
   for (const line of titleLines) {
     ctx.fillText(line, 100, cursorY);
-    cursorY += 48;
+    cursorY += 45;
   }
 
   // Short Hook / Description
@@ -338,16 +401,16 @@ export async function renderMaterialPosterDataUrl(
     material.description ||
     'Pelatihan interaktif langsung praktik untuk membantu UMKM berkembang terukur.';
   ctx.fillStyle = '#475569';
-  ctx.font = '500 23px system-ui, -apple-system, sans-serif';
+  ctx.font = '500 22px system-ui, -apple-system, sans-serif';
   const descLines = wrapTextLines(ctx, descSource, W - 200, 2);
-  cursorY += 4;
+  cursorY += 2;
   for (const dLine of descLines) {
     ctx.fillText(dLine, 100, cursorY);
-    cursorY += 31;
+    cursorY += 29;
   }
 
   // Divider
-  cursorY += 14;
+  cursorY += 10;
   ctx.strokeStyle = 'rgba(31, 58, 95, 0.12)';
   ctx.lineWidth = 2;
   ctx.beginPath();
@@ -356,11 +419,11 @@ export async function renderMaterialPosterDataUrl(
   ctx.stroke();
 
   // Section Label: INTI MATERI
-  cursorY += 40;
+  cursorY += 34;
   ctx.fillStyle = secondary;
-  ctx.font = '800 21px system-ui, -apple-system, sans-serif';
+  ctx.font = '800 20px system-ui, -apple-system, sans-serif';
   ctx.fillText('INTI MATERI YANG AKAN DIBAHAS:', 100, cursorY);
-  cursorY += 28;
+  cursorY += 22;
 
   const highlights = extractMaterialCoreHighlights(material).slice(0, 3);
   for (let idx = 0; idx < highlights.length; idx++) {
@@ -368,44 +431,44 @@ export async function renderMaterialPosterDataUrl(
     // Number circle
     ctx.fillStyle = primary;
     ctx.beginPath();
-    ctx.arc(118, cursorY + 14, 17, 0, Math.PI * 2);
+    ctx.arc(118, cursorY + 13, 16, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = '800 18px system-ui, -apple-system, sans-serif';
-    ctx.fillText(String(idx + 1), 113, cursorY + 20);
+    ctx.font = '800 17px system-ui, -apple-system, sans-serif';
+    ctx.fillText(String(idx + 1), 113, cursorY + 19);
 
     ctx.fillStyle = '#1E293B';
-    ctx.font = '600 23px system-ui, -apple-system, sans-serif';
+    ctx.font = '600 22px system-ui, -apple-system, sans-serif';
     const bLines = wrapTextLines(ctx, bulletText, W - 260, 2);
     for (let li = 0; li < bLines.length; li++) {
-      ctx.fillText(bLines[li], 150, cursorY + 21 + li * 29);
+      ctx.fillText(bLines[li], 150, cursorY + 20 + li * 27);
     }
-    cursorY += bLines.length > 1 ? 74 : 52;
+    cursorY += bLines.length > 1 ? 66 : 46;
   }
 
   // Bottom callout inside cream card: Schedule & Rule
-  const infoBoxY = sheetY + sheetH - 122;
+  const infoBoxY = sheetY + sheetH - 116;
   ctx.fillStyle = '#FFFFFF';
-  drawRoundedRect(ctx, 100, infoBoxY, W - 200, 92, 18);
+  drawRoundedRect(ctx, 100, infoBoxY, W - 200, 90, 18);
   ctx.fill();
   ctx.strokeStyle = `${accent}66`;
   ctx.lineWidth = 2;
   ctx.stroke();
 
   ctx.fillStyle = primary;
-  ctx.font = '800 20px system-ui, -apple-system, sans-serif';
-  ctx.fillText('MEKANISME BURSA KELAS:', 124, infoBoxY + 34);
+  ctx.font = '800 19px system-ui, -apple-system, sans-serif';
+  ctx.fillText(`METODE ${deliveryShort} · MEKANISME BURSA KELAS:`, 124, infoBoxY + 32);
 
   ctx.fillStyle = '#334155';
-  ctx.font = '600 19px system-ui, -apple-system, sans-serif';
+  ctx.font = '600 18px system-ui, -apple-system, sans-serif';
   const mechLine1 = `Topik suara terbanyak + jadwal dengan min. ${minQuota} peserta terkonfirmasi resmi jalan!`;
-  const mechLine2 = `${slotsSummary} · ${deadlineLabel}`;
+  const mechLine2 = `${deliveryShort} (${deliveryLoc}) · ${slotsSummary} · ${deadlineLabel}`;
   const mechL1 = wrapTextLines(ctx, mechLine1, W - 250, 1)[0] || mechLine1;
   const mechL2 = wrapTextLines(ctx, mechLine2, W - 250, 1)[0] || mechLine2;
-  ctx.fillText(mechL1, 124, infoBoxY + 60);
+  ctx.fillText(mechL1, 124, infoBoxY + 57);
   ctx.fillStyle = '#64748B';
-  ctx.font = '500 17px system-ui, -apple-system, sans-serif';
-  ctx.fillText(mechL2, 124, infoBoxY + 82);
+  ctx.font = '500 16px system-ui, -apple-system, sans-serif';
+  ctx.fillText(mechL2, 124, infoBoxY + 79);
 
   // 5. Footer CTA & QR Area
   const footY = 1170;
@@ -472,11 +535,14 @@ export function buildBursaBroadcastText(
     .map((mat, idx) => {
       const inti = extractMaterialCoreHighlights(mat).slice(0, 2).join(' · ');
       const pricing = campaign.materialPricing?.[mat.id];
+      const prog = resolveMaterialProgram(mat, campaign);
+      const progTag = `[${getProgramShortPillText(prog)}]`;
+      const deliveryTag = `[${getDeliveryDisplayLabel(prog)}]`;
       const priceTag =
         pricing?.isPaid && pricing.price > 0
           ? `[Berbayar ${formatRupiah(pricing.price)}]`
           : '[Gratis]';
-      return `${idx + 1}. *${mat.seminarTitle}* ${priceTag}\n   Inti: ${inti}`;
+      return `${idx + 1}. *${mat.seminarTitle}* ${progTag} ${deliveryTag} ${priceTag}\n   Inti: ${inti}`;
     })
     .join('\n\n');
 
