@@ -1318,19 +1318,19 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
   const posterDownloadModalJsx = posterModalMaterial ? (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-xs">
       <div className="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-200 flex flex-col max-h-[92vh]">
-        <div className="px-5 py-3.5 bg-[#1F3A5F] text-white flex items-center justify-between">
-          <div>
-            <div className="text-xs font-bold text-[#F28C28]">Poster Ajakan Kelas (4:5 PNG)</div>
-            <div className="text-sm font-extrabold truncate max-w-[260px]">
+        <div className="px-5 py-4 bg-[#1F3A5F] text-white flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-sm font-bold text-[#F28C28]">Poster Ajakan Kelas (4:5 PNG)</div>
+            <div className="text-base sm:text-lg font-extrabold truncate">
               {posterModalMaterial.seminarTitle}
             </div>
           </div>
           <button
             type="button"
             onClick={() => setPosterModalMaterial(null)}
-            className="p-1.5 rounded-lg hover:bg-white/10 cursor-pointer"
+            className="p-2 rounded-lg hover:bg-white/10 cursor-pointer shrink-0"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
@@ -1345,7 +1345,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
 
         <div className="p-4 overflow-y-auto flex-1 flex flex-col items-center gap-4 bg-slate-100">
           {isRenderingPoster || !posterPreviewUrl ? (
-            <div className="w-full aspect-[4/5] rounded-xl bg-white border border-slate-200 flex flex-col items-center justify-center gap-2 text-xs text-slate-500">
+            <div className="w-full aspect-[4/5] rounded-xl bg-white border border-slate-200 flex flex-col items-center justify-center gap-2 text-sm text-slate-600">
               <RefreshCw className="w-5 h-5 animate-spin text-[#F28C28]" />
               <span>Menyusun poster PNG resolusi tinggi...</span>
             </div>
@@ -1358,7 +1358,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
           )}
         </div>
 
-        <div className="p-4 bg-white border-t border-slate-200 flex items-center gap-2">
+        <div className="p-4 bg-white border-t border-slate-200 flex items-center gap-2.5">
           <button
             type="button"
             onClick={async () => {
@@ -1372,7 +1372,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                 qrCanvas,
               });
             }}
-            className="flex-1 py-2.5 px-4 rounded-xl bg-[#F28C28] hover:bg-[#d97719] text-white text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
+            className="flex-1 py-3 px-4 rounded-xl bg-[#F28C28] hover:bg-[#d97719] text-white text-sm sm:text-[15px] font-extrabold flex items-center justify-center gap-2 cursor-pointer"
           >
             <Download className="w-4 h-4" />
             <span>Unduh Poster PNG</span>
@@ -1385,16 +1385,16 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                 `${baseBursaUrl}&mid=${encodeURIComponent(posterModalMaterial.id)}`
               )
             }
-            className="py-2.5 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-[#1F3A5F] text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+            className="py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-[#1F3A5F] text-sm font-bold flex items-center gap-1.5 cursor-pointer"
           >
             {copiedKey === 'modal_link' ? (
               <>
-                <Check className="w-3.5 h-3.5 text-emerald-600" />
+                <Check className="w-4 h-4 text-emerald-600" />
                 <span>Tersalin</span>
               </>
             ) : (
               <>
-                <Copy className="w-3.5 h-3.5" />
+                <Copy className="w-4 h-4" />
                 <span>Salin Link</span>
               </>
             )}
@@ -1442,48 +1442,48 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
     return (
       <div className="max-w-[1380px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-9 space-y-8">
         {/* Hero & Quorum Status */}
-        <section className="bg-[#1F3A5F] text-white rounded-3xl p-6 sm:p-8 border border-white/10 shadow-md relative overflow-hidden">
+        <section className="bg-[#1F3A5F] text-white rounded-3xl p-5 sm:p-8 border border-white/10 shadow-md relative overflow-hidden">
           <div className="relative z-10 space-y-5">
-            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-white/75">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-sm sm:text-[15px] text-white/80">
               <span className="font-semibold tracking-wide text-[#F28C28]">
                 {campaign.organizerName || 'obeeAcademy | PartnerUp'} · Bursa Kelas UMKM
               </span>
               <span className="tabular-nums">{campaign.deadlineLabel}</span>
             </div>
 
-            <div className="space-y-2 max-w-3xl">
+            <div className="space-y-2.5 max-w-3xl">
               <h1
-                className="font-display text-2xl sm:text-4xl font-extrabold tracking-tight leading-tight"
+                className="font-display text-[26px] sm:text-4xl font-extrabold tracking-tight leading-tight"
                 style={{ textWrap: 'balance' }}
               >
                 {campaign.title}
               </h1>
-              <p className="text-sm sm:text-base text-white/80 leading-relaxed">
+              <p className="text-base sm:text-lg text-white/85 leading-relaxed">
                 {campaign.subtitle}
               </p>
             </div>
 
             {isScheduled && winningMaterialObj && winningSlotObj ? (
               <div className="bg-emerald-500/15 border border-emerald-400/40 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-emerald-300 text-xs font-bold">
-                    <CheckCircle2 className="w-4 h-4" />
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2 text-emerald-300 text-sm font-bold">
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
                     <span>Kuota Tercapai — Kelas Resmi Dijadwalkan</span>
                   </div>
-                  <h2 className="font-display text-lg font-extrabold text-white">
+                  <h2 className="font-display text-xl font-extrabold text-white">
                     {winningMaterialObj.seminarTitle}
                   </h2>
-                  <p className="text-xs sm:text-sm text-white/85">
+                  <p className="text-sm sm:text-base text-white/90">
                     Jadwal Sah: <strong>{winningSlotObj.label}</strong> ({winningSlotObj.dateText} ·{' '}
                     {winningSlotObj.timeText})
                   </p>
                   {campaign.confirmedScheduleNote && (
-                    <p className="text-xs text-emerald-100/90 pt-1">
+                    <p className="text-sm text-emerald-100/95 pt-1 leading-relaxed">
                       {campaign.confirmedScheduleNote}
                     </p>
                   )}
                 </div>
-                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                <div className="flex flex-wrap items-center gap-2.5 shrink-0">
                   {myExistingVote &&
                     payableContext.pricing.isPaid &&
                     myExistingVote.paymentStatus !== 'paid' && (
@@ -1493,7 +1493,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                           setPaymentConfirmSuccess('');
                           setIsPaymentModalOpen(true);
                         }}
-                        className="px-4 py-2.5 rounded-xl bg-[#F28C28] hover:bg-[#d97719] text-white text-xs sm:text-sm font-extrabold whitespace-nowrap cursor-pointer flex items-center gap-1.5"
+                        className="px-4 py-3 rounded-xl bg-[#F28C28] hover:bg-[#d97719] text-white text-sm sm:text-[15px] font-extrabold whitespace-nowrap cursor-pointer flex items-center gap-1.5"
                       >
                         <QrCode className="w-4 h-4" />
                         <span>Bayar QRIS ({formatRupiah(payableContext.payableAmount)})</span>
@@ -1502,26 +1502,26 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                   <button
                     type="button"
                     onClick={() => openVoteModalForMaterial(winningMaterialObj.id)}
-                    className="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs sm:text-sm font-bold whitespace-nowrap cursor-pointer transition-colors"
+                    className="px-5 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm sm:text-[15px] font-bold whitespace-nowrap cursor-pointer transition-colors"
                   >
                     Daftar Ikut Kelas Ini
                   </button>
                 </div>
               </div>
             ) : (
-              <div className="bg-white/10 border border-white/15 rounded-2xl p-4 sm:p-5 space-y-3">
+              <div className="bg-white/10 border border-white/15 rounded-2xl p-4 sm:p-5 space-y-3.5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="text-xs font-semibold text-amber-300">
+                    <div className="text-sm font-semibold text-amber-300">
                       Kandidat Terkuat Saat Ini
                     </div>
-                    <div className="text-sm sm:text-base font-bold text-white mt-0.5 truncate">
+                    <div className="text-base sm:text-lg font-bold text-white mt-0.5 leading-snug">
                       {analytics.leadingCandidate
                         ? analytics.leadingCandidate.material.seminarTitle
                         : 'Pilih poster materi di bawah untuk mulai voting'}
                     </div>
                     {analytics.bestSlotStat && (
-                      <div className="text-xs text-white/75 mt-0.5">
+                      <div className="text-sm text-white/85 mt-1 leading-snug">
                         Jadwal terpadat: {analytics.bestSlotStat.slot.label} (
                         {analytics.bestSlotStat.slot.dateText} ·{' '}
                         {analytics.bestSlotStat.slot.timeText})
@@ -1529,17 +1529,17 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                     )}
                   </div>
                   <div className="text-right shrink-0">
-                    <div className="font-display text-2xl sm:text-3xl font-extrabold text-[#F28C28] tabular-nums">
+                    <div className="font-display text-2xl sm:text-4xl font-extrabold text-[#F28C28] tabular-nums">
                       {analytics.bestEffective} / {campaign.minQuota}
                     </div>
-                    <div className="text-[11px] text-white/80">
+                    <div className="text-xs sm:text-sm text-white/85 mt-0.5">
                       {analytics.isQuorumReached
                         ? 'Kuota Minimal Tercapai · Siap Jalan'
                         : `Kurang ${remainingToMin} peserta lagi untuk GO`}
                     </div>
                   </div>
                 </div>
-                <div className="w-full h-2.5 rounded-full bg-white/15 overflow-hidden">
+                <div className="w-full h-3 rounded-full bg-white/15 overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all duration-500 ${
                       analytics.isQuorumReached ? 'bg-emerald-400' : 'bg-[#F28C28]'
@@ -1547,23 +1547,23 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                     style={{ width: `${analytics.quorumProgressPct}%` }}
                   />
                 </div>
-                <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-white/75">
+                <div className="flex flex-wrap items-center justify-between gap-2.5 text-sm text-white/85 leading-relaxed">
                   <span className="tabular-nums">
                     {analytics.activeVotes.length} UMKM sudah berpartisipasi · Alur: Pilih Poster → Isi Nama, WA & IG → Kunci Jadwal
                   </span>
                   <button
                     type="button"
                     onClick={() => handleCopyText('share_bursa', baseBursaUrl)}
-                    className="text-amber-300 hover:text-amber-200 font-bold inline-flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                    className="text-amber-300 hover:text-amber-200 font-bold inline-flex items-center gap-1.5 cursor-pointer whitespace-nowrap py-1"
                   >
                     {copiedKey === 'share_bursa' ? (
                       <>
-                        <Check className="w-3.5 h-3.5" />
+                        <Check className="w-4 h-4" />
                         <span>Link Disalin</span>
                       </>
                     ) : (
                       <>
-                        <Share2 className="w-3.5 h-3.5" />
+                        <Share2 className="w-4 h-4" />
                         <span>Bagikan Halaman Ini</span>
                       </>
                     )}
@@ -1574,20 +1574,20 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
 
             {/* Registered Identity & QRIS Payment Status Strip */}
             {myExistingVote && (
-              <div className="bg-emerald-500/15 border border-emerald-400/35 rounded-xl px-4 py-3 flex flex-wrap items-center justify-between gap-3 text-xs">
+              <div className="bg-emerald-500/15 border border-emerald-400/35 rounded-xl px-4 py-3.5 flex flex-wrap items-center justify-between gap-3 text-sm sm:text-[15px]">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 text-emerald-100">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-300 shrink-0" />
+                    <CheckCircle2 className="w-5 h-5 text-emerald-300 shrink-0" />
                     <span>
                       Terdaftar sebagai <strong>{myExistingVote.displayName}</strong> ({myExistingVote.businessName}
                       {instagram ? ` · ${instagram}` : ''})
                     </span>
                   </div>
                   {payableContext.pricing.isPaid && (
-                    <div className="flex flex-wrap items-center gap-2 pl-6 text-[11px]">
+                    <div className="flex flex-wrap items-center gap-2 pl-7 text-sm">
                       {myExistingVote.paymentStatus === 'paid' ? (
-                        <span className="inline-flex items-center gap-1 font-bold text-emerald-300">
-                          <BadgeCheck className="w-3.5 h-3.5" />
+                        <span className="inline-flex items-center gap-1.5 font-bold text-emerald-300">
+                          <BadgeCheck className="w-4 h-4" />
                           <span>Pembayaran Lunas Terverifikasi ({formatRupiah(payableContext.payableAmount)})</span>
                         </span>
                       ) : payableContext.isPaymentUnlocked ? (
@@ -1597,7 +1597,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                             : `Tagihan aktif: ${formatRupiah(payableContext.payableAmount)} (sudah termasuk kode unik +Rp${payableContext.uniqueCode})`}
                         </span>
                       ) : (
-                        <span className="text-white/80">
+                        <span className="text-white/85">
                           Kelas Berbayar {formatRupiah(payableContext.pricing.price)} · QRIS otomatis aktif saat kuota kelas mencapai GO!
                         </span>
                       )}
@@ -1615,9 +1615,9 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                           setPaymentConfirmSuccess('');
                           setIsPaymentModalOpen(true);
                         }}
-                        className="px-3.5 py-1.5 rounded-lg bg-[#F28C28] hover:bg-[#d97719] text-white font-extrabold cursor-pointer whitespace-nowrap flex items-center gap-1.5"
+                        className="px-4 py-2.5 rounded-xl bg-[#F28C28] hover:bg-[#d97719] text-white text-sm font-extrabold cursor-pointer whitespace-nowrap flex items-center gap-1.5"
                       >
-                        <QrCode className="w-3.5 h-3.5" />
+                        <QrCode className="w-4 h-4" />
                         <span>
                           {myExistingVote.paymentStatus === 'confirming'
                             ? 'Lihat QRIS Pembayaran'
@@ -1628,7 +1628,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                   <button
                     type="button"
                     onClick={() => openVoteModalForMaterial(myExistingVote.primaryMaterialId)}
-                    className="px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white font-bold cursor-pointer whitespace-nowrap"
+                    className="px-4 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-sm font-bold cursor-pointer whitespace-nowrap"
                   >
                     Ubah Data / Pilihan Jadwal
                   </button>
@@ -1642,14 +1642,14 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
         <section className="space-y-5">
           <div className="flex flex-wrap items-end justify-between gap-2">
             <div>
-              <h2 className="font-display text-xl sm:text-2xl font-extrabold text-[#1F3A5F]">
+              <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-[#1F3A5F]">
                 Galeri Poster Kelas Pilihan Moderator
               </h2>
-              <p className="text-xs sm:text-sm text-[#1F3A5F]/75 mt-1">
+              <p className="text-[15px] sm:text-base text-[#1F3A5F]/80 mt-1.5 leading-relaxed">
                 Pilih <strong>Seminar</strong> untuk dasar konsep, <strong>Workshop</strong> untuk praktik intensif, atau <strong>Coaching</strong> untuk pendalaman 1-on-1 / per kategori usaha.
               </p>
             </div>
-            <span className="text-xs font-semibold text-[#1F3A5F]/70 tabular-nums">
+            <span className="text-sm font-bold text-[#1F3A5F]/75 tabular-nums">
               {visiblePublicStats.length} dari {candidateMaterials.length} Poster
             </span>
           </div>
@@ -1660,7 +1660,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
               <button
                 type="button"
                 onClick={() => setPublicProgramFilter('all')}
-                className={`px-3.5 py-2 rounded-xl text-xs font-extrabold border transition-colors cursor-pointer tabular-nums ${
+                className={`px-4 py-2.5 rounded-xl text-sm font-extrabold border transition-colors cursor-pointer tabular-nums ${
                   publicProgramFilter === 'all'
                     ? 'bg-[#1F3A5F] border-[#1F3A5F] text-white shadow-xs'
                     : 'bg-white border-slate-200 text-[#1F3A5F] hover:bg-slate-50'
@@ -1671,7 +1671,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
               <button
                 type="button"
                 onClick={() => setPublicProgramFilter('seminar')}
-                className={`px-3.5 py-2 rounded-xl text-xs font-extrabold border transition-colors cursor-pointer tabular-nums ${
+                className={`px-4 py-2.5 rounded-xl text-sm font-extrabold border transition-colors cursor-pointer tabular-nums ${
                   publicProgramFilter === 'seminar'
                     ? 'bg-sky-600 border-sky-600 text-white shadow-xs'
                     : 'bg-sky-50 border-sky-200 text-sky-900 hover:bg-sky-100'
@@ -1682,7 +1682,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
               <button
                 type="button"
                 onClick={() => setPublicProgramFilter('workshop')}
-                className={`px-3.5 py-2 rounded-xl text-xs font-extrabold border transition-colors cursor-pointer tabular-nums ${
+                className={`px-4 py-2.5 rounded-xl text-sm font-extrabold border transition-colors cursor-pointer tabular-nums ${
                   publicProgramFilter === 'workshop'
                     ? 'bg-[#F28C28] border-[#F28C28] text-white shadow-xs'
                     : 'bg-orange-50 border-orange-200 text-orange-900 hover:bg-orange-100'
@@ -1693,7 +1693,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
               <button
                 type="button"
                 onClick={() => setPublicProgramFilter('coaching')}
-                className={`px-3.5 py-2 rounded-xl text-xs font-extrabold border transition-colors cursor-pointer tabular-nums ${
+                className={`px-4 py-2.5 rounded-xl text-sm font-extrabold border transition-colors cursor-pointer tabular-nums ${
                   publicProgramFilter === 'coaching'
                     ? 'bg-amber-400 border-amber-500 text-[#1F3A5F] shadow-xs'
                     : 'bg-amber-50 border-amber-200 text-amber-950 hover:bg-amber-100'
@@ -1709,7 +1709,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                   key={dm}
                   type="button"
                   onClick={() => setPublicDeliveryFilter(dm)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-colors cursor-pointer flex items-center gap-1 ${
+                  className={`px-3.5 py-2 rounded-lg text-sm font-extrabold transition-colors cursor-pointer flex items-center gap-1.5 ${
                     publicDeliveryFilter === dm
                       ? dm === 'online'
                         ? 'bg-emerald-600 text-white'
@@ -1719,8 +1719,8 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                       : 'text-slate-600 hover:bg-slate-100'
                   }`}
                 >
-                  {dm === 'online' && <Video className="w-3.5 h-3.5" />}
-                  {dm === 'offline' && <MapPin className="w-3.5 h-3.5" />}
+                  {dm === 'online' && <Video className="w-4 h-4" />}
+                  {dm === 'offline' && <MapPin className="w-4 h-4" />}
                   <span>
                     {dm === 'all' ? 'Semua Metode' : DELIVERY_MODE_META[dm].label}
                   </span>
@@ -1730,7 +1730,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
           </div>
 
           {visiblePublicStats.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center text-xs sm:text-sm text-slate-500">
+            <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center text-sm sm:text-base text-slate-600">
               Belum ada poster pada jenjang ini yang ditampilkan moderator. Pilih tab <strong>Semua Program</strong> untuk melihat kelas lainnya.
             </div>
           ) : (
@@ -1769,17 +1769,17 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                   >
                     {/* Top Poster Masthead */}
                     <div className="px-5 pt-4 pb-3 flex items-center justify-between gap-2 text-white">
-                      <span className="text-[11px] font-bold truncate text-white/90">
+                      <span className="text-[13px] font-bold truncate text-white/95">
                         {material.organizerName || 'obeeAcademy'}
                       </span>
-                      <span className="text-[11px] text-white/70 whitespace-nowrap shrink-0 tabular-nums">
+                      <span className="text-[13px] text-white/80 whitespace-nowrap shrink-0 tabular-nums">
                         {material.category || 'Materi'} · {material.content.slides.length} Slide
                       </span>
                     </div>
 
                     {/* Poster Visual Showcase */}
                     <div className="px-4">
-                      <div className="relative h-48 rounded-2xl overflow-hidden bg-slate-900">
+                      <div className="relative h-52 rounded-2xl overflow-hidden bg-slate-900">
                         {coverUrl ? (
                           <img
                             src={coverUrl}
@@ -1792,10 +1792,10 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                           />
                         ) : (
                           <div className="w-full h-full flex flex-col justify-center px-5 bg-gradient-to-br from-[#0F243E] to-[#1E466E] text-white">
-                            <span className="text-[11px] font-semibold text-[#F28C28]">
+                            <span className="text-xs font-semibold text-[#F28C28]">
                               {programMeta.tierHeadline}
                             </span>
-                            <p className="font-display text-base font-extrabold mt-1 line-clamp-2">
+                            <p className="font-display text-lg font-extrabold mt-1 line-clamp-2">
                               {material.seminarTitle}
                             </p>
                           </div>
@@ -1806,7 +1806,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                         <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2">
                           <div className="min-w-0">
                             <span
-                              className={`inline-block text-[10px] font-extrabold px-2.5 py-1 rounded-lg shadow-sm truncate max-w-full ${programMeta.publicChipClass}`}
+                              className={`inline-block text-xs font-extrabold px-2.5 py-1 rounded-lg shadow-sm truncate max-w-full ${programMeta.publicChipClass}`}
                             >
                               {getProgramTierLabelOnly(program)}
                             </span>
@@ -1815,7 +1815,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                           <div className="shrink-0 flex flex-col items-end gap-1">
                             {pricing.isPaid ? (
                               <div className="px-2.5 py-1 rounded-lg bg-amber-400 text-[#1F3A5F] shadow-sm text-right">
-                                <div className="text-[11px] font-extrabold leading-tight tabular-nums whitespace-nowrap">
+                                <div className="text-[13px] font-extrabold leading-tight tabular-nums whitespace-nowrap">
                                   {pricing.originalPrice ? (
                                     <span className="line-through text-[#1F3A5F]/65 mr-1 font-semibold">
                                       {formatRupiah(pricing.originalPrice)}
@@ -1823,14 +1823,14 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                                   ) : null}
                                   {formatRupiah(pricing.price)}
                                 </div>
-                                <div className="text-[9px] font-bold text-[#1F3A5F]/85 leading-tight whitespace-nowrap">
+                                <div className="text-[11px] font-bold text-[#1F3A5F]/90 leading-tight whitespace-nowrap">
                                   {pricing.paymentMode === 'direct_pay'
                                     ? 'QRIS langsung'
                                     : 'QRIS saat GO!'}
                                 </div>
                               </div>
                             ) : (
-                              <span className="inline-block text-[11px] font-extrabold px-2.5 py-1 rounded-lg bg-emerald-500 text-white shadow-sm whitespace-nowrap">
+                              <span className="inline-block text-[13px] font-extrabold px-3 py-1 rounded-lg bg-emerald-500 text-white shadow-sm whitespace-nowrap">
                                 GRATIS
                               </span>
                             )}
@@ -1838,12 +1838,12 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                         </div>
 
                         <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between gap-2 text-white">
-                          <span className="text-[10px] sm:text-[11px] font-extrabold px-2.5 py-1 rounded-lg bg-[#F28C28] text-white whitespace-nowrap truncate">
+                          <span className="text-xs sm:text-[13px] font-extrabold px-2.5 py-1 rounded-lg bg-[#F28C28] text-white whitespace-nowrap truncate">
                             {getProgramQuotaBadgeText(program, campaign.minQuota)}
                           </span>
                           {isLeading && (
-                            <span className="text-[11px] font-bold text-amber-300 flex items-center gap-1 whitespace-nowrap shrink-0">
-                              <Flame className="w-3.5 h-3.5" />
+                            <span className="text-[13px] font-bold text-amber-300 flex items-center gap-1 whitespace-nowrap shrink-0">
+                              <Flame className="w-4 h-4" />
                               Unggul
                             </span>
                           )}
@@ -1852,32 +1852,32 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                     </div>
 
                     {/* Cream Poster Editorial Body */}
-                    <div className="m-4 mb-0 rounded-2xl bg-[#FFF9F0] p-4 flex-1 flex flex-col justify-between gap-3">
-                      <div className="space-y-2.5">
+                    <div className="m-4 mb-0 rounded-2xl bg-[#FFF9F0] p-4 sm:p-5 flex-1 flex flex-col justify-between gap-4">
+                      <div className="space-y-3">
                         {/* Clean Online / Offline Delivery, Location & Duration Strip above Headline */}
                         {(() => {
                           const dMode: DeliveryModeType =
                             program.deliveryMode === 'offline' ? 'offline' : 'online';
                           const dMeta = DELIVERY_MODE_META[dMode];
                           return (
-                            <div className="flex items-center justify-between gap-2 text-[11px]">
+                            <div className="flex flex-wrap items-center justify-between gap-2 text-xs sm:text-[13px]">
                               <div className="flex items-center gap-1.5 min-w-0">
                                 <span
-                                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-extrabold border shrink-0 ${dMeta.badgeClass}`}
+                                  className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md font-extrabold border shrink-0 ${dMeta.badgeClass}`}
                                 >
                                   {dMode === 'offline' ? (
-                                    <MapPin className="w-3 h-3" />
+                                    <MapPin className="w-3.5 h-3.5" />
                                   ) : (
-                                    <Video className="w-3 h-3" />
+                                    <Video className="w-3.5 h-3.5" />
                                   )}
                                   <span>{dMeta.shortLabel}</span>
                                 </span>
-                                <span className="font-semibold text-slate-600 truncate">
+                                <span className="font-semibold text-slate-700 truncate">
                                   {program.locationLabel || dMeta.defaultLocation}
                                 </span>
                               </div>
                               {program.durationLabel && (
-                                <span className="text-[11px] font-bold text-[#1F3A5F]/75 whitespace-nowrap shrink-0 tabular-nums">
+                                <span className="text-xs sm:text-[13px] font-bold text-[#1F3A5F]/80 whitespace-nowrap shrink-0 tabular-nums">
                                   · {program.durationLabel}
                                 </span>
                               )}
@@ -1885,28 +1885,28 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                           );
                         })()}
 
-                        <h3 className="font-display text-base font-extrabold text-[#1F3A5F] leading-snug">
+                        <h3 className="font-display text-lg sm:text-[19px] font-extrabold text-[#1F3A5F] leading-snug">
                           {material.seminarTitle}
                         </h3>
                         {material.description && (
-                          <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
+                          <p className="text-[15px] text-slate-700 line-clamp-3 leading-relaxed">
                             {material.description}
                           </p>
                         )}
                         {program.prerequisiteNote && (
-                          <div className="px-2.5 py-1.5 rounded-lg bg-amber-50 border border-amber-200/80 text-[11px] font-semibold text-amber-950 leading-snug">
+                          <div className="px-3 py-2 rounded-lg bg-amber-50 border border-amber-200/80 text-sm font-semibold text-amber-950 leading-snug">
                             Prasyarat: {program.prerequisiteNote}
                           </div>
                         )}
 
-                        <div className="border-t border-[#1F3A5F]/10 pt-2.5 space-y-1.5">
-                          <div className="text-[11px] font-bold text-[#2A9D8F]">
+                        <div className="border-t border-[#1F3A5F]/12 pt-3 space-y-2">
+                          <div className="text-[13px] font-extrabold text-[#2A9D8F]">
                             Inti Materi yang Dibahas:
                           </div>
-                          <ul className="space-y-1.5 text-xs text-slate-700">
+                          <ul className="space-y-2 text-[15px] text-slate-800">
                             {highlights.map((item, idx) => (
-                              <li key={idx} className="flex items-start gap-2 leading-snug">
-                                <span className="w-4 h-4 rounded-full bg-[#1F3A5F] text-white text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5 tabular-nums">
+                              <li key={idx} className="flex items-start gap-2.5 leading-relaxed">
+                                <span className="w-5 h-5 rounded-full bg-[#1F3A5F] text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5 tabular-nums">
                                   {idx + 1}
                                 </span>
                                 <span>{item}</span>
@@ -1917,15 +1917,15 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                       </div>
 
                       {/* Tier-Aware Quota / Booking Meter */}
-                      <div className="pt-2 border-t border-[#1F3A5F]/10 space-y-1.5">
+                      <div className="pt-3 border-t border-[#1F3A5F]/12 space-y-2">
                         {isOneOnOne ? (
-                          <div className="flex items-center justify-between text-xs font-semibold text-[#1F3A5F] tabular-nums">
+                          <div className="flex items-center justify-between text-sm font-bold text-[#1F3A5F] tabular-nums">
                             <span>Sesi Privat 1-on-1</span>
                             <span>{primaryCount} UMKM mengajukan jadwal</span>
                           </div>
                         ) : isCategoryCoaching ? (
                           <>
-                            <div className="flex items-center justify-between text-xs font-semibold text-[#1F3A5F] tabular-nums">
+                            <div className="flex items-center justify-between text-sm font-bold text-[#1F3A5F] tabular-nums">
                               <span className="truncate">
                                 Khusus {program.targetCategory || 'Kategori'}
                               </span>
@@ -1933,7 +1933,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                                 {primaryCount} / {effectiveQuota} UMKM
                               </span>
                             </div>
-                            <div className="w-full h-2 rounded-full bg-slate-200 overflow-hidden">
+                            <div className="w-full h-2.5 rounded-full bg-slate-200 overflow-hidden">
                               <div
                                 className="h-full rounded-full bg-amber-500 transition-all duration-300"
                                 style={{ width: `${Math.max(primaryCount > 0 ? 8 : 0, quotaFillPct)}%` }}
@@ -1942,13 +1942,13 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                           </>
                         ) : program.format === 'workshop' ? (
                           <>
-                            <div className="flex items-center justify-between text-xs font-semibold text-[#1F3A5F] tabular-nums">
+                            <div className="flex items-center justify-between text-sm font-bold text-[#1F3A5F] tabular-nums">
                               <span>Kuota Workshop Praktik</span>
                               <span>
                                 {primaryCount} / {effectiveQuota} Kursi
                               </span>
                             </div>
-                            <div className="w-full h-2 rounded-full bg-slate-200 overflow-hidden">
+                            <div className="w-full h-2.5 rounded-full bg-slate-200 overflow-hidden">
                               <div
                                 className="h-full rounded-full bg-[#F28C28] transition-all duration-300"
                                 style={{ width: `${Math.max(primaryCount > 0 ? 8 : 0, quotaFillPct)}%` }}
@@ -1957,13 +1957,13 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                           </>
                         ) : (
                           <>
-                            <div className="flex items-center justify-between text-xs font-semibold text-[#1F3A5F] tabular-nums">
+                            <div className="flex items-center justify-between text-sm font-bold text-[#1F3A5F] tabular-nums">
                               <span>Perolehan Polling</span>
                               <span>
                                 {primaryCount} suara ({sharePct}%)
                               </span>
                             </div>
-                            <div className="w-full h-2 rounded-full bg-slate-200 overflow-hidden">
+                            <div className="w-full h-2.5 rounded-full bg-slate-200 overflow-hidden">
                               <div
                                 className="h-full rounded-full bg-[#2A9D8F] transition-all duration-300"
                                 style={{ width: `${Math.max(primaryCount > 0 ? 6 : 0, sharePct)}%` }}
@@ -1975,12 +1975,12 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                     </div>
 
                     {/* Poster Footer Actions */}
-                    <div className="p-4 flex items-center gap-2">
+                    <div className="p-4 flex items-center gap-2.5">
                       <button
                         type="button"
                         disabled={campaign.status === 'closed'}
                         onClick={() => openVoteModalForMaterial(material.id)}
-                        className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-extrabold transition-colors cursor-pointer whitespace-nowrap disabled:opacity-50 ${
+                        className={`flex-1 py-3.5 px-4 rounded-xl text-sm sm:text-[15px] font-extrabold transition-colors cursor-pointer whitespace-nowrap disabled:opacity-50 ${
                           isMyVote
                             ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
                             : 'bg-[#F28C28] hover:bg-[#d97719] text-white'
@@ -2007,10 +2007,10 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                       <button
                         type="button"
                         onClick={() => setPosterModalMaterial(material)}
-                        className="py-2.5 px-3 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0"
+                        className="py-3.5 px-3.5 rounded-xl text-sm font-bold bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0"
                         title="Unduh Poster PNG Resolusi Tinggi"
                       >
-                        <Download className="w-3.5 h-3.5" />
+                        <Download className="w-4 h-4" />
                         <span>PNG</span>
                       </button>
                     </div>
@@ -2025,41 +2025,41 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
         <section className="bg-white rounded-2xl border border-[#1F3A5F]/12 p-5 sm:p-6 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
-              <h3 className="font-display text-base sm:text-lg font-extrabold text-[#1F3A5F]">
+              <h3 className="font-display text-lg sm:text-xl font-extrabold text-[#1F3A5F]">
                 Daftar Rekan UMKM yang Sudah Ikut Polling
               </h3>
-              <p className="text-xs text-slate-500">
+              <p className="text-sm sm:text-[15px] text-slate-600 mt-0.5 leading-relaxed">
                 Hanya menampilkan nama & usaha untuk transparansi kuota. Nomor WhatsApp & Instagram tersimpan privat.
               </p>
             </div>
-            <span className="text-xs font-bold text-[#1F3A5F] tabular-nums">
+            <span className="text-sm font-bold text-[#1F3A5F] tabular-nums">
               {analytics.activeVotes.length} UMKM Terdaftar
             </span>
           </div>
 
           {analytics.activeVotes.length === 0 ? (
-            <div className="text-center py-8 text-xs sm:text-sm text-slate-500">
+            <div className="text-center py-8 text-sm sm:text-base text-slate-600">
               Belum ada suara masuk. Klik <strong>Vote Poster Ini</strong> pada materi pilihanmu untuk menjadi pendaftar pertama.
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {analytics.activeVotes.slice(0, 36).map((v) => {
                 const chosenMat = materials.find((m) => m.id === v.primaryMaterialId);
                 return (
                   <div
                     key={v.id}
-                    className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-start justify-between gap-2"
+                    className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-start justify-between gap-2.5"
                   >
                     <div className="min-w-0">
-                      <div className="text-xs font-bold text-[#1F3A5F] truncate">
+                      <div className="text-[15px] font-bold text-[#1F3A5F] truncate">
                         {v.displayName} · {v.businessName}
                       </div>
-                      <div className="text-[11px] text-slate-500 truncate mt-0.5">
+                      <div className="text-[13px] text-slate-600 truncate mt-0.5">
                         {chosenMat?.seminarTitle || v.primaryMaterialId}
                       </div>
                     </div>
                     <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded shrink-0 ${
+                      className={`text-xs font-bold px-2.5 py-0.5 rounded shrink-0 ${
                         v.status === 'confirmed_h1'
                           ? 'bg-emerald-100 text-emerald-800'
                           : 'bg-amber-100 text-amber-800'
@@ -2081,21 +2081,21 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
               {/* Header */}
               <div className="px-6 py-4 bg-[#1F3A5F] text-white flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-[#F28C28]">
+                  <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-[#F28C28]">
                     <span>
                       Langkah {voteStep} dari 2 · {voteStep === 1 ? 'Identitas Peserta & UMKM' : isModalOneOnOneCoaching ? 'Ajukan Jadwal Coaching Privat' : 'Pilih Jadwal & Kunci Suara'}
                     </span>
                     {chosenModalMaterial && chosenModalProgram && (
                       <>
                         <span
-                          className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${
+                          className={`px-2 py-0.5 rounded text-xs font-extrabold ${
                             PROGRAM_FORMAT_META[chosenModalProgram.format].publicChipClass
                           }`}
                         >
                           {PROGRAM_FORMAT_META[chosenModalProgram.format].label}
                         </span>
                         <span
-                          className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${
+                          className={`px-2 py-0.5 rounded text-xs font-extrabold ${
                             chosenModalProgram.deliveryMode === 'offline'
                               ? 'bg-violet-500 text-white'
                               : 'bg-emerald-600 text-white'
@@ -2108,38 +2108,38 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                     {chosenModalMaterial && (() => {
                       const mp = getMaterialPricing(chosenModalMaterial.id);
                       return mp.isPaid ? (
-                        <span className="px-2 py-0.5 rounded bg-amber-400 text-[#1F3A5F] text-[10px] font-extrabold">
+                        <span className="px-2 py-0.5 rounded bg-amber-400 text-[#1F3A5F] text-xs font-extrabold">
                           Berbayar · {formatRupiah(mp.price)}
                         </span>
                       ) : (
-                        <span className="px-2 py-0.5 rounded bg-emerald-500 text-white text-[10px] font-extrabold">
+                        <span className="px-2 py-0.5 rounded bg-emerald-500 text-white text-xs font-extrabold">
                           Gratis
                         </span>
                       );
                     })()}
                   </div>
-                  <div className="font-display text-base font-extrabold truncate mt-0.5">
+                  <div className="font-display text-lg font-extrabold truncate mt-1">
                     {chosenModalMaterial?.seminarTitle || 'Polling Bursa Kelas'}
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setIsVoteModalOpen(false)}
-                  className="p-1.5 rounded-lg hover:bg-white/10 cursor-pointer shrink-0"
+                  className="p-2 rounded-lg hover:bg-white/10 cursor-pointer shrink-0"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
               {/* Step Indicator Bar */}
-              <div className="grid grid-cols-2 bg-slate-100 border-b border-slate-200 text-xs font-bold">
+              <div className="grid grid-cols-2 bg-slate-100 border-b border-slate-200 text-sm font-bold">
                 <button
                   type="button"
                   onClick={() => setVoteStep(1)}
-                  className={`py-2.5 text-center transition-colors cursor-pointer ${
+                  className={`py-3 text-center transition-colors cursor-pointer ${
                     voteStep === 1
                       ? 'bg-white text-[#1F3A5F] border-b-2 border-[#F28C28]'
-                      : 'text-slate-500 hover:text-slate-700'
+                      : 'text-slate-600 hover:text-slate-800'
                   }`}
                 >
                   1. Nama, WA & Instagram
@@ -2153,26 +2153,26 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                       setVoteStep(2);
                     }
                   }}
-                  className={`py-2.5 text-center transition-colors cursor-pointer ${
+                  className={`py-3 text-center transition-colors cursor-pointer ${
                     voteStep === 2
                       ? 'bg-white text-[#1F3A5F] border-b-2 border-[#F28C28]'
-                      : 'text-slate-500 hover:text-slate-700'
+                      : 'text-slate-600 hover:text-slate-800'
                   }`}
                 >
                   2. Topik & Jadwal Hadir
                 </button>
               </div>
 
-              <div className="p-6 overflow-y-auto space-y-5">
+              <div className="p-5 sm:p-6 overflow-y-auto space-y-5">
                 {voteStep === 1 ? (
                   <div className="space-y-4">
-                    <div className="text-xs text-slate-600 leading-relaxed">
+                    <div className="text-[15px] text-slate-700 leading-relaxed">
                       Lengkapi data diri & usahamu terlebih dahulu sebelum memilih jadwal polling. Data kontakmu aman dan digunakan mentor untuk pengingat H-1 serta kurasi pembahasan studi kasus UMKM.
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs font-bold text-slate-700 mb-1">
+                        <label className="block text-sm font-bold text-slate-800 mb-1.5">
                           Nama Lengkap Peserta *
                         </label>
                         <input
@@ -2182,12 +2182,12 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                           value={displayName}
                           onChange={(e) => setDisplayName(e.target.value)}
                           placeholder="Contoh: Ibu Rina Kusuma"
-                          className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#F28C28]"
+                          className="w-full px-3.5 py-3 text-base bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#F28C28]"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold text-slate-700 mb-1">
+                        <label className="block text-sm font-bold text-slate-800 mb-1.5">
                           Nama Usaha UMKM *
                         </label>
                         <input
@@ -2197,12 +2197,12 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                           value={businessName}
                           onChange={(e) => setBusinessName(e.target.value)}
                           placeholder="Contoh: Keripik Apel Makmur"
-                          className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#F28C28]"
+                          className="w-full px-3.5 py-3 text-base bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#F28C28]"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold text-slate-700 mb-1">
+                        <label className="block text-sm font-bold text-slate-800 mb-1.5">
                           Nomor WhatsApp Aktif *
                         </label>
                         <input
@@ -2212,12 +2212,12 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                           value={whatsapp}
                           onChange={(e) => setWhatsapp(e.target.value)}
                           placeholder="Contoh: 081234567890"
-                          className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#F28C28]"
+                          className="w-full px-3.5 py-3 text-base bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#F28C28]"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold text-slate-700 mb-1">
+                        <label className="block text-sm font-bold text-slate-800 mb-1.5">
                           Akun Instagram (Usaha/Pribadi) *
                         </label>
                         <input
@@ -2227,18 +2227,18 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                           value={instagram}
                           onChange={(e) => setInstagram(e.target.value)}
                           placeholder="Contoh: @keripikapel.makmur"
-                          className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#F28C28]"
+                          className="w-full px-3.5 py-3 text-base bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#F28C28]"
                         />
                       </div>
 
                       <div className="sm:col-span-2">
-                        <label className="block text-xs font-bold text-slate-700 mb-1">
+                        <label className="block text-sm font-bold text-slate-800 mb-1.5">
                           Kategori Bidang Usaha *
                         </label>
                         <select
                           value={businessCategory}
                           onChange={(e) => setBusinessCategory(e.target.value)}
-                          className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#F28C28]"
+                          className="w-full px-3.5 py-3 text-base bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#F28C28]"
                         >
                           {BUSINESS_CATEGORIES.map((cat) => (
                             <option key={cat} value={cat}>
@@ -2249,15 +2249,15 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                       </div>
                     </div>
 
-                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-600 flex items-start gap-2">
-                      <Lock className="w-3.5 h-3.5 text-[#2A9D8F] shrink-0 mt-0.5" />
+                    <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-700 flex items-start gap-2.5 leading-relaxed">
+                      <Lock className="w-4 h-4 text-[#2A9D8F] shrink-0 mt-1" />
                       <span>
                         Privasi terjaga: Nomor WhatsApp & Instagram tidak tampil di daftar publik dan hanya dapat diakses oleh mentor penyelenggara.
                       </span>
                     </div>
 
                     {formError && (
-                      <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-700">
+                      <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-sm font-semibold text-rose-700">
                         {formError}
                       </div>
                     )}
@@ -2266,18 +2266,18 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                       <button
                         type="button"
                         onClick={handleValidateStep1}
-                        className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[#F28C28] hover:bg-[#d97719] text-white text-sm font-extrabold flex items-center justify-center gap-2 cursor-pointer"
+                        className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-[#F28C28] hover:bg-[#d97719] text-white text-base font-extrabold flex items-center justify-center gap-2 cursor-pointer"
                       >
                         <span>Lanjut Pilih Jadwal</span>
-                        <ArrowRight className="w-4 h-4" />
+                        <ArrowRight className="w-5 h-5" />
                       </button>
                     </div>
                   </div>
                 ) : (
                   <form onSubmit={handleSubmitForm} className="space-y-5">
                     {/* Selected Poster Confirmation */}
-                    <div className="p-3.5 rounded-xl bg-[#FFF7EC] border border-[#F28C28]/40 space-y-2">
-                      <div className="text-[11px] font-bold text-[#F28C28]">
+                    <div className="p-4 rounded-xl bg-[#FFF7EC] border border-[#F28C28]/40 space-y-2.5">
+                      <div className="text-sm font-bold text-[#F28C28]">
                         Materi Utama yang Dipilih:
                       </div>
                       <select
@@ -2288,7 +2288,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                             prev.filter((id) => id !== e.target.value)
                           );
                         }}
-                        className="w-full px-3 py-2 text-xs sm:text-sm font-bold text-[#1F3A5F] bg-white border border-slate-300 rounded-lg"
+                        className="w-full px-3.5 py-3 text-[15px] sm:text-base font-bold text-[#1F3A5F] bg-white border border-slate-300 rounded-xl"
                       >
                         {candidateMaterials.map((mat) => {
                           const mp = getMaterialPricing(mat.id);
@@ -2305,11 +2305,11 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                       </select>
 
                       {chosenModalProgram && (
-                        <div className="flex items-center gap-1.5 text-[11px] font-semibold text-[#1F3A5F]">
+                        <div className="flex items-center gap-2 text-sm font-semibold text-[#1F3A5F]">
                           {chosenModalProgram.deliveryMode === 'offline' ? (
-                            <MapPin className="w-3.5 h-3.5 text-violet-600 shrink-0" />
+                            <MapPin className="w-4 h-4 text-violet-600 shrink-0" />
                           ) : (
-                            <Video className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                            <Video className="w-4 h-4 text-emerald-600 shrink-0" />
                           )}
                           <span>
                             Metode:{' '}
@@ -2328,7 +2328,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                         chosenModalProgram.coachingScope === 'category_group' &&
                         chosenModalProgram.targetCategory &&
                         businessCategory !== chosenModalProgram.targetCategory && (
-                          <div className="p-2.5 rounded-lg bg-amber-100/75 border border-amber-300 text-[11px] font-semibold text-amber-950">
+                          <div className="p-3 rounded-lg bg-amber-100/75 border border-amber-300 text-sm font-semibold text-amber-950 leading-relaxed">
                             Info: Sesi Coaching ini difokuskan untuk kategori{' '}
                             <strong>{chosenModalProgram.targetCategory}</strong> (kategori usahamu tercatat:{' '}
                             <strong>{businessCategory}</strong>). Mentor tetap meninjau kecocokan kelompok usahamu.
@@ -2336,16 +2336,16 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                         )}
 
                       {isModalOneOnOneCoaching ? (
-                        <div className="p-2.5 rounded-lg bg-white border border-amber-300 text-[11px] text-[#1F3A5F] leading-snug">
+                        <div className="p-3 rounded-lg bg-white border border-amber-300 text-sm text-[#1F3A5F] leading-relaxed">
                           <strong>Sesi Coaching Privat 1-on-1:</strong> Pendalaman khusus langsung membedah masalah usahamu ({chosenModalProgram?.durationLabel || '90 Menit'}) tanpa harus menunggu kuota kelompok.
                         </div>
                       ) : (
                         candidateMaterials.length > 1 && (
                           <div className="pt-1">
-                            <div className="text-[11px] font-semibold text-slate-600 mb-1.5">
+                            <div className="text-sm font-semibold text-slate-700 mb-2">
                               Topik cadangan jika berminat (maks. 2):
                             </div>
-                            <div className="flex flex-wrap gap-1.5">
+                            <div className="flex flex-wrap gap-2">
                               {candidateMaterials
                                 .filter((m) => m.id !== primaryMaterialId)
                                 .map((mat) => {
@@ -2355,10 +2355,10 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                                       key={mat.id}
                                       type="button"
                                       onClick={() => toggleSecondaryTopic(mat.id)}
-                                      className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-colors cursor-pointer ${
+                                      className={`px-3 py-2 rounded-lg text-sm font-semibold border transition-colors cursor-pointer ${
                                         checked
                                           ? 'bg-[#2A9D8F]/15 border-[#2A9D8F] text-[#1F3A5F]'
-                                          : 'bg-white border-slate-200 text-slate-600'
+                                          : 'bg-white border-slate-200 text-slate-700'
                                       }`}
                                     >
                                       {checked ? '✓ ' : '+ '}
@@ -2375,13 +2375,13 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                     </div>
 
                     {/* Time Slots Multi-Select */}
-                    <div className="space-y-2">
-                      <label className="block text-xs font-extrabold text-[#1F3A5F]">
+                    <div className="space-y-2.5">
+                      <label className="block text-[15px] font-extrabold text-[#1F3A5F]">
                         {isModalOneOnOneCoaching
                           ? 'Pilih Opsi Jadwal Luangmu untuk Sesi Privat *'
                           : 'Centang SEMUA Jadwal yang Kamu Bisa Hadir *'}
                       </label>
-                      <div className="grid grid-cols-1 gap-2">
+                      <div className="grid grid-cols-1 gap-2.5">
                         {analytics.slotStats.map(({ slot, totalAvailable, effectiveQuorum }) => {
                           const checked = availableSlotIds.includes(slot.id);
                           return (
@@ -2389,30 +2389,30 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                               key={slot.id}
                               type="button"
                               onClick={() => toggleAvailableSlot(slot.id)}
-                              className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                              className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between gap-3 ${
                                 checked
                                   ? 'bg-[#1F3A5F]/5 border-[#1F3A5F] ring-1 ring-[#1F3A5F]'
                                   : 'bg-white border-slate-200 hover:border-slate-300'
                               }`}
                             >
                               <div>
-                                <div className="text-xs sm:text-sm font-bold text-[#1F3A5F]">
+                                <div className="text-[15px] sm:text-base font-bold text-[#1F3A5F]">
                                   {slot.label} · {slot.dateText}
                                 </div>
-                                <div className="text-xs text-slate-600 mt-0.5 tabular-nums">
+                                <div className="text-sm text-slate-600 mt-0.5 tabular-nums">
                                   {slot.timeText}
                                   {!isModalOneOnOneCoaching &&
                                     ` · ${totalAvailable} bisa hadir (${effectiveQuorum}/${campaign.minQuota} kuota)`}
                                 </div>
                               </div>
                               <div
-                                className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 ${
+                                className={`w-6 h-6 rounded-md border flex items-center justify-center shrink-0 ${
                                   checked
                                     ? 'bg-[#1F3A5F] border-[#1F3A5F] text-white'
                                     : 'bg-white border-slate-300'
                                 }`}
                               >
-                                {checked && <Check className="w-3.5 h-3.5" />}
+                                {checked && <Check className="w-4 h-4" />}
                               </div>
                             </button>
                           );
@@ -2420,14 +2420,14 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                       </div>
 
                       {!isModalOneOnOneCoaching && (
-                        <label className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-50 border border-amber-200 cursor-pointer">
+                        <label className="flex items-start gap-3 p-3.5 rounded-xl bg-amber-50 border border-amber-200 cursor-pointer">
                           <input
                             type="checkbox"
                             checked={flexibleTopic}
                             onChange={(e) => setFlexibleTopic(e.target.checked)}
-                            className="mt-0.5 w-4 h-4 accent-[#F28C28]"
+                            className="mt-0.5 w-5 h-5 accent-[#F28C28] shrink-0"
                           />
-                          <span className="text-xs text-[#1F3A5F] leading-snug">
+                          <span className="text-sm sm:text-[15px] text-[#1F3A5F] leading-relaxed">
                             <strong>Tetap bersedia hadir</strong> meski topik lain yang memperoleh suara terbanyak di jadwal pilihan saya (mempercepat kuota {campaign.minQuota} peserta).
                           </span>
                         </label>
@@ -2435,7 +2435,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                      <label className="block text-sm font-bold text-slate-800 mb-1.5">
                         1 Masalah / Pertanyaan Utama yang Ingin Dibahas (Opsional)
                       </label>
                       <input
@@ -2444,22 +2444,22 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                         value={mainChallenge}
                         onChange={(e) => setMainChallenge(e.target.value)}
                         placeholder="Contoh: Foto produk botol kaca saya masih sering memantulkan lampu..."
-                        className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#F28C28]"
+                        className="w-full px-3.5 py-3 text-base bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#F28C28]"
                       />
                     </div>
 
                     {formError && (
-                      <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-700">
+                      <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-sm font-semibold text-rose-700">
                         {formError}
                       </div>
                     )}
 
                     {formSuccess ? (
                       <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 space-y-3">
-                        <div className="text-xs sm:text-sm font-bold text-emerald-900">
+                        <div className="text-[15px] font-bold text-emerald-900 leading-relaxed">
                           ✓ {formSuccess}
                         </div>
-                        <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2.5">
                           {payableContext.pricing.isPaid &&
                             payableContext.isPaymentUnlocked &&
                             myExistingVote?.paymentStatus !== 'paid' && (
@@ -2470,16 +2470,16 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                                   setPaymentConfirmSuccess('');
                                   setIsPaymentModalOpen(true);
                                 }}
-                                className="px-3.5 py-2 rounded-xl bg-[#F28C28] hover:bg-[#d97719] text-white text-xs font-extrabold cursor-pointer flex items-center gap-1.5"
+                                className="px-4 py-2.5 rounded-xl bg-[#F28C28] hover:bg-[#d97719] text-white text-sm font-extrabold cursor-pointer flex items-center gap-1.5"
                               >
-                                <QrCode className="w-3.5 h-3.5" />
+                                <QrCode className="w-4 h-4" />
                                 <span>Bayar QRIS ({formatRupiah(payableContext.payableAmount)})</span>
                               </button>
                             )}
                           <button
                             type="button"
                             onClick={() => handleCopyText('modal_share_after', baseBursaUrl)}
-                            className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold cursor-pointer"
+                            className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold cursor-pointer"
                           >
                             {copiedKey === 'modal_share_after'
                               ? 'Link Tersalin!'
@@ -2488,28 +2488,28 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                           <button
                             type="button"
                             onClick={() => setIsVoteModalOpen(false)}
-                            className="px-3.5 py-2 rounded-xl bg-white border border-emerald-300 text-emerald-900 text-xs font-bold cursor-pointer"
+                            className="px-4 py-2.5 rounded-xl bg-white border border-emerald-300 text-emerald-900 text-sm font-bold cursor-pointer"
                           >
                             Tutup & Lihat Hasil
                           </button>
                         </div>
                       </div>
                     ) : (
-                      <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                      <div className="flex flex-wrap items-center justify-between gap-2.5 pt-1">
                         <button
                           type="button"
                           onClick={() => setVoteStep(1)}
-                          className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                          className="px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold flex items-center gap-1.5 cursor-pointer"
                         >
-                          <ArrowLeft className="w-3.5 h-3.5" />
+                          <ArrowLeft className="w-4 h-4" />
                           <span>Ubah Data Diri</span>
                         </button>
                         <button
                           type="submit"
                           disabled={isSubmittingVote}
-                          className="flex-1 sm:flex-initial px-6 py-3 rounded-xl bg-[#F28C28] hover:bg-[#d97719] disabled:opacity-50 text-white text-sm font-extrabold flex items-center justify-center gap-2 cursor-pointer"
+                          className="flex-1 sm:flex-initial px-6 py-3.5 rounded-xl bg-[#F28C28] hover:bg-[#d97719] disabled:opacity-50 text-white text-base font-extrabold flex items-center justify-center gap-2 cursor-pointer"
                         >
-                          <CheckCircle2 className="w-4 h-4" />
+                          <CheckCircle2 className="w-5 h-5" />
                           <span>
                             {isSubmittingVote
                               ? 'Menyimpan...'
@@ -2535,36 +2535,36 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
             <div className="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-200 flex flex-col max-h-[92vh]">
               <div className="px-5 py-4 bg-[#1F3A5F] text-white flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="text-xs font-bold text-[#F28C28] flex items-center gap-1.5">
-                    <QrCode className="w-3.5 h-3.5" />
+                  <div className="text-sm font-bold text-[#F28C28] flex items-center gap-1.5">
+                    <QrCode className="w-4 h-4" />
                     <span>Pembayaran QRIS GoPay Merchant</span>
                   </div>
-                  <div className="font-display text-sm sm:text-base font-extrabold truncate mt-0.5">
+                  <div className="font-display text-base sm:text-lg font-extrabold truncate mt-0.5">
                     {payableContext.materialObj?.seminarTitle || 'Kelas Pilihan UMKM'}
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setIsPaymentModalOpen(false)}
-                  className="p-1.5 rounded-lg hover:bg-white/10 cursor-pointer shrink-0"
+                  className="p-2 rounded-lg hover:bg-white/10 cursor-pointer shrink-0"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
               <div className="p-5 overflow-y-auto space-y-4">
-                <div className="p-3 rounded-2xl bg-sky-50 border border-sky-200 text-center space-y-0.5">
-                  <div className="text-xs font-extrabold text-[#1F3A5F]">
+                <div className="p-3.5 rounded-2xl bg-sky-50 border border-sky-200 text-center space-y-1">
+                  <div className="text-sm font-extrabold text-[#1F3A5F]">
                     {payableContext.merchantName}
                   </div>
-                  <div className="text-[11px] font-semibold text-sky-800 tabular-nums">
+                  <div className="text-[13px] font-semibold text-sky-800 tabular-nums">
                     NMID: {payableContext.merchantNmid} · Terima semua e-wallet & m-banking
                   </div>
                 </div>
 
                 {/* Amount + Unique Code Breakdown */}
-                <div className="p-3.5 rounded-2xl bg-[#FFF7EC] border border-[#F28C28]/35 space-y-2 text-xs">
-                  <div className="flex items-center justify-between text-slate-600 tabular-nums">
+                <div className="p-4 rounded-2xl bg-[#FFF7EC] border border-[#F28C28]/35 space-y-2.5 text-sm sm:text-[15px]">
+                  <div className="flex items-center justify-between text-slate-700 tabular-nums">
                     <span>Biaya Kelas</span>
                     <span>
                       {payableContext.pricing.originalPrice && (
@@ -2575,14 +2575,14 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                       {formatRupiah(payableContext.pricing.price)}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between text-slate-600 tabular-nums">
+                  <div className="flex items-center justify-between text-slate-700 tabular-nums">
                     <span>Kode Unik Identifikasi Peserta</span>
                     <span className="font-bold text-[#1F3A5F]">+{formatRupiah(payableContext.uniqueCode)}</span>
                   </div>
-                  <div className="pt-2 border-t border-[#F28C28]/25 flex items-center justify-between gap-2">
+                  <div className="pt-2.5 border-t border-[#F28C28]/25 flex items-center justify-between gap-2">
                     <div>
-                      <div className="text-[11px] font-bold text-[#1F3A5F]">Total Scan QRIS</div>
-                      <div className="font-display text-xl font-extrabold text-[#F28C28] tabular-nums">
+                      <div className="text-sm font-bold text-[#1F3A5F]">Total Scan QRIS</div>
+                      <div className="font-display text-2xl font-extrabold text-[#F28C28] tabular-nums">
                         {formatRupiah(payableContext.payableAmount)}
                       </div>
                     </div>
@@ -2591,16 +2591,16 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                       onClick={() =>
                         handleCopyText('qris_amount', String(payableContext.payableAmount))
                       }
-                      className="px-3 py-1.5 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-[#1F3A5F] text-[11px] font-bold flex items-center gap-1.5 cursor-pointer"
+                      className="px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-[#1F3A5F] text-sm font-bold flex items-center gap-1.5 cursor-pointer"
                     >
                       {copiedKey === 'qris_amount' ? (
                         <>
-                          <Check className="w-3.5 h-3.5 text-emerald-600" />
+                          <Check className="w-4 h-4 text-emerald-600" />
                           <span>Tersalin</span>
                         </>
                       ) : (
                         <>
-                          <Copy className="w-3.5 h-3.5" />
+                          <Copy className="w-4 h-4" />
                           <span>Salin Nominal</span>
                         </>
                       )}
@@ -2619,14 +2619,14 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                       />
                     </div>
                   ) : (
-                    <div className="p-3.5 rounded-2xl bg-white border-2 border-[#1F3A5F]/15 shadow-sm flex flex-col items-center gap-2">
+                    <div className="p-4 rounded-2xl bg-white border-2 border-[#1F3A5F]/15 shadow-sm flex flex-col items-center gap-2">
                       <QRCodeCanvas
                         value={payableContext.dynamicQrisPayload}
                         size={220}
                         level="M"
                         includeMargin
                       />
-                      <span className="text-[11px] font-bold text-emerald-700">
+                      <span className="text-sm font-bold text-emerald-700 text-center">
                         Nominal {formatRupiah(payableContext.payableAmount)} otomatis terisi saat scan
                       </span>
                     </div>
@@ -2635,7 +2635,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                   <button
                     type="button"
                     onClick={() => setShowOriginalQrisCard((prev) => !prev)}
-                    className="text-[11px] font-bold text-[#1F3A5F]/75 hover:text-[#1F3A5F] underline cursor-pointer"
+                    className="text-sm font-bold text-[#1F3A5F]/80 hover:text-[#1F3A5F] underline cursor-pointer py-1"
                   >
                     {showOriginalQrisCard
                       ? 'Kembali ke QRIS Nominal Otomatis'
@@ -2644,14 +2644,14 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                 </div>
 
                 {myExistingVote?.paymentStatus === 'paid' ? (
-                  <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-800 flex items-center gap-2">
-                    <BadgeCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-sm sm:text-[15px] font-bold text-emerald-800 flex items-center gap-2.5 leading-relaxed">
+                    <BadgeCheck className="w-5 h-5 text-emerald-600 shrink-0" />
                     <span>Pembayaran sudah diverifikasi Lunas oleh mentor. Sampai jumpa di kelas!</span>
                   </div>
                 ) : (
                   <div className="space-y-2.5 pt-1">
                     {(paymentConfirmSuccess || myExistingVote?.paymentStatus === 'confirming') && (
-                      <div className="p-3 rounded-xl bg-sky-50 border border-sky-200 text-xs font-semibold text-sky-900">
+                      <div className="p-3.5 rounded-xl bg-sky-50 border border-sky-200 text-sm font-semibold text-sky-900 leading-relaxed">
                         ✓ {paymentConfirmSuccess || 'Konfirmasi pembayaranmu sudah tercatat! Mentor sedang mencocokkan mutasi kode unik pada GoPay Merchant.'}
                       </div>
                     )}
@@ -2675,9 +2675,9 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                           setIsConfirmingPayment(false);
                         }
                       }}
-                      className="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 cursor-pointer"
+                      className="w-full py-3.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm sm:text-base font-extrabold flex items-center justify-center gap-2 cursor-pointer"
                     >
-                      <CheckCircle2 className="w-4 h-4" />
+                      <CheckCircle2 className="w-5 h-5" />
                       <span>
                         {isConfirmingPayment
                           ? 'Mengirim Konfirmasi...'
@@ -2699,7 +2699,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                           )}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="w-full py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-[#1F3A5F] text-xs font-bold flex items-center justify-center gap-1.5"
+                          className="w-full py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-[#1F3A5F] text-sm font-bold flex items-center justify-center gap-2"
                         >
                           <MessageCircle className="w-4 h-4 text-emerald-600" />
                           <span>Kirim Bukti Transfer ke WA Mentor</span>
