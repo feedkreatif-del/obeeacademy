@@ -17,9 +17,14 @@ import {
   query,
   orderBy,
   limit,
+  writeBatch,
 } from 'firebase/firestore';
+import { onAuthStateChanged, User } from 'firebase/auth';
 import {
   db,
+  auth,
+  loginWithGoogle,
+  logoutUser,
   OperationType,
   handleFirestoreError,
   getOrCreateParticipantId,
@@ -43,6 +48,11 @@ import {
   ViewRole,
   SavedMaterial,
   FlipchartBoardDoc,
+  UnlockCampaignDoc,
+  UnlockVoteDoc,
+  UnlockVoteStatus,
+  UnlockContactDoc,
+  UnlockLeadStage,
 } from './types';
 import { ProjectorView } from './components/ProjectorView';
 import { ParticipantView } from './components/ParticipantView';
@@ -64,10 +74,11 @@ import {
   SESI_3_BRANDING_MARKETING_SELLING_CURRICULUM,
 } from './utils/materialsManager';
 import { MaterialsBankModal } from './components/MaterialsBankModal';
-import { Download, BookOpen, Lock, Unlock, ShieldCheck, Settings, Layers } from 'lucide-react';
+import { Download, BookOpen, Lock, Unlock, ShieldCheck, Settings, Layers, CalendarCheck } from 'lucide-react';
 import { SystemGuideModal } from './components/SystemGuideModal';
 import { PresenterAuthModal } from './components/PresenterAuthModal';
 import { CommitteePreviewView } from './components/CommitteePreviewView';
+import { ClassUnlockPortalView } from './components/ClassUnlockPortalView';
 
 const DEFAULT_SESSION_STATE: SessionStateDoc = {
   activeQuestion: 0,
@@ -97,6 +108,47 @@ const DEFAULT_CUSTOM_CONTENT: CustomContentDoc = {
   qnaTopics: DEFAULT_QNA_TOPICS,
   brandTheme: DEFAULT_BRAND_THEME,
   materialId: 'partnerup_sesi_1_curriculum',
+  updatedAt: Date.now(),
+};
+
+const DEFAULT_UNLOCK_CAMPAIGN: UnlockCampaignDoc = {
+  id: 'active',
+  title: 'Bursa Kelas UMKM obeeAcademy — Vote Topik & Jadwal',
+  subtitle:
+    'Pilih topik materi yang paling kamu butuhkan dan centang semua jadwal yang kamu bisa hadiri. Kelas resmi dibuka (GO!) begitu terkumpul minimal 15 peserta berkomitmen pada topik & jam yang cocok.',
+  organizerName: 'obeeAcademy | PartnerUp',
+  minQuota: 15,
+  status: 'open',
+  deadlineLabel: 'Voting dibuka s.d. Kamis 20.00 WIB',
+  candidateMaterialIds: [
+    'strobist_advanced_product_lighting_1',
+    'partnerup_sesi_4_branding_umkm',
+    'partnerup_sesi_5_marketing_umkm',
+    'partnerup_sesi_6_selling_closing_umkm',
+  ],
+  timeSlots: [
+    {
+      id: 'slot_rabu_malam',
+      label: 'Rabu Malam',
+      dateText: 'Rabu Pekan Depan',
+      timeText: '19.30 - 21.00 WIB',
+    },
+    {
+      id: 'slot_sabtu_pagi',
+      label: 'Sabtu Pagi',
+      dateText: 'Sabtu Pekan Depan',
+      timeText: '09.30 - 11.30 WIB',
+    },
+    {
+      id: 'slot_minggu_siang',
+      label: 'Minggu Siang',
+      dateText: 'Minggu Pekan Depan',
+      timeText: '13.30 - 15.30 WIB',
+    },
+  ],
+  winningMaterialId: '',
+  winningSlotId: '',
+  confirmedScheduleNote: '',
   updatedAt: Date.now(),
 };
 
@@ -138,11 +190,17 @@ export default function App() {
       v === 'extend' ||
       v === 'remote' ||
       v === 'guide' ||
-      v === 'preview'
+      v === 'preview' ||
+      v === 'bursa'
     ) {
       return v;
     }
     return isMobile ? 'participant' : 'projector';
+  });
+
+  const [forcePublicBursa, setForcePublicBursa] = useState<boolean>(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('view') === 'bursa';
   });
 
   const [isGuideModalOpen, setIsGuideModalOpen] = useState<boolean>(() => {
@@ -253,6 +311,10 @@ export default function App() {
   const [qnaList, setQnaList] = useState<QnaDoc[]>([]);
   const [pollVotes, setPollVotes] = useState<PollVoteDoc[]>([]);
   const [flipchartRemote, setFlipchartRemote] = useState<FlipchartBoardDoc | null>(null);
+  const [mentorUser, setMentorUser] = useState<User | null>(() => auth.currentUser);
+  const [unlockCampaign, setUnlockCampaign] = useState<UnlockCampaignDoc>(DEFAULT_UNLOCK_CAMPAIGN);
+  const [unlockVotes, setUnlockVotes] = useState<UnlockVoteDoc[]>([]);
+  const [unlockContacts, setUnlockContacts] = useState<UnlockContactDoc[]>([]);
   const [dismissedFlipchartTs, setDismissedFlipchartTs] = useState<number>(() => {
     try {
       const saved = window.localStorage.getItem('partnerup_flipchart_dismissed_ts_v1');
@@ -364,6 +426,18 @@ export default function App() {
     }
   };
 
+  // Track Firebase Google Auth state for protected admin contact queries
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => {
+      setMentorUser(u);
+    });
+    return () => unsub();
+  }, []);
+
+  const isVerifiedMentorAdmin = Boolean(
+    mentorUser?.email === 'feedkreatif@gmail.com' && mentorUser?.emailVerified
+  );
+
   // Sync saved materials library from Firestore on startup
   useEffect(() => {
     let isMounted = true;
@@ -376,6 +450,94 @@ export default function App() {
       isMounted = false;
     };
   }, []);
+
+  // Subscribe to Bursa Kelas Campaign & Public Votes
+  useEffect(() => {
+    const campRef = doc(db, 'unlock_campaigns', 'active');
+    const unsubCampaign = onSnapshot(
+      campRef,
+      (snap) => {
+        if (snap.exists()) {
+          const data = snap.data() as Partial<UnlockCampaignDoc>;
+          setUnlockCampaign({
+            id: snap.id,
+            title: data.title || DEFAULT_UNLOCK_CAMPAIGN.title,
+            subtitle: data.subtitle || DEFAULT_UNLOCK_CAMPAIGN.subtitle,
+            organizerName: data.organizerName || DEFAULT_UNLOCK_CAMPAIGN.organizerName,
+            minQuota: typeof data.minQuota === 'number' ? data.minQuota : 15,
+            status: data.status || 'open',
+            deadlineLabel: data.deadlineLabel || DEFAULT_UNLOCK_CAMPAIGN.deadlineLabel,
+            candidateMaterialIds:
+              Array.isArray(data.candidateMaterialIds) && data.candidateMaterialIds.length > 0
+                ? data.candidateMaterialIds
+                : DEFAULT_UNLOCK_CAMPAIGN.candidateMaterialIds,
+            timeSlots:
+              Array.isArray(data.timeSlots) && data.timeSlots.length > 0
+                ? data.timeSlots
+                : DEFAULT_UNLOCK_CAMPAIGN.timeSlots,
+            winningMaterialId: data.winningMaterialId || '',
+            winningSlotId: data.winningSlotId || '',
+            confirmedScheduleNote: data.confirmedScheduleNote || '',
+            updatedAt: typeof data.updatedAt === 'number' ? data.updatedAt : Date.now(),
+          });
+        } else if (isHostRoleRef.current) {
+          const { id: _id, ...payload } = DEFAULT_UNLOCK_CAMPAIGN;
+          setDoc(campRef, sanitizeForFirestore({ ...payload, updatedAt: Date.now() })).catch(
+            (err) => console.warn('Default unlock campaign init skipped:', err)
+          );
+        }
+      },
+      (err) => {
+        console.warn('Unlock campaign listener warning:', err);
+      }
+    );
+
+    const unlockVotesQuery = query(
+      collection(db, 'unlock_votes'),
+      orderBy('ts', 'desc'),
+      limit(300)
+    );
+    const unsubUnlockVotes = onSnapshot(
+      unlockVotesQuery,
+      (snap) => {
+        const list: UnlockVoteDoc[] = snap.docs.map((d) => ({
+          id: d.id,
+          ...(d.data() as Omit<UnlockVoteDoc, 'id'>),
+        }));
+        setUnlockVotes(list);
+      },
+      (err) => {
+        console.warn('Unlock votes listener warning:', err);
+      }
+    );
+
+    return () => {
+      unsubCampaign();
+      unsubUnlockVotes();
+    };
+  }, []);
+
+  // Conditionally subscribe to PII-isolated unlock_contacts ONLY when verified mentor admin is signed in
+  useEffect(() => {
+    if (!isVerifiedMentorAdmin) {
+      setUnlockContacts([]);
+      return;
+    }
+    const unsubContacts = onSnapshot(
+      collection(db, 'unlock_contacts'),
+      (snap) => {
+        const list: UnlockContactDoc[] = snap.docs.map((d) => ({
+          id: d.id,
+          ...(d.data() as Omit<UnlockContactDoc, 'id'>),
+        }));
+        setUnlockContacts(list);
+      },
+      (err) => {
+        handleFirestoreError(err, OperationType.LIST, 'unlock_contacts');
+      }
+    );
+    return () => unsubContacts();
+  }, [isVerifiedMentorAdmin]);
 
   // Dynamically apply organization brand color theme across all views (default: PartnerUp | Obeecreatives)
   useApplyBrandTheme(customContent.brandTheme);
@@ -1293,6 +1455,230 @@ export default function App() {
     await replaceSimulationSeeds(customContent.materialId, customContent.seminarTitle);
   };
 
+  // Bursa Kelas & Voting Kuota Handlers
+  const handleSaveUnlockCampaign = async (nextCampaign: UnlockCampaignDoc) => {
+    const { id: _id, ...cleanPayload } = sanitizeForFirestore({
+      ...nextCampaign,
+      winningMaterialId: nextCampaign.winningMaterialId || '',
+      winningSlotId: nextCampaign.winningSlotId || '',
+      confirmedScheduleNote: nextCampaign.confirmedScheduleNote || '',
+      updatedAt: Date.now(),
+    });
+    try {
+      await setDoc(doc(db, 'unlock_campaigns', 'active'), cleanPayload);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, 'unlock_campaigns/active');
+    }
+  };
+
+  const handleSubmitUnlockVoteAndContact = async (
+    voteData: Omit<UnlockVoteDoc, 'id'>,
+    contactDetails: {
+      whatsapp: string;
+      instagram: string;
+      businessCategory: string;
+      interestedTopicTitle: string;
+    }
+  ) => {
+    const safeCampId = (voteData.campaignId || 'active').replace(/[^a-zA-Z0-9_\-]/g, '');
+    const safePartId = voteData.participantId.replace(/[^a-zA-Z0-9_\-]/g, '');
+    const deterministicVoteId = `${safeCampId}__${safePartId}`.slice(0, 128);
+
+    const voteRef = doc(db, 'unlock_votes', deterministicVoteId);
+    const contactRef = doc(db, 'unlock_contacts', deterministicVoteId);
+
+    const batch = writeBatch(db);
+    batch.set(
+      voteRef,
+      sanitizeForFirestore({
+        ...voteData,
+        campaignId: safeCampId,
+        participantId: safePartId,
+        mainChallenge: (voteData.mainChallenge || '').slice(0, 220),
+        secondaryMaterialIds: (voteData.secondaryMaterialIds || []).slice(0, 3),
+        availableSlotIds: (voteData.availableSlotIds || []).slice(0, 8),
+      })
+    );
+    batch.set(
+      contactRef,
+      sanitizeForFirestore({
+        campaignId: safeCampId,
+        voteId: deterministicVoteId,
+        participantId: safePartId,
+        displayName: voteData.displayName.slice(0, 60),
+        businessName: voteData.businessName.slice(0, 60),
+        whatsapp: contactDetails.whatsapp.slice(0, 24),
+        instagram: contactDetails.instagram.slice(0, 64),
+        businessCategory: contactDetails.businessCategory.slice(0, 40),
+        interestedTopicId: voteData.primaryMaterialId.slice(0, 100),
+        interestedTopicTitle: contactDetails.interestedTopicTitle.slice(0, 120),
+        ts: voteData.ts,
+      }),
+      { merge: true }
+    );
+
+    try {
+      await batch.commit();
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `unlock_votes/${deterministicVoteId}`);
+    }
+  };
+
+  const handleUpdateLeadCrm = async (
+    contactId: string,
+    updates: { leadStage?: UnlockLeadStage; mentorNotes?: string }
+  ) => {
+    try {
+      await updateDoc(
+        doc(db, 'unlock_contacts', contactId),
+        sanitizeForFirestore({
+          ...(updates.leadStage ? { leadStage: updates.leadStage } : {}),
+          ...(typeof updates.mentorNotes === 'string'
+            ? { mentorNotes: updates.mentorNotes.slice(0, 300) }
+            : {}),
+        })
+      );
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `unlock_contacts/${contactId}`);
+    }
+  };
+
+  const handleUpdateUnlockVoteStatus = async (voteId: string, status: UnlockVoteStatus) => {
+    try {
+      await updateDoc(doc(db, 'unlock_votes', voteId), { status });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `unlock_votes/${voteId}`);
+    }
+  };
+
+  const handleDeleteUnlockVote = async (voteId: string) => {
+    try {
+      await deleteDoc(doc(db, 'unlock_votes', voteId));
+      if (isVerifiedMentorAdmin) {
+        await deleteDoc(doc(db, 'unlock_contacts', voteId)).catch(() => null);
+      }
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `unlock_votes/${voteId}`);
+    }
+  };
+
+  const handleSeedBursaDemoVotes = async () => {
+    const campId = (unlockCampaign.id || 'active').replace(/[^a-zA-Z0-9_\-]/g, '');
+    const candidateIds =
+      unlockCampaign.candidateMaterialIds.length > 0
+        ? unlockCampaign.candidateMaterialIds
+        : [DEFAULT_PARTNERUP_CURRICULUM.id];
+    const slotIds =
+      unlockCampaign.timeSlots.length > 0
+        ? unlockCampaign.timeSlots.map((s) => s.id)
+        : ['slot_sabtu_pagi'];
+    const leadTopic = candidateIds[0];
+    const altTopic1 = candidateIds[1] || leadTopic;
+    const altTopic2 = candidateIds[2] || leadTopic;
+    const mainSlot = slotIds[1] || slotIds[0];
+    const altSlot = slotIds[0];
+    const altSlot2 = slotIds[2] || slotIds[0];
+
+    const demoParticipants: {
+      name: string;
+      biz: string;
+      cat: string;
+      wa: string;
+      ig: string;
+      topic: string;
+      slots: string[];
+      flex: boolean;
+      status: UnlockVoteStatus;
+      stage: UnlockLeadStage;
+      note: string;
+    }[] = [
+      { name: 'Rina Kusuma', biz: 'Keripik Apel Makmur', cat: 'F&B / Kuliner', wa: '081234560101', ig: '@keripikapel.makmur', topic: leadTopic, slots: [mainSlot, altSlot], flex: true, status: 'confirmed_h1', stage: 'prospek_klien', note: 'Feed IG masih gelap, tertarik foto katalog 10 SKU.' },
+      { name: 'Budi Santoso', biz: 'Kopi Tubruk Nusantara', cat: 'F&B / Kuliner', wa: '081234560102', ig: '@kopitubruk.nusantara', topic: leadTopic, slots: [mainSlot], flex: true, status: 'confirmed_h1', stage: 'hadir_kelas', note: 'Sudah punya kemasan pouch bagus, butuh foto hero.' },
+      { name: 'Dita Anggraini', biz: 'Tas Rajut Dita', cat: 'Kriya / Handmade', wa: '081234560103', ig: '@tasrajut.dita', topic: leadTopic, slots: [mainSlot, altSlot2], flex: true, status: 'committed', stage: 'sudah_dihubungi', note: '' },
+      { name: 'Hendra Wijaya', biz: 'Sambal Roa Manado', cat: 'F&B / Kuliner', wa: '081234560104', ig: '@sambalroa.hendra', topic: leadTopic, slots: [mainSlot], flex: false, status: 'confirmed_h1', stage: 'prospek_klien', note: 'Botol kaca sering memantul lampu saat difoto sendiri.' },
+      { name: 'Nisa Pratiwi', biz: 'Yoghurt Segar Mbak Nisa', cat: 'F&B / Kuliner', wa: '081234560105', ig: '@yoghurt.mbaknisa', topic: leadTopic, slots: [mainSlot, altSlot], flex: true, status: 'confirmed_h1', stage: 'klien_deal', note: 'Deal paket foto + desain stiker kemasan baru.' },
+      { name: 'Fajar Ramadhan', biz: 'Tumbler Grafir Jogja', cat: 'Kriya / Handmade', wa: '081234560106', ig: '@tumblergrafir.jogja', topic: leadTopic, slots: [mainSlot, altSlot2], flex: true, status: 'committed', stage: 'lead_baru', note: '' },
+      { name: 'Sari Wulandari', biz: 'Cookies Gula Aren', cat: 'F&B / Kuliner', wa: '081234560107', ig: '@cookiesaren.sari', topic: leadTopic, slots: [mainSlot], flex: true, status: 'committed', stage: 'lead_baru', note: '' },
+      { name: 'Agus Setiawan', biz: 'Kulit Asli Garut', cat: 'Fashion / Busana', wa: '081234560108', ig: '@kulitasli.garut', topic: leadTopic, slots: [mainSlot, altSlot], flex: true, status: 'confirmed_h1', stage: 'sudah_dihubungi', note: 'Potensial untuk sesi foto studio produk kulit hitam.' },
+      { name: 'Maya Lestari', biz: 'Madu Hutan Asli', cat: 'F&B / Kuliner', wa: '081234560109', ig: '@maduhutan.maya', topic: leadTopic, slots: [mainSlot], flex: false, status: 'committed', stage: 'lead_baru', note: '' },
+      { name: 'Rizky Pratama', biz: 'Parfum Lokal Wangi', cat: 'Kecantikan / Herbal', wa: '081234560110', ig: '@parfumlokal.wangi', topic: leadTopic, slots: [mainSlot, altSlot2], flex: true, status: 'confirmed_h1', stage: 'prospek_klien', note: 'Butuh foto high-speed splash + botol transparan.' },
+      { name: 'Dewi Kartika', biz: 'Batik Tulis Dewi', cat: 'Fashion / Busana', wa: '081234560111', ig: '@batiktulis.dewi', topic: altTopic1, slots: [mainSlot, altSlot], flex: true, status: 'committed', stage: 'lead_baru', note: '' },
+      { name: 'Andi Firmansyah', biz: 'Frozen Dimsum Enak', cat: 'F&B / Kuliner', wa: '081234560112', ig: '@frozendimsum.andi', topic: altTopic1, slots: [mainSlot], flex: true, status: 'committed', stage: 'sudah_dihubungi', note: '' },
+      { name: 'Putri Melati', biz: 'Skincare Herbal Putri', cat: 'Kecantikan / Herbal', wa: '081234560113', ig: '@skincare.putrimelati', topic: altTopic1, slots: [mainSlot, altSlot2], flex: true, status: 'committed', stage: 'hadir_kelas', note: '' },
+      { name: 'Wahyu Nugroho', biz: 'Berkah Event Rental', cat: 'Jasa / Event', wa: '081234560114', ig: '@berkahevent.id', topic: altTopic2, slots: [mainSlot, altSlot], flex: true, status: 'committed', stage: 'lead_baru', note: '' },
+      { name: 'Lina Marlina', biz: 'Hampers Kue Kering', cat: 'F&B / Kuliner', wa: '081234560115', ig: '@hampers.linamarlina', topic: altTopic2, slots: [mainSlot], flex: true, status: 'committed', stage: 'lead_baru', note: '' },
+      { name: 'Tono Suhartono', biz: 'Abon Sapi Asli', cat: 'F&B / Kuliner', wa: '081234560116', ig: '@abonsapi.tono', topic: altTopic1, slots: [altSlot], flex: false, status: 'committed', stage: 'lead_baru', note: '' },
+    ];
+
+    try {
+      const batch = writeBatch(db);
+      const baseTs = Date.now();
+      demoParticipants.forEach((p, idx) => {
+        const pId = `seed_bursa_${String(idx + 1).padStart(2, '0')}`;
+        const vId = `${campId}__${pId}`;
+        const tsVal = baseTs - (demoParticipants.length - idx) * 45000;
+        const topicTitle =
+          materials.find((m) => m.id === p.topic)?.seminarTitle || p.topic;
+
+        batch.set(
+          doc(db, 'unlock_votes', vId),
+          sanitizeForFirestore({
+            campaignId: campId,
+            participantId: pId,
+            displayName: p.name,
+            businessName: p.biz,
+            primaryMaterialId: p.topic,
+            secondaryMaterialIds: [],
+            availableSlotIds: p.slots,
+            flexibleTopic: p.flex,
+            mainChallenge: 'Ingin naik kelas & konsisten praktik bersama UMKM lain.',
+            status: p.status,
+            ts: tsVal,
+          })
+        );
+
+        if (isVerifiedMentorAdmin) {
+          batch.set(
+            doc(db, 'unlock_contacts', vId),
+            sanitizeForFirestore({
+              campaignId: campId,
+              voteId: vId,
+              participantId: pId,
+              displayName: p.name,
+              businessName: p.biz,
+              whatsapp: p.wa,
+              instagram: p.ig,
+              businessCategory: p.cat,
+              interestedTopicId: p.topic,
+              interestedTopicTitle: topicTitle.slice(0, 120),
+              leadStage: p.stage,
+              mentorNotes: p.note,
+              ts: tsVal,
+            })
+          );
+        }
+      });
+      await batch.commit();
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, 'unlock_votes');
+    }
+  };
+
+  const handleClearBursaDemoVotes = async () => {
+    const demoVotes = unlockVotes.filter((v) => v.participantId.startsWith('seed_bursa_'));
+    const demoContacts = unlockContacts.filter((c) => c.participantId.startsWith('seed_bursa_'));
+    try {
+      await Promise.all([
+        ...demoVotes.map((v) => deleteDoc(doc(db, 'unlock_votes', v.id))),
+        ...(isVerifiedMentorAdmin
+          ? demoContacts.map((c) => deleteDoc(doc(db, 'unlock_contacts', c.id)))
+          : []),
+      ]);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, 'unlock_votes');
+    }
+  };
+
   const approvedAnswers = answers.filter((a) => a.status === 'approved');
   const approvedQna = qnaList.filter((q) => q.status === 'approved');
   const myAnswers = answers.filter((a) => a.participantId === participantId);
@@ -1363,10 +1749,14 @@ export default function App() {
     );
   }
 
+  const isPublicBursaHeader =
+    viewRole === 'bursa' && forcePublicBursa && !isPresenterUnlocked;
+  const isPublicHeaderOnly = viewRole === 'participant' || isPublicBursaHeader;
+
   return (
     <div className="min-h-screen w-full max-w-full overflow-x-hidden flex flex-col bg-[#FFF7EC] text-[#1F3A5F]">
-      {/* Conditional Header: Clean Participant Header vs Presenter/Organizer 3-Zone Navigation */}
-      {viewRole === 'participant' ? (
+      {/* Conditional Header: Clean Participant/Public Header vs Presenter/Organizer 3-Zone Navigation */}
+      {isPublicHeaderOnly ? (
         <header className="w-full max-w-full flex items-center justify-between gap-3 px-4 sm:px-6 py-3 bg-[#1F3A5F] text-white border-b border-white/10 sticky top-0 z-30 shadow-xs">
           <div
             onClick={handleSecretTrigger}
@@ -1376,10 +1766,14 @@ export default function App() {
             <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0" title="Terkoneksi Live" />
             <div className="min-w-0">
               <h1 className="font-display text-sm sm:text-base font-extrabold tracking-tight text-white truncate leading-tight">
-                {customContent.seminarTitle || 'obeeAcademy'}
+                {isPublicBursaHeader
+                  ? unlockCampaign.title
+                  : customContent.seminarTitle || 'obeeAcademy'}
               </h1>
               <p className="text-[11px] text-white/70 truncate leading-none mt-0.5">
-                {customContent.organizerName || 'obeeAcademy | Obeecreatives'}
+                {isPublicBursaHeader
+                  ? unlockCampaign.organizerName || 'obeeAcademy | PartnerUp'
+                  : customContent.organizerName || 'obeeAcademy | Obeecreatives'}
               </p>
             </div>
           </div>
@@ -1476,6 +1870,21 @@ export default function App() {
               }`}
             >
               Editor Materi
+            </button>
+
+            <button
+              onClick={() => {
+                setForcePublicBursa(false);
+                setViewRole('bursa');
+              }}
+              className={`hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer pb-0.5 flex items-center gap-1 ${
+                viewRole === 'bursa'
+                  ? 'text-[#F28C28] font-bold border-b-2 border-[#F28C28]'
+                  : ''
+              }`}
+            >
+              <CalendarCheck className="w-3.5 h-3.5 text-[#F28C28]" />
+              <span>Bursa Kelas</span>
             </button>
           </nav>
 
@@ -1774,6 +2183,38 @@ export default function App() {
             onPublishFlipchart={handlePublishFlipchart}
           />
         )}
+
+        {viewRole === 'bursa' && (
+          <ClassUnlockPortalView
+            isHostMode={!isPublicBursaHeader}
+            materials={materials}
+            campaign={unlockCampaign}
+            votes={unlockVotes}
+            contacts={unlockContacts}
+            participantId={participantId}
+            isVerifiedMentorAdmin={isVerifiedMentorAdmin}
+            mentorEmail={mentorUser?.email || null}
+            initialHighlightedMaterialId={initialQrTargetRef.current.materialId}
+            onLoginMentorGoogle={async () => {
+              await loginWithGoogle();
+            }}
+            onLogoutMentorGoogle={async () => {
+              await logoutUser();
+            }}
+            onSaveCampaign={handleSaveUnlockCampaign}
+            onSubmitVoteAndContact={handleSubmitUnlockVoteAndContact}
+            onUpdateLeadCrm={handleUpdateLeadCrm}
+            onUpdateVoteStatus={handleUpdateUnlockVoteStatus}
+            onDeleteVote={handleDeleteUnlockVote}
+            onSeedDemoVotes={handleSeedBursaDemoVotes}
+            onClearDemoVotes={handleClearBursaDemoVotes}
+            onActivateWinningMaterial={async (mat) => {
+              await handleSelectActiveMaterial(mat);
+              setViewRole('slides');
+            }}
+            onBackToPresenter={() => setViewRole('projector')}
+          />
+        )}
       </main>
 
       {/* Floating Developer Quick Switcher for Presenter when simulating participant */}
@@ -1793,7 +2234,7 @@ export default function App() {
       {/* Footer: Differentiated for Participant vs Developer/Presenter */}
       <footer className="border-t border-[#1F3A5F]/10 py-4 px-6 text-center text-xs text-[#1F3A5F]/60 bg-[#FFF7EC] flex flex-col sm:flex-row items-center justify-between gap-2 max-w-7xl mx-auto w-full">
         <span>{customContent.seminarTitle} · {customContent.organizerName}</span>
-        {viewRole !== 'participant' ? (
+        {!isPublicHeaderOnly ? (
           <button
             type="button"
             onClick={() => setIsGuideModalOpen(true)}
@@ -1804,7 +2245,9 @@ export default function App() {
           </button>
         ) : (
           <div className="flex items-center gap-2">
-            <span className="text-[11px] text-[#1F3A5F]/50">Portal Interaktif Peserta UMKM</span>
+            <span className="text-[11px] text-[#1F3A5F]/50">
+              {isPublicBursaHeader ? 'Portal Bursa Kelas UMKM' : 'Portal Interaktif Peserta UMKM'}
+            </span>
             {/* Subtle discreet lock for developer login */}
             <button
               onClick={() => setIsAuthModalOpen(true)}
@@ -1839,6 +2282,9 @@ export default function App() {
         onClose={() => setIsAuthModalOpen(false)}
         currentRole={viewRole}
         onSelectRole={(r) => {
+          if (r === 'bursa') {
+            setForcePublicBursa(false);
+          }
           setViewRole(r);
         }}
         isUnlocked={isPresenterUnlocked}
@@ -1853,7 +2299,7 @@ export default function App() {
 
       {/* Comprehensive System Guide & Duplication Manual Modal - Strict Developer Access */}
       <SystemGuideModal
-        isOpen={(isGuideModalOpen || viewRole === 'guide') && viewRole !== 'participant'}
+        isOpen={(isGuideModalOpen || viewRole === 'guide') && !isPublicHeaderOnly}
         onClose={() => {
           setIsGuideModalOpen(false);
           if (viewRole === 'guide') {

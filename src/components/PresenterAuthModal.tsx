@@ -20,6 +20,7 @@ import {
   Copy,
   Check,
   Share2,
+  CalendarCheck,
 } from 'lucide-react';
 
 interface PresenterAuthModalProps {
@@ -155,6 +156,13 @@ export const PresenterAuthModal: React.FC<PresenterAuthModalProps> = ({
       desc: 'Tampilan aman khusus panitia/EO tanpa tombol edit materi & proyektor',
       icon: <Eye className="w-5 h-5 text-teal-600" />,
       color: 'border-teal-200 hover:border-teal-500 hover:bg-teal-50/40',
+    },
+    {
+      role: 'bursa',
+      label: 'Bursa Kelas & Voting Kuota',
+      desc: 'Poster materi PNG, voting topik & jadwal minimal 15 peserta',
+      icon: <CalendarCheck className="w-5 h-5 text-[#F28C28]" />,
+      color: 'border-amber-200 hover:border-[#F28C28]',
     },
     {
       role: 'participant',

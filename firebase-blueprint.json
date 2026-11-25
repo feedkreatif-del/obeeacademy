@@ -382,6 +382,252 @@
         "sourceDeviceId",
         "updatedAt"
       ]
+    },
+    "UnlockCampaign": {
+      "title": "UnlockCampaign",
+      "description": "Class unlock voting campaign configuration with candidate modules, schedule time slots, and minimum participant quota",
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Campaign headline shown to UMKM participants"
+        },
+        "subtitle": {
+          "type": "string",
+          "maxLength": 300,
+          "description": "Campaign brief explanation and commitment instructions"
+        },
+        "organizerName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Organizer display name"
+        },
+        "minQuota": {
+          "type": "integer",
+          "description": "Minimum committed participants required to unlock the class (default 15)"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["open", "unlocked", "scheduled", "closed"],
+          "description": "Current campaign lifecycle status"
+        },
+        "deadlineLabel": {
+          "type": "string",
+          "maxLength": 80,
+          "description": "Human-readable deadline notice for voting"
+        },
+        "candidateMaterialIds": {
+          "type": "array",
+          "description": "Bounded list of material IDs included in this voting campaign"
+        },
+        "timeSlots": {
+          "type": "array",
+          "description": "Bounded list of date and time option objects offered to participants"
+        },
+        "winningMaterialId": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Material ID confirmed as the class winner"
+        },
+        "winningSlotId": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Time slot ID confirmed as the class schedule"
+        },
+        "confirmedScheduleNote": {
+          "type": "string",
+          "maxLength": 250,
+          "description": "Location, Zoom link, or H-1 confirmation note once class is scheduled"
+        },
+        "updatedAt": {
+          "type": "integer",
+          "description": "Last campaign update timestamp in ms"
+        }
+      },
+      "required": [
+        "title",
+        "subtitle",
+        "organizerName",
+        "minQuota",
+        "status",
+        "deadlineLabel",
+        "candidateMaterialIds",
+        "timeSlots",
+        "winningMaterialId",
+        "winningSlotId",
+        "confirmedScheduleNote",
+        "updatedAt"
+      ]
+    },
+    "UnlockVote": {
+      "title": "UnlockVote",
+      "description": "Public participant commitment vote without PII (no phone/email)",
+      "type": "object",
+      "properties": {
+        "campaignId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Target campaign ID"
+        },
+        "participantId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Client device identifier"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60,
+          "description": "Participant display name"
+        },
+        "businessName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60,
+          "description": "UMKM business name"
+        },
+        "primaryMaterialId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Top preferred material ID"
+        },
+        "secondaryMaterialIds": {
+          "type": "array",
+          "description": "Optional alternative material IDs (up to 3)"
+        },
+        "availableSlotIds": {
+          "type": "array",
+          "description": "All date/time slot IDs the participant can attend"
+        },
+        "flexibleTopic": {
+          "type": "boolean",
+          "description": "Whether the participant is willing to attend even if another topic wins on their selected time slot"
+        },
+        "mainChallenge": {
+          "type": "string",
+          "maxLength": 220,
+          "description": "Brief real problem or question the participant brings to class"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["committed", "confirmed_h1", "cancelled"],
+          "description": "Commitment verification status"
+        },
+        "ts": {
+          "type": "integer",
+          "description": "Vote submission timestamp in ms"
+        }
+      },
+      "required": [
+        "campaignId",
+        "participantId",
+        "displayName",
+        "businessName",
+        "primaryMaterialId",
+        "secondaryMaterialIds",
+        "availableSlotIds",
+        "flexibleTopic",
+        "mainChallenge",
+        "status",
+        "ts"
+      ]
+    },
+    "UnlockContact": {
+      "title": "UnlockContact",
+      "description": "Isolated PII contact and UMKM CRM lead record containing WhatsApp, Instagram, and mentor pipeline tracking, readable only by verified mentor/admin",
+      "type": "object",
+      "properties": {
+        "campaignId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Campaign identifier"
+        },
+        "voteId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Matching vote document ID"
+        },
+        "participantId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Client device identifier"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60,
+          "description": "Participant name"
+        },
+        "businessName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60,
+          "description": "UMKM business name"
+        },
+        "whatsapp": {
+          "type": "string",
+          "minLength": 6,
+          "maxLength": 24,
+          "description": "Participant WhatsApp number for H-1 reminder and lead follow-up"
+        },
+        "instagram": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Participant or business Instagram username/handle"
+        },
+        "businessCategory": {
+          "type": "string",
+          "maxLength": 40,
+          "description": "UMKM business sector category"
+        },
+        "interestedTopicId": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Primary class topic ID voted by this UMKM lead"
+        },
+        "interestedTopicTitle": {
+          "type": "string",
+          "maxLength": 120,
+          "description": "Human-readable title of voted topic"
+        },
+        "leadStage": {
+          "type": "string",
+          "enum": ["lead_baru", "sudah_dihubungi", "hadir_kelas", "prospek_klien", "klien_deal"],
+          "description": "CRM conversion funnel stage managed by mentor/admin"
+        },
+        "mentorNotes": {
+          "type": "string",
+          "maxLength": 300,
+          "description": "Private mentor audit notes on Instagram feed and potential client services"
+        },
+        "ts": {
+          "type": "integer",
+          "description": "Submission timestamp in ms"
+        }
+      },
+      "required": [
+        "campaignId",
+        "voteId",
+        "participantId",
+        "displayName",
+        "businessName",
+        "whatsapp",
+        "ts"
+      ]
     }
   },
   "firestore": {
@@ -408,6 +654,18 @@
     "/flipchart/{boardId}": {
       "schema": { "$ref": "#/entities/FlipchartBoard" },
       "description": "Live flipchart whiteboard sync between presenter remote tablet and projector/slide stage"
+    },
+    "/unlock_campaigns/{campaignId}": {
+      "schema": { "$ref": "#/entities/UnlockCampaign" },
+      "description": "Class unlock voting campaign configurations and schedule options"
+    },
+    "/unlock_votes/{voteId}": {
+      "schema": { "$ref": "#/entities/UnlockVote" },
+      "description": "Public participant topic & time slot commitment votes (zero PII)"
+    },
+    "/unlock_contacts/{contactId}": {
+      "schema": { "$ref": "#/entities/UnlockContact" },
+      "description": "Admin-only WhatsApp contact details isolated from public voting feeds"
     }
   }
 }

@@ -2,7 +2,7 @@ import { WorksheetQuestion, LivePollConfig, SlideDefinition, SlideImagePosition 
 export type { SlideImagePosition };
 
 export type InteractiveMode = 'worksheet' | 'poll' | 'qna' | 'external';
-export type ViewRole = 'projector' | 'participant' | 'moderation' | 'slides' | 'editor' | 'extend' | 'remote' | 'guide' | 'preview';
+export type ViewRole = 'projector' | 'participant' | 'moderation' | 'slides' | 'editor' | 'extend' | 'remote' | 'guide' | 'preview' | 'bursa';
 export type SlideTransitionStyle = 'slide' | 'zoom' | 'fade';
 export type SlideDrawerMode = 'none' | 'answers' | 'poll' | 'qna' | 'qr';
 
@@ -108,3 +108,70 @@ export interface FlipchartBoardDoc {
   sourceDeviceId: string;
   updatedAt: number;
 }
+
+export interface UnlockTimeSlot {
+  id: string;
+  label: string;
+  dateText: string;
+  timeText: string;
+}
+
+export type UnlockCampaignStatus = 'open' | 'unlocked' | 'scheduled' | 'closed';
+
+export interface UnlockCampaignDoc {
+  id?: string;
+  title: string;
+  subtitle: string;
+  organizerName: string;
+  minQuota: number;
+  status: UnlockCampaignStatus;
+  deadlineLabel: string;
+  candidateMaterialIds: string[];
+  timeSlots: UnlockTimeSlot[];
+  winningMaterialId: string;
+  winningSlotId: string;
+  confirmedScheduleNote: string;
+  updatedAt: number;
+}
+
+export type UnlockVoteStatus = 'committed' | 'confirmed_h1' | 'cancelled';
+
+export interface UnlockVoteDoc {
+  id: string;
+  campaignId: string;
+  participantId: string;
+  displayName: string;
+  businessName: string;
+  primaryMaterialId: string;
+  secondaryMaterialIds: string[];
+  availableSlotIds: string[];
+  flexibleTopic: boolean;
+  mainChallenge: string;
+  status: UnlockVoteStatus;
+  ts: number;
+}
+
+export type UnlockLeadStage =
+  | 'lead_baru'
+  | 'sudah_dihubungi'
+  | 'hadir_kelas'
+  | 'prospek_klien'
+  | 'klien_deal';
+
+export interface UnlockContactDoc {
+  id: string;
+  campaignId: string;
+  voteId: string;
+  participantId: string;
+  displayName: string;
+  businessName: string;
+  whatsapp: string;
+  instagram?: string;
+  businessCategory?: string;
+  interestedTopicId?: string;
+  interestedTopicTitle?: string;
+  leadStage?: UnlockLeadStage;
+  mentorNotes?: string;
+  ts: number;
+}
+

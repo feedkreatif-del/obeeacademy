@@ -241,6 +241,133 @@ service cloud.firestore {
       data.updatedAt is int;
     }
 
+    function isValidUnlockCampaign(data) {
+      return data.keys().hasAll([
+        'title',
+        'subtitle',
+        'organizerName',
+        'minQuota',
+        'status',
+        'deadlineLabel',
+        'candidateMaterialIds',
+        'timeSlots',
+        'winningMaterialId',
+        'winningSlotId',
+        'confirmedScheduleNote',
+        'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'title',
+        'subtitle',
+        'organizerName',
+        'minQuota',
+        'status',
+        'deadlineLabel',
+        'candidateMaterialIds',
+        'timeSlots',
+        'winningMaterialId',
+        'winningSlotId',
+        'confirmedScheduleNote',
+        'updatedAt'
+      ]) &&
+      data.title is string && data.title.size() >= 1 && data.title.size() <= 120 &&
+      data.subtitle is string && data.subtitle.size() <= 300 &&
+      data.organizerName is string && data.organizerName.size() >= 1 && data.organizerName.size() <= 100 &&
+      data.minQuota is int && data.minQuota >= 5 && data.minQuota <= 200 &&
+      data.status is string && data.status in ['open', 'unlocked', 'scheduled', 'closed'] &&
+      data.deadlineLabel is string && data.deadlineLabel.size() <= 80 &&
+      data.candidateMaterialIds is list && data.candidateMaterialIds.size() >= 1 && data.candidateMaterialIds.size() <= 20 &&
+      data.candidateMaterialIds[0] is string &&
+      data.timeSlots is list && data.timeSlots.size() >= 1 && data.timeSlots.size() <= 8 &&
+      data.timeSlots[0] is map &&
+      data.winningMaterialId is string && data.winningMaterialId.size() <= 100 &&
+      data.winningSlotId is string && data.winningSlotId.size() <= 64 &&
+      data.confirmedScheduleNote is string && data.confirmedScheduleNote.size() <= 250 &&
+      data.updatedAt is int;
+    }
+
+    function isValidUnlockVote(data) {
+      return data.keys().hasAll([
+        'campaignId',
+        'participantId',
+        'displayName',
+        'businessName',
+        'primaryMaterialId',
+        'secondaryMaterialIds',
+        'availableSlotIds',
+        'flexibleTopic',
+        'mainChallenge',
+        'status',
+        'ts'
+      ]) &&
+      data.keys().hasOnly([
+        'campaignId',
+        'participantId',
+        'displayName',
+        'businessName',
+        'primaryMaterialId',
+        'secondaryMaterialIds',
+        'availableSlotIds',
+        'flexibleTopic',
+        'mainChallenge',
+        'status',
+        'ts'
+      ]) &&
+      data.campaignId is string && data.campaignId.size() >= 1 && data.campaignId.size() <= 64 && data.campaignId.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.participantId is string && data.participantId.size() >= 1 && data.participantId.size() <= 64 && data.participantId.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 60 &&
+      data.businessName is string && data.businessName.size() >= 1 && data.businessName.size() <= 60 &&
+      data.primaryMaterialId is string && data.primaryMaterialId.size() >= 1 && data.primaryMaterialId.size() <= 100 &&
+      data.secondaryMaterialIds is list && data.secondaryMaterialIds.size() <= 3 &&
+      (data.secondaryMaterialIds.size() == 0 || data.secondaryMaterialIds[0] is string) &&
+      data.availableSlotIds is list && data.availableSlotIds.size() >= 1 && data.availableSlotIds.size() <= 8 &&
+      data.availableSlotIds[0] is string &&
+      data.flexibleTopic is bool &&
+      data.mainChallenge is string && data.mainChallenge.size() <= 220 &&
+      data.status is string && data.status in ['committed', 'confirmed_h1', 'cancelled'] &&
+      data.ts is int;
+    }
+
+    function isValidUnlockContact(data) {
+      return data.keys().hasAll([
+        'campaignId',
+        'voteId',
+        'participantId',
+        'displayName',
+        'businessName',
+        'whatsapp',
+        'ts'
+      ]) &&
+      data.keys().hasOnly([
+        'campaignId',
+        'voteId',
+        'participantId',
+        'displayName',
+        'businessName',
+        'whatsapp',
+        'instagram',
+        'businessCategory',
+        'interestedTopicId',
+        'interestedTopicTitle',
+        'leadStage',
+        'mentorNotes',
+        'ts'
+      ]) &&
+      data.campaignId is string && data.campaignId.size() >= 1 && data.campaignId.size() <= 64 && data.campaignId.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.voteId is string && data.voteId.size() >= 1 && data.voteId.size() <= 128 && data.voteId.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.participantId is string && data.participantId.size() >= 1 && data.participantId.size() <= 64 && data.participantId.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 60 &&
+      data.businessName is string && data.businessName.size() >= 1 && data.businessName.size() <= 60 &&
+      data.whatsapp is string && data.whatsapp.size() >= 6 && data.whatsapp.size() <= 24 &&
+      (!('instagram' in data) || (data.instagram is string && data.instagram.size() <= 64)) &&
+      (!('businessCategory' in data) || (data.businessCategory is string && data.businessCategory.size() <= 40)) &&
+      (!('interestedTopicId' in data) || (data.interestedTopicId is string && data.interestedTopicId.size() <= 100)) &&
+      (!('interestedTopicTitle' in data) || (data.interestedTopicTitle is string && data.interestedTopicTitle.size() <= 120)) &&
+      (!('leadStage' in data) || (data.leadStage is string && data.leadStage in ['lead_baru', 'sudah_dihubungi', 'hadir_kelas', 'prospek_klien', 'klien_deal'])) &&
+      (!('mentorNotes' in data) || (data.mentorNotes is string && data.mentorNotes.size() <= 300)) &&
+      data.ts is int;
+    }
+
     // Connection test path
     match /test/{docId} {
       allow get: if isValidId(docId);
@@ -360,6 +487,92 @@ service cloud.firestore {
         ])
       );
       allow delete: if isValidId(boardId);
+    }
+
+    // Class Unlock Voting Campaign Configuration
+    match /unlock_campaigns/{campaignId} {
+      allow get: if isValidId(campaignId);
+      allow list: if resource.data.updatedAt is int;
+      allow create: if isValidId(campaignId) && isValidUnlockCampaign(incoming());
+      allow update: if isValidId(campaignId) && isValidUnlockCampaign(incoming()) && (
+        isAdmin() ||
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'title',
+          'subtitle',
+          'organizerName',
+          'minQuota',
+          'status',
+          'deadlineLabel',
+          'candidateMaterialIds',
+          'timeSlots',
+          'winningMaterialId',
+          'winningSlotId',
+          'confirmedScheduleNote',
+          'updatedAt'
+        ])
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Class Unlock Public Votes (Zero PII: no WhatsApp or email stored here)
+    match /unlock_votes/{voteId} {
+      allow get: if isValidId(voteId);
+      allow list: if resource.data.campaignId is string && resource.data.ts is int;
+      allow create: if isValidId(voteId) && isValidUnlockVote(incoming());
+      allow update: if isValidId(voteId) && isValidUnlockVote(incoming()) && (
+        isAdmin() ||
+        (
+          incoming().campaignId == existing().campaignId &&
+          incoming().participantId == existing().participantId &&
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'displayName',
+            'businessName',
+            'primaryMaterialId',
+            'secondaryMaterialIds',
+            'availableSlotIds',
+            'flexibleTopic',
+            'mainChallenge',
+            'status',
+            'ts'
+          ])
+        )
+      );
+      allow delete: if isValidId(voteId);
+    }
+
+    // Class Unlock Private Contacts & UMKM Lead Database (PII Isolated: WhatsApp & Instagram readable only by verified mentor admin)
+    match /unlock_contacts/{contactId} {
+      allow get, list: if isAdmin();
+      allow create: if isValidId(contactId) &&
+        isValidUnlockContact(incoming()) &&
+        incoming().voteId == contactId &&
+        existsAfter(/databases/$(database)/documents/unlock_votes/$(contactId)) &&
+        (
+          isAdmin() ||
+          (
+            (!('leadStage' in incoming()) || incoming().leadStage == 'lead_baru') &&
+            (!('mentorNotes' in incoming()) || incoming().mentorNotes == '')
+          )
+        );
+      allow update: if isValidId(contactId) && isValidUnlockContact(incoming()) && (
+        isAdmin() ||
+        (
+          incoming().campaignId == existing().campaignId &&
+          incoming().voteId == existing().voteId &&
+          incoming().participantId == existing().participantId &&
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'displayName',
+            'businessName',
+            'whatsapp',
+            'instagram',
+            'businessCategory',
+            'interestedTopicId',
+            'interestedTopicTitle',
+            'ts'
+          ])
+        )
+      );
+      allow delete: if isAdmin();
     }
   }
 }
