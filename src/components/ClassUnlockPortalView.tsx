@@ -12,6 +12,8 @@ import {
   Download,
   Edit3,
   ExternalLink,
+  Eye,
+  EyeOff,
   Flame,
   Image as ImageIcon,
   Instagram,
@@ -167,19 +169,22 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
   onActivateWinningMaterial,
   onBackToPresenter,
 }) => {
-  const [hostTab, setHostTab] = useState<'monitor' | 'crm' | 'posters' | 'setup'>('monitor');
+  const [hostTab, setHostTab] = useState<'posters' | 'monitor' | 'crm' | 'setup'>('posters');
 
   const baseBursaUrl = useMemo(() => {
     if (typeof window === 'undefined') return '/?view=bursa';
     return `${window.location.origin}${window.location.pathname}?view=bursa`;
   }, []);
 
+  const visiblePosterIdSet = useMemo(
+    () => new Set(campaign.candidateMaterialIds),
+    [campaign.candidateMaterialIds]
+  );
+
   const candidateMaterials = useMemo(() => {
-    const matched = campaign.candidateMaterialIds
-      .map((id) => materials.find((m) => m.id === id))
-      .filter((m): m is SavedMaterial => Boolean(m));
-    return matched.length > 0 ? matched : materials.slice(0, 4);
-  }, [campaign.candidateMaterialIds, materials]);
+    const matched = materials.filter((m) => visiblePosterIdSet.has(m.id));
+    return matched.length > 0 ? matched : materials;
+  }, [visiblePosterIdSet, materials]);
 
   const analytics = useMemo(() => {
     const activeVotes = votes.filter((v) => v.status !== 'cancelled');
@@ -359,6 +364,11 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
   const [studioPreviewUrl, setStudioPreviewUrl] = useState<string>('');
   const [isRenderingStudio, setIsRenderingStudio] = useState<boolean>(false);
   const studioQrWrapRef = useRef<HTMLDivElement | null>(null);
+
+  // Poster Catalog Filter & Visibility Toggle State (Host)
+  const [posterFilterMode, setPosterFilterMode] = useState<'all' | 'visible' | 'hidden'>('all');
+  const [posterSearchQuery, setPosterSearchQuery] = useState<string>('');
+  const [togglingPosterId, setTogglingPosterId] = useState<string | null>(null);
 
   // CRM State (Host)
   const [crmSearch, setCrmSearch] = useState<string>('');
@@ -747,6 +757,74 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
     }
   };
 
+  const handleTogglePosterVisibility = async (materialId: string) => {
+    const exists = visiblePosterIdSet.has(materialId);
+    if (exists && campaign.candidateMaterialIds.length <= 1) {
+      setHostMessage('Minimal 1 poster materi harus tetap tampil di halaman publik.');
+      return;
+    }
+    if (!exists && campaign.candidateMaterialIds.length >= 20) {
+      setHostMessage('Maksimal 20 poster dapat ditampilkan sekaligus di halaman publik.');
+      return;
+    }
+    const nextIds = exists
+      ? campaign.candidateMaterialIds.filter((id) => id !== materialId)
+      : [...campaign.candidateMaterialIds, materialId];
+
+    setTogglingPosterId(materialId);
+    try {
+      await onSaveCampaign({
+        ...campaign,
+        candidateMaterialIds: nextIds,
+        updatedAt: Date.now(),
+      });
+      const matTitle = materials.find((m) => m.id === materialId)?.seminarTitle || materialId;
+      setHostMessage(
+        exists
+          ? `Poster "${matTitle}" disembunyikan dari halaman publik.`
+          : `Poster "${matTitle}" kini ditampilkan di halaman publik.`
+      );
+    } finally {
+      setTogglingPosterId(null);
+    }
+  };
+
+  const handleShowAllPosters = async () => {
+    const allIds = materials.map((m) => m.id).slice(0, 20);
+    if (allIds.length === 0) return;
+    setIsBusyHost(true);
+    try {
+      await onSaveCampaign({
+        ...campaign,
+        candidateMaterialIds: allIds,
+        updatedAt: Date.now(),
+      });
+      setHostMessage(`Seluruh ${allIds.length} poster materi kini ditampilkan di halaman publik.`);
+    } finally {
+      setIsBusyHost(false);
+    }
+  };
+
+  const filteredHostPosterMaterials = useMemo(() => {
+    const q = posterSearchQuery.trim().toLowerCase();
+    return materials.filter((mat) => {
+      const isVisible = visiblePosterIdSet.has(mat.id);
+      if (posterFilterMode === 'visible' && !isVisible) return false;
+      if (posterFilterMode === 'hidden' && isVisible) return false;
+      if (!q) return true;
+      return (
+        mat.seminarTitle.toLowerCase().includes(q) ||
+        (mat.category || '').toLowerCase().includes(q) ||
+        (mat.description || '').toLowerCase().includes(q)
+      );
+    });
+  }, [materials, visiblePosterIdSet, posterFilterMode, posterSearchQuery]);
+
+  const hiddenPosterCount = useMemo(
+    () => materials.filter((m) => !visiblePosterIdSet.has(m.id)).length,
+    [materials, visiblePosterIdSet]
+  );
+
   const winningMaterialObj = materials.find(
     (m) => m.id === (campaign.winningMaterialId || analytics.leadingMaterialId)
   );
@@ -809,6 +887,93 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
       );
     });
   }, [crmRecords, crmSearch, crmStageFilter, crmCategoryFilter, crmTopicFilter]);
+
+  const posterDownloadModalJsx = posterModalMaterial ? (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-xs">
+      <div className="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-200 flex flex-col max-h-[92vh]">
+        <div className="px-5 py-3.5 bg-[#1F3A5F] text-white flex items-center justify-between">
+          <div>
+            <div className="text-xs font-bold text-[#F28C28]">Poster Ajakan Kelas (4:5 PNG)</div>
+            <div className="text-sm font-extrabold truncate max-w-[260px]">
+              {posterModalMaterial.seminarTitle}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setPosterModalMaterial(null)}
+            className="p-1.5 rounded-lg hover:bg-white/10 cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div ref={modalQrWrapRef} className="hidden">
+          <QRCodeCanvas
+            value={`${baseBursaUrl}&mid=${encodeURIComponent(posterModalMaterial.id)}`}
+            size={220}
+            level="M"
+            includeMargin
+          />
+        </div>
+
+        <div className="p-4 overflow-y-auto flex-1 flex flex-col items-center gap-4 bg-slate-100">
+          {isRenderingPoster || !posterPreviewUrl ? (
+            <div className="w-full aspect-[4/5] rounded-xl bg-white border border-slate-200 flex flex-col items-center justify-center gap-2 text-xs text-slate-500">
+              <RefreshCw className="w-5 h-5 animate-spin text-[#F28C28]" />
+              <span>Menyusun poster PNG resolusi tinggi...</span>
+            </div>
+          ) : (
+            <img
+              src={posterPreviewUrl}
+              alt={`Poster ${posterModalMaterial.seminarTitle}`}
+              className="w-full max-w-[340px] rounded-xl shadow-md border border-slate-200"
+            />
+          )}
+        </div>
+
+        <div className="p-4 bg-white border-t border-slate-200 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={async () => {
+              const qrCanvas = modalQrWrapRef.current?.querySelector('canvas') || null;
+              await downloadMaterialPosterPng(posterModalMaterial, {
+                minQuota: campaign.minQuota,
+                deadlineLabel: campaign.deadlineLabel,
+                slotsSummary: slotsSummaryText,
+                qrCanvas,
+              });
+            }}
+            className="flex-1 py-2.5 px-4 rounded-xl bg-[#F28C28] hover:bg-[#d97719] text-white text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            <Download className="w-4 h-4" />
+            <span>Unduh Poster PNG</span>
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              handleCopyText(
+                'modal_link',
+                `${baseBursaUrl}&mid=${encodeURIComponent(posterModalMaterial.id)}`
+              )
+            }
+            className="py-2.5 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-[#1F3A5F] text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+          >
+            {copiedKey === 'modal_link' ? (
+              <>
+                <Check className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Tersalin</span>
+              </>
+            ) : (
+              <>
+                <Copy className="w-3.5 h-3.5" />
+                <span>Salin Link</span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  ) : null;
 
   // =========================================================================
   // RENDER: PUBLIC POSTER-FIRST GALLERY & GATED POLLING PORTAL
@@ -1522,92 +1687,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
         )}
 
         {/* Poster PNG Download Modal */}
-        {posterModalMaterial && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-xs">
-            <div className="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-200 flex flex-col max-h-[92vh]">
-              <div className="px-5 py-3.5 bg-[#1F3A5F] text-white flex items-center justify-between">
-                <div>
-                  <div className="text-xs font-bold text-[#F28C28]">Poster Ajakan Kelas (4:5 PNG)</div>
-                  <div className="text-sm font-extrabold truncate max-w-[260px]">
-                    {posterModalMaterial.seminarTitle}
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setPosterModalMaterial(null)}
-                  className="p-1.5 rounded-lg hover:bg-white/10 cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div ref={modalQrWrapRef} className="hidden">
-                <QRCodeCanvas
-                  value={`${baseBursaUrl}&mid=${encodeURIComponent(posterModalMaterial.id)}`}
-                  size={220}
-                  level="M"
-                  includeMargin
-                />
-              </div>
-
-              <div className="p-4 overflow-y-auto flex-1 flex flex-col items-center gap-4 bg-slate-100">
-                {isRenderingPoster || !posterPreviewUrl ? (
-                  <div className="w-full aspect-[4/5] rounded-xl bg-white border border-slate-200 flex flex-col items-center justify-center gap-2 text-xs text-slate-500">
-                    <RefreshCw className="w-5 h-5 animate-spin text-[#F28C28]" />
-                    <span>Menyusun poster PNG resolusi tinggi...</span>
-                  </div>
-                ) : (
-                  <img
-                    src={posterPreviewUrl}
-                    alt={`Poster ${posterModalMaterial.seminarTitle}`}
-                    className="w-full max-w-[340px] rounded-xl shadow-md border border-slate-200"
-                  />
-                )}
-              </div>
-
-              <div className="p-4 bg-white border-t border-slate-200 flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={async () => {
-                    const qrCanvas = modalQrWrapRef.current?.querySelector('canvas') || null;
-                    await downloadMaterialPosterPng(posterModalMaterial, {
-                      minQuota: campaign.minQuota,
-                      deadlineLabel: campaign.deadlineLabel,
-                      slotsSummary: slotsSummaryText,
-                      qrCanvas,
-                    });
-                  }}
-                  className="flex-1 py-2.5 px-4 rounded-xl bg-[#F28C28] hover:bg-[#d97719] text-white text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>Unduh Poster PNG</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleCopyText(
-                      'modal_link',
-                      `${baseBursaUrl}&mid=${encodeURIComponent(posterModalMaterial.id)}`
-                    )
-                  }
-                  className="py-2.5 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-[#1F3A5F] text-xs font-bold flex items-center gap-1.5 cursor-pointer"
-                >
-                  {copiedKey === 'modal_link' ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>Tersalin</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3.5 h-3.5" />
-                      <span>Salin Link</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        {posterDownloadModalJsx}
       </div>
     );
   }
@@ -1675,6 +1755,21 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
       <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
         <button
           type="button"
+          onClick={() => setHostTab('posters')}
+          className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 cursor-pointer whitespace-nowrap shrink-0 transition-colors ${
+            hostTab === 'posters'
+              ? 'bg-[#1F3A5F] text-white shadow-xs'
+              : 'bg-white text-[#1F3A5F]/75 border border-[#1F3A5F]/15 hover:bg-slate-50'
+          }`}
+        >
+          <ImageIcon className="w-4 h-4 text-[#F28C28]" />
+          <span className="tabular-nums">
+            Semua Poster & Pilihan Publik ({candidateMaterials.length}/{materials.length})
+          </span>
+        </button>
+
+        <button
+          type="button"
           onClick={() => setHostTab('monitor')}
           className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 cursor-pointer whitespace-nowrap shrink-0 transition-colors ${
             hostTab === 'monitor'
@@ -1701,19 +1796,6 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
 
         <button
           type="button"
-          onClick={() => setHostTab('posters')}
-          className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 cursor-pointer whitespace-nowrap shrink-0 transition-colors ${
-            hostTab === 'posters'
-              ? 'bg-[#1F3A5F] text-white shadow-xs'
-              : 'bg-white text-[#1F3A5F]/75 border border-[#1F3A5F]/15 hover:bg-slate-50'
-          }`}
-        >
-          <ImageIcon className="w-4 h-4 text-[#F28C28]" />
-          <span>Studio Poster PNG & Broadcast WA</span>
-        </button>
-
-        <button
-          type="button"
           onClick={() => setHostTab('setup')}
           className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 cursor-pointer whitespace-nowrap shrink-0 transition-colors ${
             hostTab === 'setup'
@@ -1722,7 +1804,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
           }`}
         >
           <Settings className="w-4 h-4 text-[#F28C28]" />
-          <span>Atur Poster & Jadwal Publik</span>
+          <span>Atur Jadwal & Aturan Main</span>
         </button>
       </div>
 
@@ -2402,174 +2484,423 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
         </div>
       )}
 
-      {/* TAB 3: STUDIO POSTER PNG & BROADCAST */}
-      {hostTab === 'posters' && studioMaterial && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-6 space-y-5">
-            <div className="bg-white rounded-2xl border border-[#1F3A5F]/12 p-5 space-y-4">
+      {/* TAB 3 / DEFAULT: SEMUA POSTER MATERI + CHECKBOX TAMPIL PUBLIK + STUDIO PNG */}
+      {hostTab === 'posters' && (
+        <div className="space-y-6">
+          {/* Toolbar: Show All / Filter / Search */}
+          <div className="bg-white rounded-2xl border border-[#1F3A5F]/12 p-4 sm:p-5 space-y-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h3 className="font-display text-base font-extrabold text-[#1F3A5F]">
-                  Buat Poster PNG Otomatis dari Bank Materi
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Semua modul otomatis dirangkai menjadi poster 4:5 (1080×1350 px) lengkap dengan inti materi & QR menuju halaman polling publik.
+                <h2 className="font-display text-base sm:text-lg font-extrabold text-[#1F3A5F]">
+                  Semua Materi di Web Apps ({materials.length} Poster)
+                </h2>
+                <p className="text-xs text-slate-600 mt-0.5">
+                  Centang checkbox <strong>Tampilkan di Halaman Publik</strong> pada poster yang ingin Anda munculkan untuk polling peserta. Perubahan langsung tersimpan otomatis.
                 </p>
               </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Pilih Modul dari Bank Materi ({materials.length} modul)
-                </label>
-                <select
-                  value={studioMaterial.id}
-                  onChange={(e) => setStudioMaterialId(e.target.value)}
-                  className="w-full px-3 py-2.5 text-xs font-bold bg-slate-50 border border-slate-300 rounded-xl"
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                {hiddenPosterCount > 0 && (
+                  <button
+                    type="button"
+                    disabled={isBusyHost}
+                    onClick={handleShowAllPosters}
+                    className="px-3.5 py-2 rounded-xl bg-[#F28C28] hover:bg-[#d97719] disabled:opacity-50 text-white text-xs font-extrabold cursor-pointer whitespace-nowrap"
+                  >
+                    Tampilkan Semua ({Math.min(materials.length, 20)})
+                  </button>
+                )}
+                <a
+                  href={baseBursaUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-[#1F3A5F] text-xs font-bold flex items-center gap-1.5 whitespace-nowrap"
                 >
-                  {materials.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.category ? `[${m.category}] ` : ''}
-                      {m.seminarTitle}
-                    </option>
-                  ))}
-                </select>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Lihat Halaman Publik ({candidateMaterials.length})</span>
+                </a>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setPosterFilterMode('all')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer tabular-nums ${
+                    posterFilterMode === 'all'
+                      ? 'bg-[#1F3A5F] text-white'
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  Semua Materi ({materials.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPosterFilterMode('visible')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer tabular-nums ${
+                    posterFilterMode === 'visible'
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
+                  }`}
+                >
+                  Tampil di Publik ({candidateMaterials.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPosterFilterMode('hidden')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer tabular-nums ${
+                    posterFilterMode === 'hidden'
+                      ? 'bg-slate-700 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  Disembunyikan ({hiddenPosterCount})
+                </button>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Ringkasan / Hook Poster (Opsional)
-                </label>
-                <textarea
-                  rows={2}
-                  maxLength={180}
-                  value={studioCustomNote}
-                  onChange={(e) => setStudioCustomNote(e.target.value)}
-                  placeholder={studioMaterial.description || 'Tulis kalimat pengantar singkat untuk poster...'}
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Teks Ajakan Bawah (CTA Poster)
-                </label>
+              <div className="relative min-w-[230px] flex-1 max-w-xs">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  maxLength={90}
-                  value={studioCtaLabel}
-                  onChange={(e) => setStudioCtaLabel(e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl"
+                  value={posterSearchQuery}
+                  onChange={(e) => setPosterSearchQuery(e.target.value)}
+                  placeholder="Cari judul atau kategori materi..."
+                  className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#F28C28]"
                 />
               </div>
-
-              <div className="flex flex-wrap items-center gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={async () => {
-                    const qrCanvas = studioQrWrapRef.current?.querySelector('canvas') || null;
-                    await downloadMaterialPosterPng(studioMaterial, {
-                      minQuota: campaign.minQuota,
-                      deadlineLabel: campaign.deadlineLabel,
-                      slotsSummary: slotsSummaryText,
-                      ctaLabel: studioCtaLabel,
-                      customNote: studioCustomNote,
-                      qrCanvas,
-                    });
-                  }}
-                  className="px-4 py-2.5 rounded-xl bg-[#F28C28] hover:bg-[#d97719] text-white text-xs font-extrabold flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>Unduh Poster PNG (1080×1350)</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleCopyText(
-                      'studio_mat_link',
-                      `${baseBursaUrl}&mid=${encodeURIComponent(studioMaterial.id)}`
-                    )
-                  }
-                  className="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-[#1F3A5F] text-xs font-bold flex items-center gap-1.5 cursor-pointer"
-                >
-                  {copiedKey === 'studio_mat_link' ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>Link Tersalin</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3.5 h-3.5" />
-                      <span>Salin Link Voting Modul Ini</span>
-                    </>
-                  )}
-                </button>
-              </div>
             </div>
+          </div>
 
-            <div className="bg-white rounded-2xl border border-[#1F3A5F]/12 p-5 space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                <div>
-                  <h3 className="font-display text-base font-extrabold text-[#1F3A5F]">
-                    Teks Broadcast Grup WhatsApp
-                  </h3>
-                  <p className="text-xs text-slate-500">
-                    Otomatis merangkum poster kandidat, inti materi, opsi jadwal & link voting publik.
-                  </p>
+          {/* All Materials Visual Poster Grid with Show/Hide Checkbox */}
+          {filteredHostPosterMaterials.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-slate-200 p-10 text-center text-xs text-slate-500">
+              Tidak ada materi yang sesuai filter atau kata kunci pencarian.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {filteredHostPosterMaterials.map((material) => {
+                const isVisiblePublic = visiblePosterIdSet.has(material.id);
+                const isToggling = togglingPosterId === material.id;
+                const coverUrl = getMaterialCoverImageUrl(material);
+                const highlights = extractMaterialCoreHighlights(material).slice(0, 3);
+                const themePrimary = material.content.brandTheme?.primaryColor || '#1F3A5F';
+                const voteCount = analytics.activeVotes.filter(
+                  (v) => v.primaryMaterialId === material.id
+                ).length;
+
+                return (
+                  <article
+                    key={material.id}
+                    className={`rounded-3xl overflow-hidden flex flex-col border transition-all shadow-sm ${
+                      isVisiblePublic
+                        ? 'border-emerald-400 ring-2 ring-emerald-500/20'
+                        : 'border-slate-300 opacity-80'
+                    }`}
+                    style={{ backgroundColor: themePrimary }}
+                  >
+                    {/* Checkbox Visibility Header Bar */}
+                    <label
+                      className={`px-4 py-3 flex items-center justify-between gap-2 cursor-pointer border-b transition-colors ${
+                        isVisiblePublic
+                          ? 'bg-emerald-950/65 border-emerald-400/30 text-white'
+                          : 'bg-slate-900/80 border-white/10 text-white/75'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2.5 min-w-0">
+                        <input
+                          type="checkbox"
+                          checked={isVisiblePublic}
+                          disabled={isToggling || isBusyHost}
+                          onChange={() => handleTogglePosterVisibility(material.id)}
+                          className="w-4 h-4 accent-[#F28C28] rounded cursor-pointer shrink-0"
+                        />
+                        <span className="text-xs font-extrabold truncate">
+                          {isToggling
+                            ? 'Menyimpan...'
+                            : isVisiblePublic
+                            ? 'Tampilkan di Halaman Publik'
+                            : 'Tidak Ditampilkan di Publik'}
+                        </span>
+                      </span>
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-md whitespace-nowrap shrink-0 flex items-center gap-1 ${
+                          isVisiblePublic
+                            ? 'bg-emerald-500/25 text-emerald-200'
+                            : 'bg-white/10 text-white/70'
+                        }`}
+                      >
+                        {isVisiblePublic ? (
+                          <>
+                            <Eye className="w-3 h-3" />
+                            <span>Publik</span>
+                          </>
+                        ) : (
+                          <>
+                            <EyeOff className="w-3 h-3" />
+                            <span>Tersembunyi</span>
+                          </>
+                        )}
+                      </span>
+                    </label>
+
+                    {/* Poster Visual Preview */}
+                    <div className="px-4 pt-3">
+                      <div className="relative h-36 rounded-2xl overflow-hidden bg-slate-900">
+                        {coverUrl ? (
+                          <img
+                            src={coverUrl}
+                            alt={material.seminarTitle}
+                            referrerPolicy="no-referrer"
+                            className={`w-full h-full object-cover ${
+                              isVisiblePublic ? '' : 'grayscale-[35%]'
+                            }`}
+                            onError={(e) => {
+                              (e.currentTarget as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex flex-col justify-center px-4 bg-gradient-to-br from-[#0F243E] to-[#1E466E] text-white">
+                            <span className="text-[10px] font-semibold text-[#F28C28]">
+                              {material.category || 'Modul Pelatihan UMKM'}
+                            </span>
+                            <p className="font-display text-sm font-extrabold mt-1 line-clamp-2">
+                              {material.seminarTitle}
+                            </p>
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent pointer-events-none" />
+                        <div className="absolute bottom-2.5 left-3 right-3 flex items-center justify-between gap-2 text-white">
+                          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-[#F28C28] text-white whitespace-nowrap tabular-nums">
+                            MIN. {campaign.minQuota} PESERTA
+                          </span>
+                          <span className="text-[11px] font-bold text-white/90 whitespace-nowrap tabular-nums">
+                            {voteCount} suara · {material.content.slides.length} slide
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Poster Editorial Highlights */}
+                    <div className="m-4 mb-0 rounded-2xl bg-[#FFF9F0] p-4 flex-1 flex flex-col justify-between gap-2.5">
+                      <div className="space-y-2">
+                        <div className="text-[10px] font-bold text-[#2A9D8F] truncate">
+                          {material.category || 'Modul Pelatihan'} · {material.organizerName}
+                        </div>
+                        <h3 className="font-display text-sm sm:text-base font-extrabold text-[#1F3A5F] leading-snug">
+                          {material.seminarTitle}
+                        </h3>
+                        <ul className="space-y-1 text-[11px] text-slate-700 pt-1 border-t border-[#1F3A5F]/10">
+                          {highlights.map((item, idx) => (
+                            <li key={idx} className="flex items-start gap-1.5 leading-snug">
+                              <span className="w-4 h-4 rounded-full bg-[#1F3A5F] text-white text-[9px] font-bold flex items-center justify-center shrink-0 mt-0.5 tabular-nums">
+                                {idx + 1}
+                              </span>
+                              <span className="line-clamp-2">{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+
+                    {/* Poster Card Actions */}
+                    <div className="p-4 flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setStudioMaterialId(material.id)}
+                        className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-colors cursor-pointer whitespace-nowrap ${
+                          studioMaterialId === material.id
+                            ? 'bg-white text-[#1F3A5F]'
+                            : 'bg-white/15 hover:bg-white/25 text-white'
+                        }`}
+                      >
+                        Edit Studio PNG
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPosterModalMaterial(material)}
+                        className="py-2 px-3 rounded-xl text-xs font-extrabold bg-[#F28C28] hover:bg-[#d97719] text-white transition-colors cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0"
+                        title="Pratinjau & Unduh Poster PNG"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>PNG</span>
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Studio Poster PNG & Broadcast WA Section */}
+          {studioMaterial && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-2">
+              <div className="lg:col-span-6 space-y-5">
+                <div className="bg-white rounded-2xl border border-[#1F3A5F]/12 p-5 space-y-4">
+                  <div>
+                    <h3 className="font-display text-base font-extrabold text-[#1F3A5F]">
+                      Studio Poster PNG Resolusi Tinggi & QR
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Sesuaikan hook atau teks ajakan poster sebelum diunduh sebagai 4:5 (1080×1350 px) untuk Story/Grup WA.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Modul yang Diedit di Studio ({materials.length} modul)
+                    </label>
+                    <select
+                      value={studioMaterial.id}
+                      onChange={(e) => setStudioMaterialId(e.target.value)}
+                      className="w-full px-3 py-2.5 text-xs font-bold bg-slate-50 border border-slate-300 rounded-xl"
+                    >
+                      {materials.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {visiblePosterIdSet.has(m.id) ? '[Publik] ' : '[Tersembunyi] '}
+                          {m.seminarTitle}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Ringkasan / Hook Poster (Opsional)
+                    </label>
+                    <textarea
+                      rows={2}
+                      maxLength={180}
+                      value={studioCustomNote}
+                      onChange={(e) => setStudioCustomNote(e.target.value)}
+                      placeholder={studioMaterial.description || 'Tulis kalimat pengantar singkat untuk poster...'}
+                      className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Teks Ajakan Bawah (CTA Poster)
+                    </label>
+                    <input
+                      type="text"
+                      maxLength={90}
+                      value={studioCtaLabel}
+                      onChange={(e) => setStudioCtaLabel(e.target.value)}
+                      className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl"
+                    />
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const qrCanvas = studioQrWrapRef.current?.querySelector('canvas') || null;
+                        await downloadMaterialPosterPng(studioMaterial, {
+                          minQuota: campaign.minQuota,
+                          deadlineLabel: campaign.deadlineLabel,
+                          slotsSummary: slotsSummaryText,
+                          ctaLabel: studioCtaLabel,
+                          customNote: studioCustomNote,
+                          qrCanvas,
+                        });
+                      }}
+                      className="px-4 py-2.5 rounded-xl bg-[#F28C28] hover:bg-[#d97719] text-white text-xs font-extrabold flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>Unduh Poster PNG (1080×1350)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleCopyText(
+                          'studio_mat_link',
+                          `${baseBursaUrl}&mid=${encodeURIComponent(studioMaterial.id)}`
+                        )
+                      }
+                      className="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-[#1F3A5F] text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                    >
+                      {copiedKey === 'studio_mat_link' ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>Link Tersalin</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>Salin Link Voting Modul Ini</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => handleCopyText('wa_broadcast', broadcastText)}
-                  className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
-                >
-                  {copiedKey === 'wa_broadcast' ? (
-                    <>
-                      <Check className="w-3.5 h-3.5" />
-                      <span>Tersalin</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3.5 h-3.5" />
-                      <span>Salin Broadcast WA</span>
-                    </>
-                  )}
-                </button>
+
+                <div className="bg-white rounded-2xl border border-[#1F3A5F]/12 p-5 space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <h3 className="font-display text-base font-extrabold text-[#1F3A5F]">
+                        Teks Broadcast Grup WhatsApp
+                      </h3>
+                      <p className="text-xs text-slate-500">
+                        Otomatis merangkum poster yang dicentang tampil publik, inti materi, opsi jadwal & link voting.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleCopyText('wa_broadcast', broadcastText)}
+                      className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
+                    >
+                      {copiedKey === 'wa_broadcast' ? (
+                        <>
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Tersalin</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>Salin Broadcast WA</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  <textarea
+                    readOnly
+                    rows={10}
+                    value={broadcastText}
+                    className="w-full p-3 text-xs font-mono bg-slate-50 border border-slate-200 rounded-xl text-slate-700"
+                  />
+                </div>
               </div>
-              <textarea
-                readOnly
-                rows={10}
-                value={broadcastText}
-                className="w-full p-3 text-xs font-mono bg-slate-50 border border-slate-200 rounded-xl text-slate-700"
-              />
-            </div>
-          </div>
 
-          <div className="lg:col-span-6 bg-white rounded-2xl border border-[#1F3A5F]/12 p-5 flex flex-col items-center gap-4">
-            <div className="w-full flex items-center justify-between text-xs">
-              <span className="font-bold text-[#1F3A5F]">Pratinjau Langsung Poster 4:5</span>
-              <span className="text-slate-500 tabular-nums">1080 × 1350 px</span>
-            </div>
+              <div className="lg:col-span-6 bg-white rounded-2xl border border-[#1F3A5F]/12 p-5 flex flex-col items-center gap-4">
+                <div className="w-full flex items-center justify-between text-xs">
+                  <span className="font-bold text-[#1F3A5F]">Pratinjau Langsung Poster 4:5</span>
+                  <span className="text-slate-500 tabular-nums">1080 × 1350 px</span>
+                </div>
 
-            <div ref={studioQrWrapRef} className="hidden">
-              <QRCodeCanvas
-                value={`${baseBursaUrl}&mid=${encodeURIComponent(studioMaterial.id)}`}
-                size={220}
-                level="M"
-                includeMargin
-              />
-            </div>
+                <div ref={studioQrWrapRef} className="hidden">
+                  <QRCodeCanvas
+                    value={`${baseBursaUrl}&mid=${encodeURIComponent(studioMaterial.id)}`}
+                    size={220}
+                    level="M"
+                    includeMargin
+                  />
+                </div>
 
-            {isRenderingStudio || !studioPreviewUrl ? (
-              <div className="w-full max-w-[400px] aspect-[4/5] rounded-2xl bg-slate-100 border border-slate-200 flex flex-col items-center justify-center gap-2 text-xs text-slate-500">
-                <RefreshCw className="w-5 h-5 animate-spin text-[#F28C28]" />
-                <span>Merender poster...</span>
+                {isRenderingStudio || !studioPreviewUrl ? (
+                  <div className="w-full max-w-[400px] aspect-[4/5] rounded-2xl bg-slate-100 border border-slate-200 flex flex-col items-center justify-center gap-2 text-xs text-slate-500">
+                    <RefreshCw className="w-5 h-5 animate-spin text-[#F28C28]" />
+                    <span>Merender poster...</span>
+                  </div>
+                ) : (
+                  <img
+                    src={studioPreviewUrl}
+                    alt={`Preview Poster ${studioMaterial.seminarTitle}`}
+                    className="w-full max-w-[400px] rounded-2xl shadow-lg border border-slate-200"
+                  />
+                )}
               </div>
-            ) : (
-              <img
-                src={studioPreviewUrl}
-                alt={`Preview Poster ${studioMaterial.seminarTitle}`}
-                className="w-full max-w-[400px] rounded-2xl shadow-lg border border-slate-200"
-              />
-            )}
-          </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -2681,9 +3012,23 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
           </div>
 
           <div className="space-y-2.5">
-            <label className="block text-xs font-extrabold text-[#1F3A5F] tabular-nums">
-              Poster Materi yang Ditampilkan Moderator di Halaman Publik ({draftCampaign.candidateMaterialIds.length} dipilih)
-            </label>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <label className="block text-xs font-extrabold text-[#1F3A5F] tabular-nums">
+                Poster Materi yang Ditampilkan Moderator di Halaman Publik ({draftCampaign.candidateMaterialIds.length}/{materials.length} dipilih)
+              </label>
+              <button
+                type="button"
+                onClick={() =>
+                  setDraftCampaign({
+                    ...draftCampaign,
+                    candidateMaterialIds: materials.map((m) => m.id).slice(0, 20),
+                  })
+                }
+                className="text-xs font-bold text-[#F28C28] hover:underline cursor-pointer"
+              >
+                Centang Semua ({Math.min(materials.length, 20)})
+              </button>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               {materials.map((mat) => {
                 const selected = draftCampaign.candidateMaterialIds.includes(mat.id);
@@ -2818,6 +3163,9 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
           </div>
         </form>
       )}
+
+      {/* Poster PNG Download Modal */}
+      {posterDownloadModalJsx}
     </div>
   );
 };

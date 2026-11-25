@@ -69,6 +69,7 @@ import {
   syncMaterialsFromFirestore,
   persistMaterial,
   removeMaterial,
+  INITIAL_PRESET_MATERIALS,
   DEFAULT_PARTNERUP_CURRICULUM,
   SESI_2_ACTION_PLAN_CURRICULUM,
   SESI_3_BRANDING_MARKETING_SELLING_CURRICULUM,
@@ -120,12 +121,7 @@ const DEFAULT_UNLOCK_CAMPAIGN: UnlockCampaignDoc = {
   minQuota: 15,
   status: 'open',
   deadlineLabel: 'Voting dibuka s.d. Kamis 20.00 WIB',
-  candidateMaterialIds: [
-    'strobist_advanced_product_lighting_1',
-    'partnerup_sesi_4_branding_umkm',
-    'partnerup_sesi_5_marketing_umkm',
-    'partnerup_sesi_6_selling_closing_umkm',
-  ],
+  candidateMaterialIds: INITIAL_PRESET_MATERIALS.map((m) => m.id).slice(0, 20),
   timeSlots: [
     {
       id: 'slot_rabu_malam',
@@ -1457,8 +1453,13 @@ export default function App() {
 
   // Bursa Kelas & Voting Kuota Handlers
   const handleSaveUnlockCampaign = async (nextCampaign: UnlockCampaignDoc) => {
+    const safeCandidateIds =
+      Array.isArray(nextCampaign.candidateMaterialIds) && nextCampaign.candidateMaterialIds.length > 0
+        ? nextCampaign.candidateMaterialIds.slice(0, 20)
+        : INITIAL_PRESET_MATERIALS.map((m) => m.id).slice(0, 20);
     const { id: _id, ...cleanPayload } = sanitizeForFirestore({
       ...nextCampaign,
+      candidateMaterialIds: safeCandidateIds,
       winningMaterialId: nextCampaign.winningMaterialId || '',
       winningSlotId: nextCampaign.winningSlotId || '',
       confirmedScheduleNote: nextCampaign.confirmedScheduleNote || '',
