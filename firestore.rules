@@ -268,6 +268,12 @@ service cloud.firestore {
         'winningMaterialId',
         'winningSlotId',
         'confirmedScheduleNote',
+        'materialPricing',
+        'qrisPayload',
+        'qrisMerchantName',
+        'qrisMerchantNmid',
+        'qrisFallbackImageUrl',
+        'mentorWhatsapp',
         'updatedAt'
       ]) &&
       data.title is string && data.title.size() >= 1 && data.title.size() <= 120 &&
@@ -283,6 +289,12 @@ service cloud.firestore {
       data.winningMaterialId is string && data.winningMaterialId.size() <= 100 &&
       data.winningSlotId is string && data.winningSlotId.size() <= 64 &&
       data.confirmedScheduleNote is string && data.confirmedScheduleNote.size() <= 250 &&
+      (!('materialPricing' in data) || (data.materialPricing is map && data.materialPricing.size() <= 50)) &&
+      (!('qrisPayload' in data) || (data.qrisPayload is string && data.qrisPayload.size() <= 600)) &&
+      (!('qrisMerchantName' in data) || (data.qrisMerchantName is string && data.qrisMerchantName.size() <= 100)) &&
+      (!('qrisMerchantNmid' in data) || (data.qrisMerchantNmid is string && data.qrisMerchantNmid.size() <= 40)) &&
+      (!('qrisFallbackImageUrl' in data) || (data.qrisFallbackImageUrl is string && data.qrisFallbackImageUrl.size() <= 300)) &&
+      (!('mentorWhatsapp' in data) || (data.mentorWhatsapp is string && data.mentorWhatsapp.size() <= 24)) &&
       data.updatedAt is int;
     }
 
@@ -311,6 +323,9 @@ service cloud.firestore {
         'flexibleTopic',
         'mainChallenge',
         'status',
+        'paymentStatus',
+        'paymentUniqueCode',
+        'paymentAmount',
         'ts'
       ]) &&
       data.campaignId is string && data.campaignId.size() >= 1 && data.campaignId.size() <= 64 && data.campaignId.matches('^[a-zA-Z0-9_\\-]+$') &&
@@ -325,6 +340,9 @@ service cloud.firestore {
       data.flexibleTopic is bool &&
       data.mainChallenge is string && data.mainChallenge.size() <= 220 &&
       data.status is string && data.status in ['committed', 'confirmed_h1', 'cancelled'] &&
+      (!('paymentStatus' in data) || (data.paymentStatus is string && data.paymentStatus in ['free', 'unpaid', 'confirming', 'paid'])) &&
+      (!('paymentUniqueCode' in data) || (data.paymentUniqueCode is int && data.paymentUniqueCode >= 0 && data.paymentUniqueCode <= 999)) &&
+      (!('paymentAmount' in data) || (data.paymentAmount is int && data.paymentAmount >= 0 && data.paymentAmount <= 50000000)) &&
       data.ts is int;
     }
 
@@ -351,6 +369,10 @@ service cloud.firestore {
         'interestedTopicTitle',
         'leadStage',
         'mentorNotes',
+        'paymentStatus',
+        'paymentUniqueCode',
+        'paymentAmount',
+        'paidAt',
         'ts'
       ]) &&
       data.campaignId is string && data.campaignId.size() >= 1 && data.campaignId.size() <= 64 && data.campaignId.matches('^[a-zA-Z0-9_\\-]+$') &&
@@ -365,6 +387,10 @@ service cloud.firestore {
       (!('interestedTopicTitle' in data) || (data.interestedTopicTitle is string && data.interestedTopicTitle.size() <= 120)) &&
       (!('leadStage' in data) || (data.leadStage is string && data.leadStage in ['lead_baru', 'sudah_dihubungi', 'hadir_kelas', 'prospek_klien', 'klien_deal'])) &&
       (!('mentorNotes' in data) || (data.mentorNotes is string && data.mentorNotes.size() <= 300)) &&
+      (!('paymentStatus' in data) || (data.paymentStatus is string && data.paymentStatus in ['free', 'unpaid', 'confirming', 'paid'])) &&
+      (!('paymentUniqueCode' in data) || (data.paymentUniqueCode is int && data.paymentUniqueCode >= 0 && data.paymentUniqueCode <= 999)) &&
+      (!('paymentAmount' in data) || (data.paymentAmount is int && data.paymentAmount >= 0 && data.paymentAmount <= 50000000)) &&
+      (!('paidAt' in data) || data.paidAt is int) &&
       data.ts is int;
     }
 
@@ -508,6 +534,12 @@ service cloud.firestore {
           'winningMaterialId',
           'winningSlotId',
           'confirmedScheduleNote',
+          'materialPricing',
+          'qrisPayload',
+          'qrisMerchantName',
+          'qrisMerchantNmid',
+          'qrisFallbackImageUrl',
+          'mentorWhatsapp',
           'updatedAt'
         ])
       );
@@ -518,12 +550,23 @@ service cloud.firestore {
     match /unlock_votes/{voteId} {
       allow get: if isValidId(voteId);
       allow list: if resource.data.campaignId is string && resource.data.ts is int;
-      allow create: if isValidId(voteId) && isValidUnlockVote(incoming());
+      allow create: if isValidId(voteId) &&
+        isValidUnlockVote(incoming()) &&
+        (
+          isAdmin() ||
+          !('paymentStatus' in incoming()) ||
+          incoming().paymentStatus in ['free', 'unpaid', 'confirming']
+        );
       allow update: if isValidId(voteId) && isValidUnlockVote(incoming()) && (
         isAdmin() ||
         (
           incoming().campaignId == existing().campaignId &&
           incoming().participantId == existing().participantId &&
+          (
+            !('paymentStatus' in incoming()) ||
+            incoming().paymentStatus in ['free', 'unpaid', 'confirming'] ||
+            ('paymentStatus' in existing() && existing().paymentStatus == 'paid' && incoming().paymentStatus == 'paid')
+          ) &&
           incoming().diff(existing()).affectedKeys().hasOnly([
             'displayName',
             'businessName',
@@ -533,6 +576,9 @@ service cloud.firestore {
             'flexibleTopic',
             'mainChallenge',
             'status',
+            'paymentStatus',
+            'paymentUniqueCode',
+            'paymentAmount',
             'ts'
           ])
         )
@@ -551,7 +597,9 @@ service cloud.firestore {
           isAdmin() ||
           (
             (!('leadStage' in incoming()) || incoming().leadStage == 'lead_baru') &&
-            (!('mentorNotes' in incoming()) || incoming().mentorNotes == '')
+            (!('mentorNotes' in incoming()) || incoming().mentorNotes == '') &&
+            (!('paymentStatus' in incoming()) || incoming().paymentStatus in ['free', 'unpaid', 'confirming']) &&
+            !('paidAt' in incoming())
           )
         );
       allow update: if isValidId(contactId) && isValidUnlockContact(incoming()) && (
@@ -560,6 +608,11 @@ service cloud.firestore {
           incoming().campaignId == existing().campaignId &&
           incoming().voteId == existing().voteId &&
           incoming().participantId == existing().participantId &&
+          (
+            !('paymentStatus' in incoming()) ||
+            incoming().paymentStatus in ['free', 'unpaid', 'confirming'] ||
+            ('paymentStatus' in existing() && existing().paymentStatus == 'paid' && incoming().paymentStatus == 'paid')
+          ) &&
           incoming().diff(existing()).affectedKeys().hasOnly([
             'displayName',
             'businessName',
@@ -568,6 +621,9 @@ service cloud.firestore {
             'businessCategory',
             'interestedTopicId',
             'interestedTopicTitle',
+            'paymentStatus',
+            'paymentUniqueCode',
+            'paymentAmount',
             'ts'
           ])
         )

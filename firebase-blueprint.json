@@ -442,6 +442,35 @@
           "maxLength": 250,
           "description": "Location, Zoom link, or H-1 confirmation note once class is scheduled"
         },
+        "materialPricing": {
+          "type": "object",
+          "description": "Map of materialId to paid/free pricing config (isPaid, price, originalPrice, paymentMode)"
+        },
+        "qrisPayload": {
+          "type": "string",
+          "maxLength": 600,
+          "description": "Static EMVCo QRIS merchant string used to generate dynamic amount QRIS codes"
+        },
+        "qrisMerchantName": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Merchant display name printed on QRIS (e.g. OBEECREATIVES, DIGITAL & KREATIF)"
+        },
+        "qrisMerchantNmid": {
+          "type": "string",
+          "maxLength": 40,
+          "description": "National Merchant ID (NMID) printed on the QRIS"
+        },
+        "qrisFallbackImageUrl": {
+          "type": "string",
+          "maxLength": 300,
+          "description": "Static fallback QRIS image path or URL"
+        },
+        "mentorWhatsapp": {
+          "type": "string",
+          "maxLength": 24,
+          "description": "Optional mentor WhatsApp number for payment confirmation messages"
+        },
         "updatedAt": {
           "type": "integer",
           "description": "Last campaign update timestamp in ms"
@@ -520,6 +549,19 @@
           "type": "string",
           "enum": ["committed", "confirmed_h1", "cancelled"],
           "description": "Commitment verification status"
+        },
+        "paymentStatus": {
+          "type": "string",
+          "enum": ["free", "unpaid", "confirming", "paid"],
+          "description": "Class fee payment status (only admin can mark as paid)"
+        },
+        "paymentUniqueCode": {
+          "type": "integer",
+          "description": "Deterministic 2-3 digit unique payment suffix for matching GoPay Merchant mutations"
+        },
+        "paymentAmount": {
+          "type": "integer",
+          "description": "Total payable IDR amount including unique code"
         },
         "ts": {
           "type": "integer",
@@ -613,6 +655,23 @@
           "type": "string",
           "maxLength": 300,
           "description": "Private mentor audit notes on Instagram feed and potential client services"
+        },
+        "paymentStatus": {
+          "type": "string",
+          "enum": ["free", "unpaid", "confirming", "paid"],
+          "description": "Participant class payment status"
+        },
+        "paymentUniqueCode": {
+          "type": "integer",
+          "description": "Unique 2-3 digit payment identifier"
+        },
+        "paymentAmount": {
+          "type": "integer",
+          "description": "Payable amount in IDR"
+        },
+        "paidAt": {
+          "type": "integer",
+          "description": "Timestamp in ms when verified as paid by mentor"
         },
         "ts": {
           "type": "integer",

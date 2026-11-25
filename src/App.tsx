@@ -53,7 +53,14 @@ import {
   UnlockVoteStatus,
   UnlockContactDoc,
   UnlockLeadStage,
+  UnlockPaymentStatus,
 } from './types';
+import {
+  DEFAULT_GOPAY_MERCHANT_NAME,
+  DEFAULT_GOPAY_MERCHANT_NMID,
+  DEFAULT_GOPAY_QRIS_IMAGE,
+  DEFAULT_GOPAY_QRIS_PAYLOAD,
+} from './utils/qris';
 import { ProjectorView } from './components/ProjectorView';
 import { ParticipantView } from './components/ParticipantView';
 import { ModerationView } from './components/ModerationView';
@@ -145,6 +152,12 @@ const DEFAULT_UNLOCK_CAMPAIGN: UnlockCampaignDoc = {
   winningMaterialId: '',
   winningSlotId: '',
   confirmedScheduleNote: '',
+  materialPricing: {},
+  qrisPayload: DEFAULT_GOPAY_QRIS_PAYLOAD,
+  qrisMerchantName: DEFAULT_GOPAY_MERCHANT_NAME,
+  qrisMerchantNmid: DEFAULT_GOPAY_MERCHANT_NMID,
+  qrisFallbackImageUrl: DEFAULT_GOPAY_QRIS_IMAGE,
+  mentorWhatsapp: '',
   updatedAt: Date.now(),
 };
 
@@ -474,6 +487,12 @@ export default function App() {
             winningMaterialId: data.winningMaterialId || '',
             winningSlotId: data.winningSlotId || '',
             confirmedScheduleNote: data.confirmedScheduleNote || '',
+            materialPricing: data.materialPricing || {},
+            qrisPayload: data.qrisPayload || DEFAULT_GOPAY_QRIS_PAYLOAD,
+            qrisMerchantName: data.qrisMerchantName || DEFAULT_GOPAY_MERCHANT_NAME,
+            qrisMerchantNmid: data.qrisMerchantNmid || DEFAULT_GOPAY_MERCHANT_NMID,
+            qrisFallbackImageUrl: data.qrisFallbackImageUrl || DEFAULT_GOPAY_QRIS_IMAGE,
+            mentorWhatsapp: data.mentorWhatsapp || '',
             updatedAt: typeof data.updatedAt === 'number' ? data.updatedAt : Date.now(),
           });
         } else if (isHostRoleRef.current) {
@@ -1488,35 +1507,45 @@ export default function App() {
     const voteRef = doc(db, 'unlock_votes', deterministicVoteId);
     const contactRef = doc(db, 'unlock_contacts', deterministicVoteId);
 
+    const existingVote = unlockVotes.find((v) => v.id === deterministicVoteId);
+    const isAlreadyPaid = existingVote?.paymentStatus === 'paid';
+
+    const votePayload = sanitizeForFirestore({
+      ...voteData,
+      campaignId: safeCampId,
+      participantId: safePartId,
+      mainChallenge: (voteData.mainChallenge || '').slice(0, 220),
+      secondaryMaterialIds: (voteData.secondaryMaterialIds || []).slice(0, 3),
+      availableSlotIds: (voteData.availableSlotIds || []).slice(0, 8),
+      ...(isAlreadyPaid ? { paymentStatus: undefined } : {}),
+    });
+
+    const contactPayload = sanitizeForFirestore({
+      campaignId: safeCampId,
+      voteId: deterministicVoteId,
+      participantId: safePartId,
+      displayName: voteData.displayName.slice(0, 60),
+      businessName: voteData.businessName.slice(0, 60),
+      whatsapp: contactDetails.whatsapp.slice(0, 24),
+      instagram: contactDetails.instagram.slice(0, 64),
+      businessCategory: contactDetails.businessCategory.slice(0, 40),
+      interestedTopicId: voteData.primaryMaterialId.slice(0, 100),
+      interestedTopicTitle: contactDetails.interestedTopicTitle.slice(0, 120),
+      ...(typeof voteData.paymentUniqueCode === 'number'
+        ? { paymentUniqueCode: voteData.paymentUniqueCode }
+        : {}),
+      ...(typeof voteData.paymentAmount === 'number'
+        ? { paymentAmount: voteData.paymentAmount }
+        : {}),
+      ...(!isAlreadyPaid && voteData.paymentStatus
+        ? { paymentStatus: voteData.paymentStatus }
+        : {}),
+      ts: voteData.ts,
+    });
+
     const batch = writeBatch(db);
-    batch.set(
-      voteRef,
-      sanitizeForFirestore({
-        ...voteData,
-        campaignId: safeCampId,
-        participantId: safePartId,
-        mainChallenge: (voteData.mainChallenge || '').slice(0, 220),
-        secondaryMaterialIds: (voteData.secondaryMaterialIds || []).slice(0, 3),
-        availableSlotIds: (voteData.availableSlotIds || []).slice(0, 8),
-      })
-    );
-    batch.set(
-      contactRef,
-      sanitizeForFirestore({
-        campaignId: safeCampId,
-        voteId: deterministicVoteId,
-        participantId: safePartId,
-        displayName: voteData.displayName.slice(0, 60),
-        businessName: voteData.businessName.slice(0, 60),
-        whatsapp: contactDetails.whatsapp.slice(0, 24),
-        instagram: contactDetails.instagram.slice(0, 64),
-        businessCategory: contactDetails.businessCategory.slice(0, 40),
-        interestedTopicId: voteData.primaryMaterialId.slice(0, 100),
-        interestedTopicTitle: contactDetails.interestedTopicTitle.slice(0, 120),
-        ts: voteData.ts,
-      }),
-      { merge: true }
-    );
+    batch.set(voteRef, votePayload, { merge: true });
+    batch.set(contactRef, contactPayload, { merge: true });
 
     try {
       await batch.commit();
@@ -1525,20 +1554,60 @@ export default function App() {
     }
   };
 
+  const handleConfirmParticipantPayment = async (
+    voteId: string,
+    paymentUniqueCode: number,
+    paymentAmount: number
+  ) => {
+    const existingVote = unlockVotes.find((v) => v.id === voteId);
+    if (existingVote?.paymentStatus === 'paid') return;
+    const nowTs = Date.now();
+    const batch = writeBatch(db);
+    batch.update(doc(db, 'unlock_votes', voteId), {
+      paymentStatus: 'confirming',
+      paymentUniqueCode,
+      paymentAmount,
+      ts: nowTs,
+    });
+    batch.update(doc(db, 'unlock_contacts', voteId), {
+      paymentStatus: 'confirming',
+      paymentUniqueCode,
+      paymentAmount,
+      ts: nowTs,
+    });
+    try {
+      await batch.commit();
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `unlock_votes/${voteId}`);
+    }
+  };
+
   const handleUpdateLeadCrm = async (
     contactId: string,
-    updates: { leadStage?: UnlockLeadStage; mentorNotes?: string }
+    updates: {
+      leadStage?: UnlockLeadStage;
+      mentorNotes?: string;
+      paymentStatus?: UnlockPaymentStatus;
+      paidAt?: number;
+    }
   ) => {
     try {
-      await updateDoc(
-        doc(db, 'unlock_contacts', contactId),
-        sanitizeForFirestore({
-          ...(updates.leadStage ? { leadStage: updates.leadStage } : {}),
-          ...(typeof updates.mentorNotes === 'string'
-            ? { mentorNotes: updates.mentorNotes.slice(0, 300) }
-            : {}),
-        })
-      );
+      const batch = writeBatch(db);
+      const contactUpdate = sanitizeForFirestore({
+        ...(updates.leadStage ? { leadStage: updates.leadStage } : {}),
+        ...(typeof updates.mentorNotes === 'string'
+          ? { mentorNotes: updates.mentorNotes.slice(0, 300) }
+          : {}),
+        ...(updates.paymentStatus ? { paymentStatus: updates.paymentStatus } : {}),
+        ...(typeof updates.paidAt === 'number' ? { paidAt: updates.paidAt } : {}),
+      });
+      batch.update(doc(db, 'unlock_contacts', contactId), contactUpdate);
+      if (updates.paymentStatus) {
+        batch.update(doc(db, 'unlock_votes', contactId), {
+          paymentStatus: updates.paymentStatus,
+        });
+      }
+      await batch.commit();
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `unlock_contacts/${contactId}`);
     }
@@ -2204,6 +2273,7 @@ export default function App() {
             }}
             onSaveCampaign={handleSaveUnlockCampaign}
             onSubmitVoteAndContact={handleSubmitUnlockVoteAndContact}
+            onConfirmParticipantPayment={handleConfirmParticipantPayment}
             onUpdateLeadCrm={handleUpdateLeadCrm}
             onUpdateVoteStatus={handleUpdateUnlockVoteStatus}
             onDeleteVote={handleDeleteUnlockVote}

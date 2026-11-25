@@ -1,4 +1,5 @@
-import { SavedMaterial, UnlockCampaignDoc } from '../types';
+import { MaterialPricingConfig, SavedMaterial, UnlockCampaignDoc } from '../types';
+import { formatRupiah } from './qris';
 
 export interface PosterRenderOptions {
   minQuota?: number;
@@ -6,6 +7,7 @@ export interface PosterRenderOptions {
   slotsSummary?: string;
   ctaLabel?: string;
   customNote?: string;
+  pricing?: MaterialPricingConfig;
   qrCanvas?: HTMLCanvasElement | null;
 }
 
@@ -271,6 +273,46 @@ export async function renderMaterialPosterDataUrl(
   ctx.fillStyle = '#FFFFFF';
   ctx.font = '800 20px system-ui, -apple-system, sans-serif';
   ctx.fillText(`SYARAT KELAS DIBUKA: MIN. ${minQuota} PESERTA`, imgX + 42, imgY + imgH - 36);
+
+  // Price badge anchored inside visual top-right (GRATIS vs BERBAYAR)
+  const isPaidClass = Boolean(options.pricing?.isPaid && (options.pricing?.price || 0) > 0);
+  const priceLabel = isPaidClass
+    ? `BERBAYAR · ${formatRupiah(options.pricing!.price)}`
+    : 'KELAS GRATIS UMKM';
+  ctx.font = '800 21px system-ui, -apple-system, sans-serif';
+  const badgeTextW = ctx.measureText(priceLabel).width;
+  const badgeW = badgeTextW + 40;
+  const badgeX = imgX + imgW - 24 - badgeW;
+  const badgeY = imgY + 22;
+  ctx.fillStyle = isPaidClass ? '#F28C28' : '#059669';
+  drawRoundedRect(ctx, badgeX, badgeY, badgeW, 44, 12);
+  ctx.fill();
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillText(priceLabel, badgeX + 20, badgeY + 29);
+
+  if (
+    isPaidClass &&
+    options.pricing?.originalPrice &&
+    options.pricing.originalPrice > options.pricing.price
+  ) {
+    const origText = formatRupiah(options.pricing.originalPrice);
+    ctx.font = '700 18px system-ui, -apple-system, sans-serif';
+    const origW = ctx.measureText(origText).width;
+    const origPillW = origW + 24;
+    const origX = imgX + imgW - 24 - origPillW;
+    const origY = badgeY + 52;
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.78)';
+    drawRoundedRect(ctx, origX, origY, origPillW, 30, 8);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.78)';
+    ctx.fillText(origText, origX + 12, origY + 21);
+    ctx.strokeStyle = '#FCA5A5';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(origX + 10, origY + 15);
+    ctx.lineTo(origX + 12 + origW + 2, origY + 15);
+    ctx.stroke();
+  }
   ctx.restore();
 
   // 4. Main Cream Content Sheet
@@ -369,7 +411,12 @@ export async function renderMaterialPosterDataUrl(
   const footY = 1170;
   ctx.fillStyle = accent;
   ctx.font = '800 22px system-ui, -apple-system, sans-serif';
-  ctx.fillText('GRATIS UNTUK UMKM · BURSA VOTING KELAS', 64, footY + 34);
+  const footerKicker = isPaidClass
+    ? options.pricing?.paymentMode === 'direct_pay'
+      ? `KELAS SPESIALIS ${formatRupiah(options.pricing!.price)} · QRIS OTOMATIS`
+      : `KELAS BERBAYAR ${formatRupiah(options.pricing!.price)} · BAYAR SAAT KUOTA GO!`
+    : 'GRATIS UNTUK UMKM · BURSA VOTING KELAS';
+  ctx.fillText(footerKicker, 64, footY + 34);
 
   ctx.fillStyle = '#FFFFFF';
   ctx.font = '800 30px system-ui, -apple-system, sans-serif';
@@ -424,7 +471,12 @@ export function buildBursaBroadcastText(
   const topicLines = candidates
     .map((mat, idx) => {
       const inti = extractMaterialCoreHighlights(mat).slice(0, 2).join(' · ');
-      return `${idx + 1}. *${mat.seminarTitle}*\n   Inti: ${inti}`;
+      const pricing = campaign.materialPricing?.[mat.id];
+      const priceTag =
+        pricing?.isPaid && pricing.price > 0
+          ? `[Berbayar ${formatRupiah(pricing.price)}]`
+          : '[Gratis]';
+      return `${idx + 1}. *${mat.seminarTitle}* ${priceTag}\n   Inti: ${inti}`;
     })
     .join('\n\n');
 

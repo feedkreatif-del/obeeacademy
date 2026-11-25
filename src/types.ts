@@ -118,6 +118,17 @@ export interface UnlockTimeSlot {
 
 export type UnlockCampaignStatus = 'open' | 'unlocked' | 'scheduled' | 'closed';
 
+export type UnlockPaymentMode = 'pay_when_go' | 'direct_pay';
+
+export interface MaterialPricingConfig {
+  isPaid: boolean;
+  price: number;
+  originalPrice?: number;
+  paymentMode?: UnlockPaymentMode;
+}
+
+export type UnlockPaymentStatus = 'free' | 'unpaid' | 'confirming' | 'paid';
+
 export interface UnlockCampaignDoc {
   id?: string;
   title: string;
@@ -131,6 +142,12 @@ export interface UnlockCampaignDoc {
   winningMaterialId: string;
   winningSlotId: string;
   confirmedScheduleNote: string;
+  materialPricing?: Record<string, MaterialPricingConfig>;
+  qrisPayload?: string;
+  qrisMerchantName?: string;
+  qrisMerchantNmid?: string;
+  qrisFallbackImageUrl?: string;
+  mentorWhatsapp?: string;
   updatedAt: number;
 }
 
@@ -148,6 +165,9 @@ export interface UnlockVoteDoc {
   flexibleTopic: boolean;
   mainChallenge: string;
   status: UnlockVoteStatus;
+  paymentStatus?: UnlockPaymentStatus;
+  paymentUniqueCode?: number;
+  paymentAmount?: number;
   ts: number;
 }
 
@@ -172,6 +192,10 @@ export interface UnlockContactDoc {
   interestedTopicTitle?: string;
   leadStage?: UnlockLeadStage;
   mentorNotes?: string;
+  paymentStatus?: UnlockPaymentStatus;
+  paymentUniqueCode?: number;
+  paymentAmount?: number;
+  paidAt?: number;
   ts: number;
 }
 
