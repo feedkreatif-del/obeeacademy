@@ -246,18 +246,22 @@ export function getProgramQuotaBadgeText(
   return `SEMINAR · MIN. ${program.quotaOverride || campaignMinQuota || 15} PESERTA`;
 }
 
-export function getProgramShortPillText(program: MaterialProgramConfig): string {
-  const duration = program.durationLabel ? ` · ${program.durationLabel}` : '';
+export function getProgramTierLabelOnly(program: MaterialProgramConfig): string {
   if (program.format === 'coaching') {
     if (program.coachingScope === 'category_group') {
-      return `COACHING (${program.targetCategory || 'Per Kategori'})${duration}`;
+      return `COACHING (${program.targetCategory || 'Per Kategori'})`;
     }
-    return `COACHING 1-ON-1${duration}`;
+    return 'COACHING 1-ON-1';
   }
   if (program.format === 'workshop') {
-    return `WORKSHOP LANJUTAN${duration}`;
+    return 'WORKSHOP PRAKTIK';
   }
-  return `SEMINAR DASAR${duration}`;
+  return 'SEMINAR DASAR';
+}
+
+export function getProgramShortPillText(program: MaterialProgramConfig): string {
+  const duration = program.durationLabel ? ` · ${program.durationLabel}` : '';
+  return `${getProgramTierLabelOnly(program)}${duration}`;
 }
 
 export function getDeliveryDisplayLabel(program: MaterialProgramConfig): string {

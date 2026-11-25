@@ -67,7 +67,7 @@ import {
   PROGRAM_FORMAT_META,
   getDeliveryDisplayLabel,
   getProgramQuotaBadgeText,
-  getProgramShortPillText,
+  getProgramTierLabelOnly,
   resolveMaterialProgram,
 } from '../utils/programTier';
 import {
@@ -1440,7 +1440,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
     });
 
     return (
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-9 space-y-8">
+      <div className="max-w-[1380px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-9 space-y-8">
         {/* Hero & Quorum Status */}
         <section className="bg-[#1F3A5F] text-white rounded-3xl p-6 sm:p-8 border border-white/10 shadow-md relative overflow-hidden">
           <div className="relative z-10 space-y-5">
@@ -1734,7 +1734,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
               Belum ada poster pada jenjang ini yang ditampilkan moderator. Pilih tab <strong>Semua Program</strong> untuk melihat kelas lainnya.
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-7">
               {visiblePublicStats.map(({ material, primaryCount, sharePct }) => {
                 const coverUrl = getMaterialCoverImageUrl(material);
                 const highlights = extractMaterialCoreHighlights(material).slice(0, 3);
@@ -1779,7 +1779,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
 
                     {/* Poster Visual Showcase */}
                     <div className="px-4">
-                      <div className="relative h-44 rounded-2xl overflow-hidden bg-slate-900">
+                      <div className="relative h-48 rounded-2xl overflow-hidden bg-slate-900">
                         {coverUrl ? (
                           <img
                             src={coverUrl}
@@ -1802,38 +1802,39 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                         )}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent pointer-events-none" />
 
-                        {/* Top-Left Program Tier Pill */}
-                        <div className="absolute top-3 left-3 max-w-[58%]">
-                          <span
-                            className={`inline-block text-[10px] font-extrabold px-2.5 py-1 rounded-lg shadow-sm truncate max-w-full ${programMeta.publicChipClass}`}
-                          >
-                            {getProgramShortPillText(program)}
-                          </span>
-                        </div>
-
-                        {/* Top-Right Free vs Paid Status Badge */}
-                        <div className="absolute top-3 right-3 flex flex-col items-end gap-1">
-                          {pricing.isPaid ? (
-                            <div className="px-2.5 py-1 rounded-lg bg-amber-400 text-[#1F3A5F] shadow-sm text-right">
-                              <div className="text-[11px] font-extrabold leading-tight tabular-nums">
-                                {pricing.originalPrice ? (
-                                  <span className="line-through text-[#1F3A5F]/65 mr-1 font-semibold">
-                                    {formatRupiah(pricing.originalPrice)}
-                                  </span>
-                                ) : null}
-                                {formatRupiah(pricing.price)}
-                              </div>
-                              <div className="text-[9px] font-bold text-[#1F3A5F]/85 leading-tight">
-                                {pricing.paymentMode === 'direct_pay'
-                                  ? 'QRIS langsung'
-                                  : 'QRIS saat GO!'}
-                              </div>
-                            </div>
-                          ) : (
-                            <span className="text-[11px] font-extrabold px-2.5 py-1 rounded-lg bg-emerald-500 text-white shadow-sm">
-                              GRATIS
+                        {/* Non-overlapping Top Overlay Row: Tier Label (left) + Price / Gratis (right) */}
+                        <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <span
+                              className={`inline-block text-[10px] font-extrabold px-2.5 py-1 rounded-lg shadow-sm truncate max-w-full ${programMeta.publicChipClass}`}
+                            >
+                              {getProgramTierLabelOnly(program)}
                             </span>
-                          )}
+                          </div>
+
+                          <div className="shrink-0 flex flex-col items-end gap-1">
+                            {pricing.isPaid ? (
+                              <div className="px-2.5 py-1 rounded-lg bg-amber-400 text-[#1F3A5F] shadow-sm text-right">
+                                <div className="text-[11px] font-extrabold leading-tight tabular-nums whitespace-nowrap">
+                                  {pricing.originalPrice ? (
+                                    <span className="line-through text-[#1F3A5F]/65 mr-1 font-semibold">
+                                      {formatRupiah(pricing.originalPrice)}
+                                    </span>
+                                  ) : null}
+                                  {formatRupiah(pricing.price)}
+                                </div>
+                                <div className="text-[9px] font-bold text-[#1F3A5F]/85 leading-tight whitespace-nowrap">
+                                  {pricing.paymentMode === 'direct_pay'
+                                    ? 'QRIS langsung'
+                                    : 'QRIS saat GO!'}
+                                </div>
+                              </div>
+                            ) : (
+                              <span className="inline-block text-[11px] font-extrabold px-2.5 py-1 rounded-lg bg-emerald-500 text-white shadow-sm whitespace-nowrap">
+                                GRATIS
+                              </span>
+                            )}
+                          </div>
                         </div>
 
                         <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between gap-2 text-white">
@@ -1853,26 +1854,33 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                     {/* Cream Poster Editorial Body */}
                     <div className="m-4 mb-0 rounded-2xl bg-[#FFF9F0] p-4 flex-1 flex flex-col justify-between gap-3">
                       <div className="space-y-2.5">
-                        {/* Clean Online / Offline Delivery & Location Strip above Headline */}
+                        {/* Clean Online / Offline Delivery, Location & Duration Strip above Headline */}
                         {(() => {
                           const dMode: DeliveryModeType =
                             program.deliveryMode === 'offline' ? 'offline' : 'online';
                           const dMeta = DELIVERY_MODE_META[dMode];
                           return (
-                            <div className="flex items-center gap-1.5 text-[11px]">
-                              <span
-                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-extrabold border shrink-0 ${dMeta.badgeClass}`}
-                              >
-                                {dMode === 'offline' ? (
-                                  <MapPin className="w-3 h-3" />
-                                ) : (
-                                  <Video className="w-3 h-3" />
-                                )}
-                                <span>{dMeta.shortLabel}</span>
-                              </span>
-                              <span className="font-semibold text-slate-600 truncate">
-                                {program.locationLabel || dMeta.defaultLocation}
-                              </span>
+                            <div className="flex items-center justify-between gap-2 text-[11px]">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span
+                                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-extrabold border shrink-0 ${dMeta.badgeClass}`}
+                                >
+                                  {dMode === 'offline' ? (
+                                    <MapPin className="w-3 h-3" />
+                                  ) : (
+                                    <Video className="w-3 h-3" />
+                                  )}
+                                  <span>{dMeta.shortLabel}</span>
+                                </span>
+                                <span className="font-semibold text-slate-600 truncate">
+                                  {program.locationLabel || dMeta.defaultLocation}
+                                </span>
+                              </div>
+                              {program.durationLabel && (
+                                <span className="text-[11px] font-bold text-[#1F3A5F]/75 whitespace-nowrap shrink-0 tabular-nums">
+                                  · {program.durationLabel}
+                                </span>
+                              )}
                             </div>
                           );
                         })()}
@@ -2718,7 +2726,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
   const broadcastText = buildBursaBroadcastText(campaign, materials, baseBursaUrl);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+    <div className="max-w-[1380px] mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
       {/* Top Command Header */}
       <div className="bg-white rounded-2xl border border-[#1F3A5F]/12 p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4 shadow-xs">
         <div>
@@ -3840,7 +3848,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
 
                     {/* Poster Visual Preview */}
                     <div className="px-4 pt-3">
-                      <div className="relative h-36 rounded-2xl overflow-hidden bg-slate-900">
+                      <div className="relative h-40 rounded-2xl overflow-hidden bg-slate-900">
                         {coverUrl ? (
                           <img
                             src={coverUrl}
@@ -3865,24 +3873,26 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                         )}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent pointer-events-none" />
 
-                        <div className="absolute top-2.5 left-2.5 max-w-[56%]">
-                          <span
-                            className={`inline-block text-[10px] font-extrabold px-2 py-0.5 rounded truncate max-w-full ${matProgramMeta.publicChipClass}`}
-                          >
-                            {matProgramMeta.shortBadge}
-                          </span>
-                        </div>
+                        <div className="absolute top-2.5 left-2.5 right-2.5 flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <span
+                              className={`inline-block text-[10px] font-extrabold px-2 py-0.5 rounded truncate max-w-full ${matProgramMeta.publicChipClass}`}
+                            >
+                              {getProgramTierLabelOnly(matProgram)}
+                            </span>
+                          </div>
 
-                        <div className="absolute top-2.5 right-2.5">
-                          {matPricing.isPaid ? (
-                            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-amber-400 text-[#1F3A5F] tabular-nums">
-                              {formatRupiah(matPricing.price)}
-                            </span>
-                          ) : (
-                            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-emerald-500 text-white">
-                              GRATIS
-                            </span>
-                          )}
+                          <div className="shrink-0">
+                            {matPricing.isPaid ? (
+                              <span className="inline-block text-[10px] font-extrabold px-2 py-0.5 rounded bg-amber-400 text-[#1F3A5F] tabular-nums whitespace-nowrap">
+                                {formatRupiah(matPricing.price)}
+                              </span>
+                            ) : (
+                              <span className="inline-block text-[10px] font-extrabold px-2 py-0.5 rounded bg-emerald-500 text-white whitespace-nowrap">
+                                GRATIS
+                              </span>
+                            )}
+                          </div>
                         </div>
 
                         <div className="absolute bottom-2.5 left-3 right-3 flex items-center justify-between gap-2 text-white">
@@ -3905,19 +3915,26 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                           const dMeta = DELIVERY_MODE_META[dMode];
                           return (
                             <div className="flex items-center justify-between gap-2 text-[10px]">
-                              <span
-                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded font-extrabold border shrink-0 ${dMeta.badgeClass}`}
-                              >
-                                {dMode === 'offline' ? (
-                                  <MapPin className="w-3 h-3" />
-                                ) : (
-                                  <Video className="w-3 h-3" />
-                                )}
-                                <span>{dMeta.shortLabel}</span>
-                              </span>
-                              <span className="font-bold text-[#2A9D8F] truncate">
-                                {matProgram.locationLabel || dMeta.defaultLocation}
-                              </span>
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span
+                                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded font-extrabold border shrink-0 ${dMeta.badgeClass}`}
+                                >
+                                  {dMode === 'offline' ? (
+                                    <MapPin className="w-3 h-3" />
+                                  ) : (
+                                    <Video className="w-3 h-3" />
+                                  )}
+                                  <span>{dMeta.shortLabel}</span>
+                                </span>
+                                <span className="font-bold text-[#2A9D8F] truncate">
+                                  {matProgram.locationLabel || dMeta.defaultLocation}
+                                </span>
+                              </div>
+                              {matProgram.durationLabel && (
+                                <span className="font-bold text-slate-500 whitespace-nowrap shrink-0 tabular-nums">
+                                  · {matProgram.durationLabel}
+                                </span>
+                              )}
                             </div>
                           );
                         })()}

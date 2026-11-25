@@ -12,6 +12,7 @@ import {
   getDeliveryDisplayLabel,
   getProgramQuotaBadgeText,
   getProgramShortPillText,
+  getProgramTierLabelOnly,
   resolveMaterialProgram,
 } from './programTier';
 
@@ -285,11 +286,23 @@ export async function renderMaterialPosterDataUrl(
     options.program || getDefaultProgramForMaterial(material, minQuota);
   const programMeta = PROGRAM_FORMAT_META[resolvedProgram.format];
 
-  // Program Tier badge anchored inside visual top-left
-  const tierLabel = getProgramShortPillText(resolvedProgram).toUpperCase();
+  // Price badge bounds computed first to guarantee zero overlap with top-left tier pill
+  const isPaidClass = Boolean(options.pricing?.isPaid && (options.pricing?.price || 0) > 0);
+  const priceLabel = isPaidClass
+    ? `BERBAYAR · ${formatRupiah(options.pricing!.price)}`
+    : 'KELAS GRATIS UMKM';
+  ctx.font = '800 21px system-ui, -apple-system, sans-serif';
+  const badgeTextW = ctx.measureText(priceLabel).width;
+  const badgeW = badgeTextW + 40;
+  const badgeX = imgX + imgW - 24 - badgeW;
+  const badgeY = imgY + 22;
+
+  // Program Tier badge anchored inside visual top-left with guaranteed 20px clearance
+  const tierLabel = getProgramTierLabelOnly(resolvedProgram).toUpperCase();
   ctx.font = '800 18px system-ui, -apple-system, sans-serif';
   const tierTextW = ctx.measureText(tierLabel).width;
-  const tierBadgeW = Math.min(480, tierTextW + 32);
+  const maxAllowedTierW = Math.max(180, badgeX - (imgX + 24) - 20);
+  const tierBadgeW = Math.min(maxAllowedTierW, tierTextW + 32);
   ctx.fillStyle = programMeta.posterBgColor;
   drawRoundedRect(ctx, imgX + 24, imgY + 22, tierBadgeW, 40, 10);
   ctx.fill();
@@ -315,20 +328,12 @@ export async function renderMaterialPosterDataUrl(
     imgY + imgH - 36
   );
 
-  // Price badge anchored inside visual top-right (GRATIS vs BERBAYAR)
-  const isPaidClass = Boolean(options.pricing?.isPaid && (options.pricing?.price || 0) > 0);
-  const priceLabel = isPaidClass
-    ? `BERBAYAR · ${formatRupiah(options.pricing!.price)}`
-    : 'KELAS GRATIS UMKM';
-  ctx.font = '800 21px system-ui, -apple-system, sans-serif';
-  const badgeTextW = ctx.measureText(priceLabel).width;
-  const badgeW = badgeTextW + 40;
-  const badgeX = imgX + imgW - 24 - badgeW;
-  const badgeY = imgY + 22;
+  // Draw Price badge anchored inside visual top-right (GRATIS vs BERBAYAR)
   ctx.fillStyle = isPaidClass ? '#F28C28' : '#059669';
   drawRoundedRect(ctx, badgeX, badgeY, badgeW, 44, 12);
   ctx.fill();
   ctx.fillStyle = '#FFFFFF';
+  ctx.font = '800 21px system-ui, -apple-system, sans-serif';
   ctx.fillText(priceLabel, badgeX + 20, badgeY + 29);
 
   if (
@@ -363,12 +368,15 @@ export async function renderMaterialPosterDataUrl(
   drawRoundedRect(ctx, 64, sheetY, W - 128, sheetH, 32);
   ctx.fill();
 
-  // Online / Offline Delivery Badge + Location Pill Row (clean placement above headline)
+  // Online / Offline Delivery Badge + Location + Duration Row (clean placement above headline)
   const deliveryMode = resolvedProgram.deliveryMode === 'offline' ? 'offline' : 'online';
   const deliveryMeta = DELIVERY_MODE_META[deliveryMode];
   const deliveryShort = deliveryMeta.shortLabel;
   const deliveryLoc =
     (resolvedProgram.locationLabel || '').trim() || deliveryMeta.defaultLocation;
+  const deliveryWithDuration = resolvedProgram.durationLabel
+    ? `${deliveryLoc} · ${resolvedProgram.durationLabel}`
+    : deliveryLoc;
 
   ctx.font = '800 18px system-ui, -apple-system, sans-serif';
   const delBadgeTextW = ctx.measureText(deliveryShort).width;
@@ -382,7 +390,8 @@ export async function renderMaterialPosterDataUrl(
 
   ctx.fillStyle = '#334155';
   ctx.font = '700 20px system-ui, -apple-system, sans-serif';
-  const locText = wrapTextLines(ctx, deliveryLoc, W - 220 - delBadgeW, 1)[0] || deliveryLoc;
+  const locText =
+    wrapTextLines(ctx, deliveryWithDuration, W - 220 - delBadgeW, 1)[0] || deliveryWithDuration;
   ctx.fillText(locText, 100 + delBadgeW + 14, delBadgeY + 23);
 
   // Headline
