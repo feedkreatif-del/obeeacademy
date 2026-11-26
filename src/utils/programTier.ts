@@ -110,9 +110,10 @@ export const PROGRAM_FORMAT_META: Record<ProgramFormatType, ProgramFormatMeta> =
   coaching: {
     format: 'coaching',
     label: 'Coaching',
-    shortBadge: 'COACHING EKSKLUSIF',
-    tierHeadline: 'Pendalaman Spesifik · 1-on-1 / Per Kategori',
-    description: 'Pendampingan intensif 1-on-1 privat atau klaster khusus per kategori bidang usaha.',
+    shortBadge: 'COACHING STUDI KASUS',
+    tierHeadline: 'Pendalaman Studi Kasus · 1-on-1 / Per Kategori',
+    description:
+      'Mode pendalaman studi kasus peserta (tanpa slide teori baru) — audit langsung, tanya-jawab spesifik, & action plan.',
     defaultDuration: '90 Menit Intensif',
     defaultQuota: 1,
     badgeClass: 'bg-amber-50 border-amber-300 text-amber-950',
@@ -286,7 +287,8 @@ export function buildDefaultProgramForTier(
       durationLabel: '90 Menit Privat',
       quotaOverride: 1,
       coachingScope: 'one_on_one',
-      prerequisiteNote: 'Pendampingan intensif membedah kasus & target bisnismu secara langsung.',
+      prerequisiteNote:
+        'Fokus bedah studi kasus peserta (tanpa teori slide baru) — siapkan kendala & aset usaha untuk diaudit langsung.',
     };
   }
   return {

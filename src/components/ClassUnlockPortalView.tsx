@@ -2257,9 +2257,25 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                         )}
 
                         <div className="border-t border-[#1F3A5F]/12 pt-3 space-y-2">
-                          <div className="text-[13px] font-extrabold text-[#2A9D8F]">
-                            Inti Materi ({programMeta.label}):
+                          <div className="flex flex-wrap items-center justify-between gap-1.5">
+                            <div className="text-[13px] font-extrabold text-[#2A9D8F]">
+                              {program.format === 'coaching'
+                                ? 'Pendalaman Studi Kasus Peserta:'
+                                : program.format === 'workshop'
+                                ? 'Fokus Praktik (Workshop):'
+                                : 'Inti Materi (Seminar):'}
+                            </div>
+                            {program.format === 'coaching' && (
+                              <span className="px-2 py-0.5 rounded bg-amber-100 border border-amber-300 text-[11px] font-extrabold text-amber-950">
+                                Tanpa Slide Teori Baru
+                              </span>
+                            )}
                           </div>
+                          {program.format === 'coaching' && (
+                            <p className="text-xs font-semibold text-amber-950 bg-amber-50/90 border border-amber-200 rounded-lg px-3 py-2 leading-relaxed">
+                              100% bedah studi kasus nyata, audit langsung aset/bisnis peserta, tanya-jawab spesifik &amp; penyusunan action plan.
+                            </p>
+                          )}
                           <ul className="space-y-2 text-[15px] text-slate-800">
                             {highlights.map((item, idx) => (
                               <li key={idx} className="flex items-start gap-2.5 leading-relaxed">
@@ -2833,11 +2849,17 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                               </div>
                             )}
 
-                          {isModalOneOnOneCoaching ? (
+                          {chosenModalProgram?.format === 'coaching' && (
                             <div className="p-3 rounded-lg bg-white border border-amber-300 text-sm text-[#1F3A5F] leading-relaxed">
-                              <strong>Sesi Coaching Privat 1-on-1:</strong> Pendalaman khusus langsung membedah masalah usahamu ({chosenModalProgram?.durationLabel || '90 Menit'}) tanpa harus menunggu kuota kelompok.
+                              <strong>
+                                {isModalOneOnOneCoaching
+                                  ? 'Mode Pendalaman Studi Kasus (1-on-1 Privat):'
+                                  : `Mode Pendalaman Studi Kasus (${chosenModalProgram.targetCategory || 'Kelompok Sejenis'}):`}
+                              </strong>{' '}
+                              Sesi ini tidak mengulang slide teori, melainkan 100% membedah kasus, kendala, dan aset usaha milik peserta secara langsung ({chosenModalProgram?.durationLabel || '90 Menit'}).
                             </div>
-                          ) : (
+                          )}
+                          {!isModalOneOnOneCoaching && (
                             analytics.allEnabledOfferings.filter(
                               (o) => o.offeringKey !== chosenModalTier?.offeringKey
                             ).length > 0 && (
@@ -4586,6 +4608,8 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                                 : 'Status: Kelas Gratis'}
                               {activeTier.linkedMaterialId !== anchorMaterial.id
                                 ? ' · Modul Kustom Terkait'
+                                : matProgram.format === 'coaching'
+                                ? ' · Mode Studi Kasus'
                                 : ''}
                             </span>
                           </div>
@@ -5376,51 +5400,89 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
 
                 <div className={currentEntry.enabled ? 'space-y-5' : 'space-y-5 opacity-55'}>
                   {/* 2. Kurikulum / Modul Bank Materi */}
-                  <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-3">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
+                  {editingTierTab === 'coaching' ? (
+                    <div className="p-4 rounded-xl border border-amber-200 bg-amber-50/70 space-y-3">
                       <div>
-                        <h4 className="text-xs font-extrabold uppercase tracking-wider text-[#1F3A5F]">
-                          Kurikulum / Slide Bank Materi ({activeTierMeta.label})
+                        <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-amber-200/80 text-amber-950 text-[10px] font-extrabold uppercase tracking-wider mb-1">
+                          Rekomendasi Best Practice
+                        </div>
+                        <h4 className="text-xs font-extrabold uppercase tracking-wider text-amber-950">
+                          Mode Pendalaman Studi Kasus Peserta (Tanpa Modul Slide Baru)
                         </h4>
-                        <p className="text-[11px] text-slate-500 mt-0.5">
-                          Tautkan slide modul berbeda untuk jenjang {activeTierMeta.label}.
+                        <p className="text-[11px] text-amber-900/90 mt-0.5 leading-relaxed">
+                          Coaching difokuskan 100% pada bedah kasus, audit usaha peserta, dan tanya-jawab mendalam menggunakan Worksheet &amp; Flipchart — tidak perlu membuat draf slide terpisah di Bank Materi.
                         </p>
                       </div>
-                      <button
-                        type="button"
-                        disabled={isCreatingTierDraft}
-                        onClick={() => handleCreateTierDraftMaterial(editingAnchorMat, editingTierTab)}
-                        className="px-3 py-1.5 rounded-lg bg-[#1F3A5F] hover:bg-[#162b47] disabled:opacity-50 text-white text-xs font-bold cursor-pointer inline-flex items-center gap-1.5 shrink-0"
-                      >
-                        {isCreatingTierDraft ? (
-                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                        )}
-                        <span>1-Klik Buat Draf Varian {activeTierMeta.label}</span>
-                      </button>
-                    </div>
 
-                    <select
-                      value={currentEntry.linkedMaterialId || editingAnchorMat.id}
-                      onChange={(e) => updateActiveEntry({ linkedMaterialId: e.target.value })}
-                      className="w-full px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-300 rounded-xl text-slate-800"
-                    >
-                      {materials.map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {m.seminarTitle}
-                          {m.id === editingAnchorMat.id ? ' (Tema Induk)' : ''} —{' '}
-                          {m.content.slides.length} slide
-                        </option>
-                      ))}
-                    </select>
-                    <div className="text-[11px] text-slate-500">
-                      Modul tertaut saat ini:{' '}
-                      <span className="font-bold text-slate-700">{linkedMatObj.seminarTitle}</span> (
-                      {linkedMatObj.content.slides.length} slide ·{' '}
-                      {linkedMatObj.content.questions.length} worksheet)
+                      <div>
+                        <label className="block text-[11px] font-bold text-amber-950 mb-1">
+                          Referensi Kerangka Topik (Opsional jika perlu dibuka saat sesi)
+                        </label>
+                        <select
+                          value={currentEntry.linkedMaterialId || editingAnchorMat.id}
+                          onChange={(e) => updateActiveEntry({ linkedMaterialId: e.target.value })}
+                          className="w-full px-3 py-2 text-xs font-semibold bg-white border border-amber-300 rounded-xl text-slate-800"
+                        >
+                          {materials.map((m) => (
+                            <option key={m.id} value={m.id}>
+                              {m.seminarTitle}
+                              {m.id === editingAnchorMat.id ? ' (Referensi Tema Induk)' : ''}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <h4 className="text-xs font-extrabold uppercase tracking-wider text-[#1F3A5F]">
+                            {editingTierTab === 'workshop'
+                              ? 'Varian Modul Praktik Workshop (80% Eksekusi)'
+                              : 'Modul Konsep Utama Seminar (Materi Induk)'}
+                          </h4>
+                          <p className="text-[11px] text-slate-500 mt-0.5">
+                            {editingTierTab === 'workshop'
+                              ? 'Disarankan memisahkan slide Workshop agar fokus pada checklist teknis, praktik & review karya.'
+                              : 'Umumnya menggunakan Tema Induk untuk pemaparan konsep inti & pemetaan strategi.'}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          disabled={isCreatingTierDraft}
+                          onClick={() => handleCreateTierDraftMaterial(editingAnchorMat, editingTierTab)}
+                          className="px-3 py-1.5 rounded-lg bg-[#1F3A5F] hover:bg-[#162b47] disabled:opacity-50 text-white text-xs font-bold cursor-pointer inline-flex items-center gap-1.5 shrink-0"
+                        >
+                          {isCreatingTierDraft ? (
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                          )}
+                          <span>1-Klik Buat Draf Varian {activeTierMeta.label}</span>
+                        </button>
+                      </div>
+
+                      <select
+                        value={currentEntry.linkedMaterialId || editingAnchorMat.id}
+                        onChange={(e) => updateActiveEntry({ linkedMaterialId: e.target.value })}
+                        className="w-full px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-300 rounded-xl text-slate-800"
+                      >
+                        {materials.map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.seminarTitle}
+                            {m.id === editingAnchorMat.id ? ' (Tema Induk)' : ''} —{' '}
+                            {m.content.slides.length} slide
+                          </option>
+                        ))}
+                      </select>
+                      <div className="text-[11px] text-slate-500">
+                        Modul tertaut saat ini:{' '}
+                        <span className="font-bold text-slate-700">{linkedMatObj.seminarTitle}</span> (
+                        {linkedMatObj.content.slides.length} slide ·{' '}
+                        {linkedMatObj.content.questions.length} worksheet)
+                      </div>
+                    </div>
+                  )}
 
                   {/* 3. Harga & Pembayaran QRIS */}
                   <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-3">
