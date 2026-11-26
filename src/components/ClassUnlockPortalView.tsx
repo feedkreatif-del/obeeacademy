@@ -43,6 +43,7 @@ import {
   DeliveryModeType,
   MaterialPricingConfig,
   MaterialProgramConfig,
+  MaterialTierEntry,
   ProgramFormatType,
   SavedMaterial,
   ScheduleModeType,
@@ -66,13 +67,24 @@ import {
 import {
   DELIVERY_MODE_META,
   PROGRAM_FORMAT_META,
+  PROGRAM_TIERS_ORDER,
+  ResolvedTopicTier,
   SCHEDULE_MODE_META,
+  buildDefaultProgramForTier,
+  encodeTierOfferingKey,
   getDeliveryDisplayLabel,
+  getEnabledTopicTiers,
   getProgramQuotaBadgeText,
   getProgramTierLabelOnly,
   isFixedScheduleProgram,
+  normalizePricingConfig,
+  parseTierOfferingKey,
   resolveMaterialProgram,
+  resolveOfferingByKey,
+  resolveTopicTiers,
+  sanitizeSingleProgramConfig,
 } from '../utils/programTier';
+import { buildTierVariantMaterialDraft } from '../utils/tierDraftGenerator';
 import {
   DEFAULT_GOPAY_MERCHANT_NAME,
   DEFAULT_GOPAY_MERCHANT_NMID,
@@ -127,6 +139,7 @@ interface ClassUnlockPortalViewProps {
   onSeedDemoVotes: () => Promise<void>;
   onClearDemoVotes: () => Promise<void>;
   onActivateWinningMaterial: (material: SavedMaterial) => Promise<void>;
+  onCreateMaterial?: (material: SavedMaterial) => Promise<void>;
   onBackToPresenter?: () => void;
 }
 
@@ -239,34 +252,10 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
   onSeedDemoVotes,
   onClearDemoVotes,
   onActivateWinningMaterial,
+  onCreateMaterial,
   onBackToPresenter,
 }) => {
   const [hostTab, setHostTab] = useState<'posters' | 'monitor' | 'crm' | 'setup'>('posters');
-
-  const getMaterialPricing = (matId: string): MaterialPricingConfig => {
-    const cfg = campaign.materialPricing?.[matId];
-    if (!cfg || !cfg.isPaid || !(cfg.price > 0)) {
-      return {
-        isPaid: false,
-        price: 0,
-        paymentMode: cfg?.paymentMode === 'direct_pay' ? 'direct_pay' : 'pay_when_go',
-      };
-    }
-    const cleanPrice = Math.max(0, Math.round(cfg.price));
-    const cleanOriginal =
-      typeof cfg.originalPrice === 'number' && cfg.originalPrice > cleanPrice
-        ? Math.round(cfg.originalPrice)
-        : undefined;
-    return {
-      isPaid: true,
-      price: cleanPrice,
-      originalPrice: cleanOriginal,
-      paymentMode: cfg.paymentMode === 'direct_pay' ? 'direct_pay' : 'pay_when_go',
-    };
-  };
-
-  const getMaterialProgram = (mat: SavedMaterial): MaterialProgramConfig =>
-    resolveMaterialProgram(mat, campaign);
 
   const baseBursaUrl = useMemo(() => {
     if (typeof window === 'undefined') return '/?view=bursa';
@@ -283,42 +272,122 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
     return matched.length > 0 ? matched : materials;
   }, [visiblePosterIdSet, materials]);
 
+  const getEffectiveFormatForRawId = (rawId: string): ProgramFormatType => {
+    const parsed = parseTierOfferingKey(rawId);
+    if (parsed.format) return parsed.format;
+    const anchorMat = materials.find((m) => m.id === parsed.anchorMaterialId);
+    return anchorMat ? resolveMaterialProgram(anchorMat, campaign).format : 'seminar';
+  };
+
+  const doesVoteMatchOffering = (
+    vote: Pick<UnlockVoteDoc, 'primaryMaterialId'>,
+    offeringKey: string
+  ): boolean => {
+    const vParsed = parseTierOfferingKey(vote.primaryMaterialId);
+    const oParsed = parseTierOfferingKey(offeringKey);
+    if (vParsed.anchorMaterialId !== oParsed.anchorMaterialId) return false;
+    const vFormat = getEffectiveFormatForRawId(vote.primaryMaterialId);
+    const oFormat = getEffectiveFormatForRawId(offeringKey);
+    return vFormat === oFormat;
+  };
+
+  const resolveTierSafe = (rawId: string): ResolvedTopicTier | null =>
+    resolveOfferingByKey(rawId, materials, campaign);
+
+  // Per-topic card active tier tab selector (Seminar | Workshop | Coaching)
+  const [selectedTierByTopic, setSelectedTierByTopic] = useState<Record<string, ProgramFormatType>>(
+    () => {
+      if (!initialHighlightedMaterialId) return {};
+      const parsed = parseTierOfferingKey(initialHighlightedMaterialId);
+      return parsed.format ? { [parsed.anchorMaterialId]: parsed.format } : {};
+    }
+  );
+
+  const getActiveTierForTopic = (
+    anchorMat: SavedMaterial,
+    preferredFilter: 'all' | ProgramFormatType = 'all',
+    preferredDelivery: 'all' | DeliveryModeType = 'all'
+  ): ResolvedTopicTier => {
+    const enabled = getEnabledTopicTiers(anchorMat, materials, campaign);
+    if (preferredFilter !== 'all') {
+      const exactBoth = enabled.find(
+        (t) =>
+          t.format === preferredFilter &&
+          (preferredDelivery === 'all' || (t.program.deliveryMode || 'online') === preferredDelivery)
+      );
+      if (exactBoth) return exactBoth;
+      const exactFmt = enabled.find((t) => t.format === preferredFilter);
+      if (exactFmt) return exactFmt;
+    }
+    const chosenFmt = selectedTierByTopic[anchorMat.id];
+    if (chosenFmt) {
+      const chosenTier = enabled.find((t) => t.format === chosenFmt);
+      if (chosenTier) return chosenTier;
+    }
+    if (preferredDelivery !== 'all') {
+      const matchDelivery = enabled.find(
+        (t) => (t.program.deliveryMode || 'online') === preferredDelivery
+      );
+      if (matchDelivery) return matchDelivery;
+    }
+    return enabled[0];
+  };
+
   const analytics = useMemo(() => {
     const activeVotes = votes.filter((v) => v.status !== 'cancelled');
-    const candidateStats = candidateMaterials.map((mat) => {
-      const primaryCount = activeVotes.filter((v) => v.primaryMaterialId === mat.id).length;
-      const secondaryCount = activeVotes.filter((v) =>
-        (v.secondaryMaterialIds || []).includes(mat.id)
+    const allEnabledOfferings: ResolvedTopicTier[] = [];
+    candidateMaterials.forEach((anchorMat) => {
+      const enabled = getEnabledTopicTiers(anchorMat, materials, campaign);
+      allEnabledOfferings.push(...enabled);
+    });
+
+    const offeringStats = allEnabledOfferings.map((tier) => {
+      const primaryCount = activeVotes.filter((v) =>
+        doesVoteMatchOffering(v, tier.offeringKey)
       ).length;
+      const secondaryCount = activeVotes.filter((v) => {
+        if (doesVoteMatchOffering(v, tier.offeringKey)) return false;
+        return (v.secondaryMaterialIds || []).some(
+          (sid) =>
+            sid === tier.offeringKey ||
+            (parseTierOfferingKey(sid).anchorMaterialId === tier.anchorMaterialId &&
+              getEffectiveFormatForRawId(sid) === tier.format)
+        );
+      }).length;
       const sharePct =
         activeVotes.length > 0 ? Math.round((primaryCount / activeVotes.length) * 100) : 0;
       return {
-        material: mat,
+        tier,
+        material: tier.linkedMaterial,
         primaryCount,
         secondaryCount,
         sharePct,
       };
     });
 
-    const sortedCandidates = [...candidateStats].sort(
+    const offeringStatsMap = new Map(offeringStats.map((s) => [s.tier.offeringKey, s]));
+    const sortedCandidates = [...offeringStats].sort(
       (a, b) => b.primaryCount - a.primaryCount || b.secondaryCount - a.secondaryCount
     );
     const leadingCandidate = sortedCandidates[0] || null;
+    const resolvedWinningFromCamp = campaign.winningMaterialId
+      ? resolveOfferingByKey(campaign.winningMaterialId, materials, campaign)
+      : null;
     const leadingMaterialId =
-      campaign.winningMaterialId &&
-      candidateMaterials.some((m) => m.id === campaign.winningMaterialId)
-        ? campaign.winningMaterialId
-        : leadingCandidate?.material.id || candidateMaterials[0]?.id || '';
+      resolvedWinningFromCamp &&
+      allEnabledOfferings.some((t) => t.offeringKey === resolvedWinningFromCamp.offeringKey)
+        ? resolvedWinningFromCamp.offeringKey
+        : leadingCandidate?.tier.offeringKey || allEnabledOfferings[0]?.offeringKey || '';
 
     const slotStats = campaign.timeSlots.map((slot) => {
       const slotVoters = activeVotes.filter((v) =>
         (v.availableSlotIds || []).includes(slot.id)
       );
-      const exactCount = slotVoters.filter(
-        (v) => v.primaryMaterialId === leadingMaterialId
+      const exactCount = slotVoters.filter((v) =>
+        doesVoteMatchOffering(v, leadingMaterialId)
       ).length;
       const rescueCount = slotVoters.filter(
-        (v) => v.primaryMaterialId !== leadingMaterialId && v.flexibleTopic === true
+        (v) => !doesVoteMatchOffering(v, leadingMaterialId) && v.flexibleTopic === true
       ).length;
       const effectiveQuorum = exactCount + rescueCount;
       return {
@@ -345,7 +414,9 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
 
     return {
       activeVotes,
-      candidateStats,
+      allEnabledOfferings,
+      candidateStats: offeringStats,
+      offeringStatsMap,
       sortedCandidates,
       leadingCandidate,
       leadingMaterialId,
@@ -357,28 +428,31 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
       confirmedCount,
       demoCount: votes.filter((v) => v.participantId.startsWith('seed_bursa_')).length,
     };
-  }, [votes, candidateMaterials, campaign.timeSlots, campaign.minQuota, campaign.winningMaterialId]);
+  }, [votes, candidateMaterials, materials, campaign]);
 
-  const myExistingVote = useMemo(
+  const myVotes = useMemo(
     () =>
-      votes.find(
+      votes.filter(
         (v) => v.campaignId === (campaign.id || 'active') && v.participantId === participantId
-      ) || null,
+      ),
     [votes, campaign.id, participantId]
   );
 
-  // Participant Registration + Vote Modal State
+  // Participant Registration + Vote Modal State (stores offeringKey: `${anchorId}::${format}`)
   const [isVoteModalOpen, setIsVoteModalOpen] = useState<boolean>(false);
   const [voteStep, setVoteStep] = useState<1 | 2>(1);
   const [primaryMaterialId, setPrimaryMaterialId] = useState<string>(() => {
-    if (
-      initialHighlightedMaterialId &&
-      candidateMaterials.some((m) => m.id === initialHighlightedMaterialId)
-    ) {
-      return initialHighlightedMaterialId;
+    if (initialHighlightedMaterialId) {
+      const resolved = resolveOfferingByKey(initialHighlightedMaterialId, materials, campaign);
+      if (resolved) return resolved.offeringKey;
     }
-    return candidateMaterials[0]?.id || '';
+    const firstAnchor = candidateMaterials[0];
+    if (firstAnchor) {
+      return getEnabledTopicTiers(firstAnchor, materials, campaign)[0]?.offeringKey || '';
+    }
+    return '';
   });
+  const [selectedMyVoteId, setSelectedMyVoteId] = useState<string | null>(null);
   const [secondaryMaterialIds, setSecondaryMaterialIds] = useState<string[]>([]);
   const [availableSlotIds, setAvailableSlotIds] = useState<string[]>(() =>
     campaign.timeSlots[0]?.id ? [campaign.timeSlots[0].id] : []
@@ -425,27 +499,49 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
   const [isSubmittingVote, setIsSubmittingVote] = useState<boolean>(false);
   const [hasInitializedFromMyVote, setHasInitializedFromMyVote] = useState<boolean>(false);
 
-  useEffect(() => {
-    if (myExistingVote && !hasInitializedFromMyVote) {
-      setHasInitializedFromMyVote(true);
-      setPrimaryMaterialId(myExistingVote.primaryMaterialId);
-      setSecondaryMaterialIds(myExistingVote.secondaryMaterialIds || []);
-      setAvailableSlotIds(myExistingVote.availableSlotIds || []);
-      setFlexibleTopic(myExistingVote.flexibleTopic);
-      setDisplayName(myExistingVote.displayName);
-      setBusinessName(myExistingVote.businessName);
-      setMainChallenge(myExistingVote.mainChallenge || '');
-    }
-  }, [myExistingVote, hasInitializedFromMyVote]);
+  const myVoteForCurrentOffering = useMemo(
+    () => myVotes.find((v) => doesVoteMatchOffering(v, primaryMaterialId)) || null,
+    [myVotes, primaryMaterialId, materials, campaign]
+  );
+
+  const myActiveStatusVote = useMemo(
+    () =>
+      (selectedMyVoteId ? myVotes.find((v) => v.id === selectedMyVoteId) : null) ||
+      myVoteForCurrentOffering ||
+      myVotes[0] ||
+      null,
+    [myVotes, selectedMyVoteId, myVoteForCurrentOffering]
+  );
+
+  const myExistingVote = isVoteModalOpen ? myVoteForCurrentOffering : myActiveStatusVote;
 
   useEffect(() => {
-    if (!candidateMaterials.some((m) => m.id === primaryMaterialId) && candidateMaterials[0]) {
-      setPrimaryMaterialId(candidateMaterials[0].id);
+    if (myVotes.length > 0 && !hasInitializedFromMyVote) {
+      setHasInitializedFromMyVote(true);
+      const firstVote = myVotes[0];
+      const resolved = resolveTierSafe(firstVote.primaryMaterialId);
+      setPrimaryMaterialId(resolved?.offeringKey || firstVote.primaryMaterialId);
+      setSelectedMyVoteId(firstVote.id);
+      setSecondaryMaterialIds(firstVote.secondaryMaterialIds || []);
+      setAvailableSlotIds(firstVote.availableSlotIds || []);
+      setFlexibleTopic(firstVote.flexibleTopic);
+      setDisplayName(firstVote.displayName);
+      setBusinessName(firstVote.businessName);
+      setMainChallenge(firstVote.mainChallenge || '');
     }
-  }, [candidateMaterials, primaryMaterialId]);
+  }, [myVotes, hasInitializedFromMyVote]);
+
+  useEffect(() => {
+    if (
+      analytics.allEnabledOfferings.length > 0 &&
+      !analytics.allEnabledOfferings.some((o) => o.offeringKey === primaryMaterialId)
+    ) {
+      setPrimaryMaterialId(analytics.allEnabledOfferings[0].offeringKey);
+    }
+  }, [analytics.allEnabledOfferings, primaryMaterialId]);
 
   // Poster Preview Modal State
-  const [posterModalMaterial, setPosterModalMaterial] = useState<SavedMaterial | null>(null);
+  const [posterModalOffering, setPosterModalOffering] = useState<ResolvedTopicTier | null>(null);
   const [posterPreviewUrl, setPosterPreviewUrl] = useState<string>('');
   const [isRenderingPoster, setIsRenderingPoster] = useState<boolean>(false);
   const modalQrWrapRef = useRef<HTMLDivElement | null>(null);
@@ -454,6 +550,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
   const [studioMaterialId, setStudioMaterialId] = useState<string>(
     () => candidateMaterials[0]?.id || materials[0]?.id || ''
   );
+  const [studioTierFormat, setStudioTierFormat] = useState<ProgramFormatType>('seminar');
   const [studioCustomNote, setStudioCustomNote] = useState<string>('');
   const [studioCtaLabel, setStudioCtaLabel] = useState<string>(
     'Scan QR / Klik Link untuk Voting & Kunci Kursi'
@@ -462,7 +559,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
   const [isRenderingStudio, setIsRenderingStudio] = useState<boolean>(false);
   const studioQrWrapRef = useRef<HTMLDivElement | null>(null);
 
-  // Poster Catalog Filter, Visibility, Pricing & Program Tier State
+  // Poster Catalog Filter, Visibility, & Multi-Jenjang Editor State
   const [publicProgramFilter, setPublicProgramFilter] = useState<'all' | ProgramFormatType>('all');
   const [publicDeliveryFilter, setPublicDeliveryFilter] = useState<'all' | DeliveryModeType>('all');
   const [posterFilterMode, setPosterFilterMode] = useState<'all' | 'visible' | 'hidden'>('all');
@@ -470,26 +567,31 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
   const [posterDeliveryFilter, setPosterDeliveryFilter] = useState<'all' | DeliveryModeType>('all');
   const [posterSearchQuery, setPosterSearchQuery] = useState<string>('');
   const [togglingPosterId, setTogglingPosterId] = useState<string | null>(null);
-  const [editingPricingMaterialId, setEditingPricingMaterialId] = useState<string | null>(null);
-  const [pricingForm, setPricingForm] = useState<MaterialPricingConfig>({
-    isPaid: false,
-    price: 50000,
-    originalPrice: undefined,
-    paymentMode: 'pay_when_go',
+
+  // Multi-Jenjang Modal Editor (Host)
+  const [editingMultiTierAnchorId, setEditingMultiTierAnchorId] = useState<string | null>(null);
+  const [editingTierTab, setEditingTierTab] = useState<ProgramFormatType>('seminar');
+  const [tierDraftMap, setTierDraftMap] = useState<Record<ProgramFormatType, MaterialTierEntry>>({
+    seminar: {
+      enabled: true,
+      linkedMaterialId: '',
+      program: buildDefaultProgramForTier('seminar', 15),
+      pricing: { isPaid: false, price: 0, paymentMode: 'pay_when_go' },
+    },
+    workshop: {
+      enabled: false,
+      linkedMaterialId: '',
+      program: buildDefaultProgramForTier('workshop', 15),
+      pricing: { isPaid: true, price: 150000, paymentMode: 'pay_when_go' },
+    },
+    coaching: {
+      enabled: false,
+      linkedMaterialId: '',
+      program: buildDefaultProgramForTier('coaching', 15),
+      pricing: { isPaid: true, price: 450000, paymentMode: 'direct_pay' },
+    },
   });
-  const [editingProgramMaterialId, setEditingProgramMaterialId] = useState<string | null>(null);
-  const [programForm, setProgramForm] = useState<MaterialProgramConfig>({
-    format: 'seminar',
-    deliveryMode: 'online',
-    locationLabel: DELIVERY_MODE_META.online.defaultLocation,
-    durationLabel: '60–90 Menit',
-    quotaOverride: 15,
-    coachingScope: 'one_on_one',
-    targetCategory: BUSINESS_CATEGORIES[0],
-    prerequisiteNote: '',
-    scheduleMode: 'polling',
-    fixedScheduleLabel: '',
-  });
+  const [isCreatingTierDraft, setIsCreatingTierDraft] = useState<boolean>(false);
 
   // Dynamic QRIS Payment Modal State (Public)
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState<boolean>(false);
@@ -516,7 +618,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
   const [hostMessage, setHostMessage] = useState<string>('');
   const [isBusyHost, setIsBusyHost] = useState<boolean>(false);
 
-  // Host Decision Controls
+  // Host Decision Controls (holds offeringKey)
   const [decisionMaterialId, setDecisionMaterialId] = useState<string>(
     () => campaign.winningMaterialId || analytics.leadingMaterialId
   );
@@ -552,7 +654,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
 
   // Render poster preview inside PNG modal
   useEffect(() => {
-    if (!posterModalMaterial) {
+    if (!posterModalOffering) {
       setPosterPreviewUrl('');
       return;
     }
@@ -561,12 +663,12 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
     const timer = window.setTimeout(async () => {
       try {
         const qrCanvas = modalQrWrapRef.current?.querySelector('canvas') || null;
-        const url = await renderMaterialPosterDataUrl(posterModalMaterial, {
+        const url = await renderMaterialPosterDataUrl(posterModalOffering.linkedMaterial, {
           minQuota: campaign.minQuota,
           deadlineLabel: campaign.deadlineLabel,
           slotsSummary: slotsSummaryText,
-          pricing: getMaterialPricing(posterModalMaterial.id),
-          program: getMaterialProgram(posterModalMaterial),
+          pricing: posterModalOffering.pricing,
+          program: posterModalOffering.program,
           qrCanvas,
         });
         if (!cancelled) setPosterPreviewUrl(url);
@@ -580,36 +682,37 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [
-    posterModalMaterial,
-    campaign.minQuota,
-    campaign.deadlineLabel,
-    campaign.materialPricing,
-    campaign.materialProgram,
-    slotsSummaryText,
-  ]);
+  }, [posterModalOffering, campaign.minQuota, campaign.deadlineLabel, slotsSummaryText]);
 
   // Render Studio Poster Preview
-  const studioMaterial = useMemo(
+  const studioAnchorMaterial = useMemo(
     () => materials.find((m) => m.id === studioMaterialId) || materials[0] || null,
     [materials, studioMaterialId]
   );
 
+  const studioResolvedTier = useMemo(() => {
+    if (!studioAnchorMaterial) return null;
+    const tiers = resolveTopicTiers(studioAnchorMaterial, materials, campaign);
+    const chosen = tiers[studioTierFormat];
+    if (chosen.enabled) return chosen;
+    return PROGRAM_TIERS_ORDER.map((f) => tiers[f]).find((t) => t.enabled) || chosen;
+  }, [studioAnchorMaterial, studioTierFormat, materials, campaign]);
+
   useEffect(() => {
-    if (!isHostMode || hostTab !== 'posters' || !studioMaterial) return;
+    if (!isHostMode || hostTab !== 'posters' || !studioResolvedTier) return;
     let cancelled = false;
     setIsRenderingStudio(true);
     const timer = window.setTimeout(async () => {
       try {
         const qrCanvas = studioQrWrapRef.current?.querySelector('canvas') || null;
-        const url = await renderMaterialPosterDataUrl(studioMaterial, {
+        const url = await renderMaterialPosterDataUrl(studioResolvedTier.linkedMaterial, {
           minQuota: campaign.minQuota,
           deadlineLabel: campaign.deadlineLabel,
           slotsSummary: slotsSummaryText,
           ctaLabel: studioCtaLabel,
           customNote: studioCustomNote,
-          pricing: getMaterialPricing(studioMaterial.id),
-          program: getMaterialProgram(studioMaterial),
+          pricing: studioResolvedTier.pricing,
+          program: studioResolvedTier.program,
           qrCanvas,
         });
         if (!cancelled) setStudioPreviewUrl(url);
@@ -626,30 +729,37 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
   }, [
     isHostMode,
     hostTab,
-    studioMaterial,
+    studioResolvedTier,
     campaign.minQuota,
     campaign.deadlineLabel,
-    campaign.materialPricing,
-    campaign.materialProgram,
     slotsSummaryText,
     studioCtaLabel,
     studioCustomNote,
   ]);
 
   const payableContext = useMemo(() => {
-    const activeMatId = myExistingVote?.primaryMaterialId || primaryMaterialId;
-    const materialObj = materials.find((m) => m.id === activeMatId) || null;
-    const pricing = getMaterialPricing(activeMatId);
+    const targetVote = myActiveStatusVote;
+    const activeOfferingKey =
+      (isVoteModalOpen ? primaryMaterialId : targetVote?.primaryMaterialId) || primaryMaterialId;
+    const resolvedTier = resolveTierSafe(activeOfferingKey);
+    const materialObj = resolvedTier?.linkedMaterial || null;
+    const pricing = resolvedTier?.pricing || {
+      isPaid: false,
+      price: 0,
+      paymentMode: 'pay_when_go' as UnlockPaymentMode,
+    };
+    const matchingVote =
+      myVotes.find((v) => doesVoteMatchOffering(v, activeOfferingKey)) || targetVote || null;
     const uniqueCode =
-      myExistingVote?.paymentUniqueCode && myExistingVote.paymentUniqueCode > 0
-        ? myExistingVote.paymentUniqueCode
+      matchingVote?.paymentUniqueCode && matchingVote.paymentUniqueCode > 0
+        ? matchingVote.paymentUniqueCode
         : deriveUniquePaymentCode(participantId, campaign.id || 'active');
     const payableAmount =
       pricing.isPaid && pricing.price > 0
-        ? myExistingVote?.paymentAmount &&
-          myExistingVote.paymentAmount >= pricing.price &&
-          myExistingVote.primaryMaterialId === activeMatId
-          ? myExistingVote.paymentAmount
+        ? matchingVote?.paymentAmount &&
+          matchingVote.paymentAmount >= pricing.price &&
+          doesVoteMatchOffering(matchingVote, activeOfferingKey)
+          ? matchingVote.paymentAmount
           : pricing.price + uniqueCode
         : 0;
     const isCampaignGo = campaign.status === 'scheduled' || campaign.status === 'unlocked';
@@ -662,6 +772,8 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
       payableAmount > 0 ? buildDynamicQrisPayload(staticQris, payableAmount) : '';
     const merchantMeta = extractQrisMetadata(staticQris);
     return {
+      resolvedTier,
+      matchingVote,
       materialObj,
       pricing,
       uniqueCode,
@@ -676,16 +788,12 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
       fallbackImageUrl: campaign.qrisFallbackImageUrl || DEFAULT_GOPAY_QRIS_IMAGE,
     };
   }, [
-    myExistingVote,
+    myActiveStatusVote,
+    myVotes,
+    isVoteModalOpen,
     primaryMaterialId,
     materials,
-    campaign.id,
-    campaign.materialPricing,
-    campaign.status,
-    campaign.qrisPayload,
-    campaign.qrisMerchantName,
-    campaign.qrisMerchantNmid,
-    campaign.qrisFallbackImageUrl,
+    campaign,
     participantId,
   ]);
 
@@ -699,9 +807,17 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
     }
   };
 
-  const openVoteModalForMaterial = (matId: string) => {
-    setPrimaryMaterialId(matId);
-    setSecondaryMaterialIds((prev) => prev.filter((id) => id !== matId));
+  const openVoteModalForMaterial = (offeringOrMatId: string) => {
+    const resolved = resolveTierSafe(offeringOrMatId);
+    const nextKey = resolved?.offeringKey || offeringOrMatId;
+    setPrimaryMaterialId(nextKey);
+    const existingForOffering = myVotes.find((v) => doesVoteMatchOffering(v, nextKey));
+    if (existingForOffering) {
+      setAvailableSlotIds(existingForOffering.availableSlotIds || []);
+      setFlexibleTopic(existingForOffering.flexibleTopic);
+      setMainChallenge(existingForOffering.mainChallenge || '');
+    }
+    setSecondaryMaterialIds((prev) => prev.filter((id) => id !== nextKey));
     setFormError('');
     setFormSuccess('');
     setVoteStep(1);
@@ -772,10 +888,18 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
       return;
     }
 
-    const primaryMatObj = materials.find((m) => m.id === primaryMaterialId);
-    const topicTitle = primaryMatObj?.seminarTitle || primaryMaterialId;
-    const chosenProgram = primaryMatObj ? getMaterialProgram(primaryMatObj) : null;
-    const isFixedSchedule = chosenProgram ? isFixedScheduleProgram(chosenProgram) : false;
+    const resolvedTier = resolveTierSafe(primaryMaterialId);
+    if (!resolvedTier) {
+      setFormError('Pilih minimal 1 poster materi utama.');
+      return;
+    }
+
+    const canonicalOfferingKey = resolvedTier.offeringKey;
+    const primaryMatObj = resolvedTier.linkedMaterial;
+    const chosenProgram = resolvedTier.program;
+    const tierLabel = PROGRAM_FORMAT_META[resolvedTier.format].label;
+    const topicTitle = `${primaryMatObj.seminarTitle} (${tierLabel})`;
+    const isFixedSchedule = isFixedScheduleProgram(chosenProgram);
 
     if (!isFixedSchedule && availableSlotIds.length === 0) {
       setFormError('Centang minimal 1 jadwal waktu yang kamu bisa hadiri.');
@@ -792,20 +916,22 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
         ? [campaign.timeSlots[0]?.id || 'fixed_admin_slot']
         : availableSlotIds.slice(0, 8);
     const isOneOnOneCoaching =
-      chosenProgram?.format === 'coaching' && chosenProgram.coachingScope === 'one_on_one';
-    const chosenPricing = getMaterialPricing(primaryMaterialId);
+      chosenProgram.format === 'coaching' && chosenProgram.coachingScope === 'one_on_one';
+    const chosenPricing = resolvedTier.pricing;
+    const existingMatchingVote = myVotes.find((v) =>
+      doesVoteMatchOffering(v, canonicalOfferingKey)
+    );
     const uniqueCode =
-      myExistingVote?.paymentUniqueCode && myExistingVote.paymentUniqueCode > 0
-        ? myExistingVote.paymentUniqueCode
-        : deriveUniquePaymentCode(participantId, campaign.id || 'active');
+      existingMatchingVote?.paymentUniqueCode && existingMatchingVote.paymentUniqueCode > 0
+        ? existingMatchingVote.paymentUniqueCode
+        : deriveUniquePaymentCode(participantId, `${campaign.id || 'active'}_${resolvedTier.format}`);
     const isPaidTopic = chosenPricing.isPaid && chosenPricing.price > 0;
     const totalPayableAmount = isPaidTopic ? chosenPricing.price + uniqueCode : 0;
     const nextPaymentStatus: UnlockPaymentStatus =
-      myExistingVote?.paymentStatus === 'paid'
+      existingMatchingVote?.paymentStatus === 'paid'
         ? 'paid'
         : isPaidTopic
-        ? myExistingVote?.paymentStatus === 'confirming' &&
-          myExistingVote.primaryMaterialId === primaryMaterialId
+        ? existingMatchingVote?.paymentStatus === 'confirming'
           ? 'confirming'
           : 'unpaid'
         : 'free';
@@ -818,14 +944,17 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
           participantId: participantId.slice(0, 64),
           displayName: cleanName,
           businessName: cleanBiz,
-          primaryMaterialId: primaryMaterialId.slice(0, 100),
+          primaryMaterialId: canonicalOfferingKey.slice(0, 100),
           secondaryMaterialIds: isOneOnOneCoaching
             ? []
-            : secondaryMaterialIds.filter((id) => id !== primaryMaterialId).slice(0, 3),
+            : secondaryMaterialIds
+                .filter((id) => !doesVoteMatchOffering({ primaryMaterialId: id }, canonicalOfferingKey))
+                .slice(0, 3),
           availableSlotIds: effectiveSlotIds,
           flexibleTopic: isOneOnOneCoaching || isFixedSchedule ? false : flexibleTopic,
           mainChallenge: cleanChallenge,
-          status: myExistingVote?.status === 'confirmed_h1' ? 'confirmed_h1' : 'committed',
+          status:
+            existingMatchingVote?.status === 'confirmed_h1' ? 'confirmed_h1' : 'committed',
           paymentStatus: nextPaymentStatus,
           paymentUniqueCode: isPaidTopic ? uniqueCode : 0,
           paymentAmount: totalPayableAmount,
@@ -945,8 +1074,9 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
 
     const rows = votes.map((v) => {
       const contact = contactMap.get(v.id);
-      const matObj = materials.find((m) => m.id === v.primaryMaterialId);
-      const matProgram = matObj ? getMaterialProgram(matObj) : null;
+      const resolvedTier = resolveTierSafe(v.primaryMaterialId);
+      const matObj = resolvedTier?.linkedMaterial;
+      const matProgram = resolvedTier?.program || null;
       const programLabel = matProgram
         ? `${PROGRAM_FORMAT_META[matProgram.format].label}${
             matProgram.format === 'coaching'
@@ -969,7 +1099,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
               .join(' | ');
       const stageLabel =
         LEAD_STAGE_META[contact?.leadStage || 'lead_baru']?.label || 'Lead Baru';
-      const matPricing = getMaterialPricing(v.primaryMaterialId);
+      const matPricing = resolvedTier?.pricing || normalizePricingConfig(undefined);
       const effectivePayStatus: UnlockPaymentStatus =
         contact?.paymentStatus ||
         v.paymentStatus ||
@@ -1004,7 +1134,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `Bank_Database_UMKM_obeeAcademy_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `Bank_Database_Peserta_obeeAcademy_${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -1098,18 +1228,25 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
       const isVisible = visiblePosterIdSet.has(mat.id);
       if (posterFilterMode === 'visible' && !isVisible) return false;
       if (posterFilterMode === 'hidden' && isVisible) return false;
-      const matProgram = resolveMaterialProgram(mat, campaign);
-      if (posterProgramFilter !== 'all' && matProgram.format !== posterProgramFilter) return false;
-      const matDelivery: DeliveryModeType =
-        matProgram.deliveryMode === 'offline' ? 'offline' : 'online';
-      if (posterDeliveryFilter !== 'all' && matDelivery !== posterDeliveryFilter) return false;
+      const enabledTiers = getEnabledTopicTiers(mat, materials, campaign);
+      const hasMatchingTier = enabledTiers.some((t) => {
+        if (posterProgramFilter !== 'all' && t.format !== posterProgramFilter) return false;
+        const tDel: DeliveryModeType = t.program.deliveryMode === 'offline' ? 'offline' : 'online';
+        if (posterDeliveryFilter !== 'all' && tDel !== posterDeliveryFilter) return false;
+        return true;
+      });
+      if (!hasMatchingTier) return false;
       if (!q) return true;
       return (
         mat.seminarTitle.toLowerCase().includes(q) ||
         (mat.category || '').toLowerCase().includes(q) ||
         (mat.description || '').toLowerCase().includes(q) ||
-        PROGRAM_FORMAT_META[matProgram.format].label.toLowerCase().includes(q) ||
-        (matProgram.locationLabel || '').toLowerCase().includes(q)
+        enabledTiers.some(
+          (t) =>
+            PROGRAM_FORMAT_META[t.format].label.toLowerCase().includes(q) ||
+            (t.program.locationLabel || '').toLowerCase().includes(q) ||
+            t.linkedMaterial.seminarTitle.toLowerCase().includes(q)
+        )
       );
     });
   }, [
@@ -1127,9 +1264,10 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
     [materials, visiblePosterIdSet]
   );
 
-  const winningMaterialObj = materials.find(
-    (m) => m.id === (campaign.winningMaterialId || analytics.leadingMaterialId)
-  );
+  const winningOffering = useMemo(() => {
+    const key = campaign.winningMaterialId || analytics.leadingMaterialId;
+    return key ? resolveTierSafe(key) : null;
+  }, [campaign.winningMaterialId, analytics.leadingMaterialId, materials, campaign]);
   const winningSlotObj = campaign.timeSlots.find(
     (s) => s.id === (campaign.winningSlotId || analytics.bestSlotStat?.slot.id)
   );
@@ -1140,111 +1278,94 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
     return map;
   }, [contacts]);
 
-  const handleSavePosterPricing = async (materialId: string) => {
-    const cleanPrice = pricingForm.isPaid ? Math.max(0, Math.round(pricingForm.price || 0)) : 0;
-    if (pricingForm.isPaid && cleanPrice < 1000) {
-      setHostMessage('Masukkan nominal harga minimal Rp1.000 untuk kelas berbayar.');
-      return;
-    }
-    const cleanOriginal =
-      pricingForm.isPaid &&
-      typeof pricingForm.originalPrice === 'number' &&
-      pricingForm.originalPrice > cleanPrice
-        ? Math.round(pricingForm.originalPrice)
-        : undefined;
-
-    const nextEntry: MaterialPricingConfig = {
-      isPaid: Boolean(pricingForm.isPaid && cleanPrice > 0),
-      price: cleanPrice,
-      ...(cleanOriginal ? { originalPrice: cleanOriginal } : {}),
-      paymentMode: pricingForm.paymentMode === 'direct_pay' ? 'direct_pay' : 'pay_when_go',
+  const openMultiTierModal = (anchorMat: SavedMaterial, initialFmt?: ProgramFormatType) => {
+    const resolvedMap = resolveTopicTiers(anchorMat, materials, campaign);
+    const nextDraft: Record<ProgramFormatType, MaterialTierEntry> = {
+      seminar: {
+        enabled: resolvedMap.seminar.enabled,
+        linkedMaterialId: resolvedMap.seminar.linkedMaterialId,
+        program: { ...resolvedMap.seminar.program },
+        pricing: { ...resolvedMap.seminar.pricing },
+      },
+      workshop: {
+        enabled: resolvedMap.workshop.enabled,
+        linkedMaterialId: resolvedMap.workshop.linkedMaterialId,
+        program: { ...resolvedMap.workshop.program },
+        pricing: { ...resolvedMap.workshop.pricing },
+      },
+      coaching: {
+        enabled: resolvedMap.coaching.enabled,
+        linkedMaterialId: resolvedMap.coaching.linkedMaterialId,
+        program: { ...resolvedMap.coaching.program },
+        pricing: { ...resolvedMap.coaching.pricing },
+      },
     };
-
-    const nextPricingMap: Record<string, MaterialPricingConfig> = {
-      ...(campaign.materialPricing || {}),
-      [materialId]: nextEntry,
-    };
-
-    setIsBusyHost(true);
-    try {
-      await onSaveCampaign({
-        ...campaign,
-        materialPricing: nextPricingMap,
-        updatedAt: Date.now(),
-      });
-      const matTitle = materials.find((m) => m.id === materialId)?.seminarTitle || materialId;
-      setHostMessage(
-        nextEntry.isPaid
-          ? `Status "${matTitle}" diubah menjadi Berbayar (${formatRupiah(nextEntry.price)}).`
-          : `Status "${matTitle}" diubah menjadi Kelas Gratis.`
-      );
-      setEditingPricingMaterialId(null);
-    } finally {
-      setIsBusyHost(false);
-    }
+    setTierDraftMap(nextDraft);
+    const activeDefault =
+      initialFmt ||
+      PROGRAM_TIERS_ORDER.find((f) => nextDraft[f].enabled) ||
+      'seminar';
+    setEditingTierTab(activeDefault);
+    setEditingMultiTierAnchorId(anchorMat.id);
   };
 
-  const handleSavePosterProgram = async (materialId: string) => {
-    const format: ProgramFormatType =
-      programForm.format === 'workshop' || programForm.format === 'coaching'
-        ? programForm.format
-        : 'seminar';
-    const meta = PROGRAM_FORMAT_META[format];
-    const deliveryMode: DeliveryModeType =
-      programForm.deliveryMode === 'offline' ? 'offline' : 'online';
-    const deliveryMeta = DELIVERY_MODE_META[deliveryMode];
-    const cleanLocation =
-      (programForm.locationLabel || '').trim().slice(0, 64) || deliveryMeta.defaultLocation;
-
-    const coachingScope: CoachingScopeType | undefined =
-      format === 'coaching'
-        ? programForm.coachingScope === 'category_group'
-          ? 'category_group'
-          : 'one_on_one'
-        : undefined;
-    const rawQuota = Number(programForm.quotaOverride);
-    const defaultQuota =
-      format === 'coaching'
-        ? coachingScope === 'category_group'
-          ? 5
-          : 1
-        : format === 'workshop'
-        ? 8
-        : Math.max(5, campaign.minQuota || 15);
-    const cleanQuota =
-      !Number.isNaN(rawQuota) && rawQuota >= 1
-        ? Math.min(200, Math.round(rawQuota))
-        : defaultQuota;
-
-    const scheduleMode: ScheduleModeType =
-      programForm.scheduleMode === 'fixed' ? 'fixed' : 'polling';
-    const cleanFixedSchedule =
-      scheduleMode === 'fixed' ? (programForm.fixedScheduleLabel || '').trim().slice(0, 80) : '';
-    if (scheduleMode === 'fixed' && !cleanFixedSchedule) {
-      setHostMessage('Masukkan tanggal & jam pasti untuk mode Jadwal Tetap Admin.');
+  const handleSaveMultiTierConfig = async (anchorId: string) => {
+    const enabledCount = PROGRAM_TIERS_ORDER.filter((f) => tierDraftMap[f].enabled).length;
+    if (enabledCount === 0) {
+      setHostMessage('Aktifkan minimal 1 jenjang (Seminar / Workshop / Coaching) pada materi ini.');
       return;
     }
 
-    const nextEntry: MaterialProgramConfig = {
-      format,
-      deliveryMode,
-      locationLabel: cleanLocation,
-      durationLabel: (programForm.durationLabel || '').trim().slice(0, 48) || meta.defaultDuration,
-      quotaOverride: cleanQuota,
-      scheduleMode,
-      ...(cleanFixedSchedule ? { fixedScheduleLabel: cleanFixedSchedule } : {}),
-      ...(coachingScope ? { coachingScope } : {}),
-      ...(coachingScope === 'category_group'
-        ? { targetCategory: (programForm.targetCategory || BUSINESS_CATEGORIES[0]).slice(0, 48) }
-        : {}),
-      ...(programForm.prerequisiteNote?.trim()
-        ? { prerequisiteNote: programForm.prerequisiteNote.trim().slice(0, 140) }
-        : {}),
+    const sanitizedTiers: Partial<Record<ProgramFormatType, MaterialTierEntry>> = {};
+    for (const fmt of PROGRAM_TIERS_ORDER) {
+      const raw = tierDraftMap[fmt];
+      const cleanPricing = normalizePricingConfig(raw.pricing);
+      if (raw.enabled && cleanPricing.isPaid && cleanPricing.price < 1000) {
+        setEditingTierTab(fmt);
+        setHostMessage(
+          `Masukkan nominal harga minimal Rp1.000 pada jenjang ${PROGRAM_FORMAT_META[fmt].label}.`
+        );
+        return;
+      }
+      const cleanProg = sanitizeSingleProgramConfig(
+        raw.program,
+        buildDefaultProgramForTier(fmt, campaign.minQuota || 15),
+        fmt,
+        campaign.minQuota || 15
+      );
+      if (raw.enabled && cleanProg.scheduleMode === 'fixed' && !cleanProg.fixedScheduleLabel) {
+        setEditingTierTab(fmt);
+        setHostMessage(
+          `Masukkan tanggal & jam pasti pada jenjang ${PROGRAM_FORMAT_META[fmt].label}.`
+        );
+        return;
+      }
+      sanitizedTiers[fmt] = {
+        enabled: Boolean(raw.enabled),
+        linkedMaterialId: (raw.linkedMaterialId || anchorId).slice(0, 100),
+        program: cleanProg,
+        pricing: cleanPricing,
+      };
+    }
+
+    const primaryTierFmt =
+      PROGRAM_TIERS_ORDER.find((f) => sanitizedTiers[f]?.enabled) || 'seminar';
+    const primaryTier = sanitizedTiers[primaryTierFmt]!;
+    const existingProg = campaign.materialProgram?.[anchorId];
+
+    const nextProgramEntry: MaterialProgramConfig = {
+      ...primaryTier.program,
+      tiers: sanitizedTiers,
+      ...(existingProg?.format ? {} : {}),
     };
 
     const nextProgramMap: Record<string, MaterialProgramConfig> = {
       ...(campaign.materialProgram || {}),
-      [materialId]: nextEntry,
+      [anchorId]: nextProgramEntry,
+    };
+    const nextPricingMap: Record<string, MaterialPricingConfig> = {
+      ...(campaign.materialPricing || {}),
+      [anchorId]: primaryTier.pricing,
     };
 
     setIsBusyHost(true);
@@ -1252,17 +1373,47 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
       await onSaveCampaign({
         ...campaign,
         materialProgram: nextProgramMap,
+        materialPricing: nextPricingMap,
         updatedAt: Date.now(),
       });
-      const matTitle = materials.find((m) => m.id === materialId)?.seminarTitle || materialId;
-      setHostMessage(
-        `Jenjang "${matTitle}" disimpan: ${PROGRAM_FORMAT_META[format].label} (${deliveryMeta.label} · ${nextEntry.durationLabel}${
-          cleanFixedSchedule ? ` · Jadwal Tetap: ${cleanFixedSchedule}` : ' · Poling Peserta'
-        }).`
-      );
-      setEditingProgramMaterialId(null);
+      const matTitle = materials.find((m) => m.id === anchorId)?.seminarTitle || anchorId;
+      const activeNames = PROGRAM_TIERS_ORDER.filter((f) => sanitizedTiers[f]?.enabled)
+        .map((f) => PROGRAM_FORMAT_META[f].label)
+        .join(' + ');
+      setHostMessage(`Multi-jenjang "${matTitle}" disimpan (${activeNames}).`);
+      setEditingMultiTierAnchorId(null);
     } finally {
       setIsBusyHost(false);
+    }
+  };
+
+  const handleCreateTierDraftMaterial = async (
+    anchorMat: SavedMaterial,
+    targetFormat: ProgramFormatType
+  ) => {
+    if (!onCreateMaterial) {
+      setHostMessage('Fungsi tambah Bank Materi belum tersedia di mode ini.');
+      return;
+    }
+    setIsCreatingTierDraft(true);
+    try {
+      const draftMat = buildTierVariantMaterialDraft(anchorMat, targetFormat);
+      await onCreateMaterial(draftMat);
+      setTierDraftMap((prev) => ({
+        ...prev,
+        [targetFormat]: {
+          ...prev[targetFormat],
+          enabled: true,
+          linkedMaterialId: draftMat.id,
+        },
+      }));
+      setHostMessage(
+        `Draf modul "${draftMat.seminarTitle}" dibuat di Bank Materi dan ditautkan ke jenjang ${PROGRAM_FORMAT_META[targetFormat].label}.`
+      );
+    } catch {
+      setHostMessage('Gagal membuat draf varian materi. Coba lagi.');
+    } finally {
+      setIsCreatingTierDraft(false);
     }
   };
 
@@ -1270,11 +1421,16 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
   const crmRecords = useMemo(() => {
     return votes.map((v) => {
       const contact = contactByVoteId.get(v.id);
-      const matObj = materials.find((m) => m.id === v.primaryMaterialId);
-      const matProgram = matObj ? resolveMaterialProgram(matObj, campaign) : null;
+      const resolvedTier = resolveTierSafe(v.primaryMaterialId);
+      const matObj = resolvedTier?.linkedMaterial || null;
+      const matProgram = resolvedTier?.program || null;
+      const tierLabel = resolvedTier ? PROGRAM_FORMAT_META[resolvedTier.format].label : '';
       const topicTitle =
-        contact?.interestedTopicTitle || matObj?.seminarTitle || v.primaryMaterialId;
-      const matPricing = getMaterialPricing(v.primaryMaterialId);
+        contact?.interestedTopicTitle ||
+        (matObj
+          ? `${matObj.seminarTitle}${tierLabel ? ` (${tierLabel})` : ''}`
+          : v.primaryMaterialId);
+      const matPricing = resolvedTier?.pricing || normalizePricingConfig(undefined);
       const paymentStatus: UnlockPaymentStatus =
         contact?.paymentStatus ||
         v.paymentStatus ||
@@ -1291,6 +1447,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
       return {
         vote: v,
         contact,
+        resolvedTier,
         topicTitle,
         matProgram,
         matPricing,
@@ -1322,7 +1479,12 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
     return crmRecords.filter((r) => {
       if (crmStageFilter !== 'all' && r.stage !== crmStageFilter) return false;
       if (crmCategoryFilter !== 'all' && r.category !== crmCategoryFilter) return false;
-      if (crmTopicFilter !== 'all' && r.vote.primaryMaterialId !== crmTopicFilter) return false;
+      if (
+        crmTopicFilter !== 'all' &&
+        parseTierOfferingKey(r.vote.primaryMaterialId).anchorMaterialId !== crmTopicFilter
+      ) {
+        return false;
+      }
       if (
         crmProgramFilter !== 'all' &&
         (r.matProgram?.format || 'seminar') !== crmProgramFilter
@@ -1351,19 +1513,21 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
     crmPaymentFilter,
   ]);
 
-  const posterDownloadModalJsx = posterModalMaterial ? (
+  const posterDownloadModalJsx = posterModalOffering ? (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-xs">
       <div className="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-200 flex flex-col max-h-[92vh]">
         <div className="px-5 py-4 bg-[#1F3A5F] text-white flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <div className="text-sm font-bold text-[#F28C28]">Poster Ajakan Kelas (4:5 PNG)</div>
+            <div className="text-sm font-bold text-[#F28C28]">
+              Poster {PROGRAM_FORMAT_META[posterModalOffering.format].label} (4:5 PNG)
+            </div>
             <div className="text-base sm:text-lg font-extrabold truncate">
-              {posterModalMaterial.seminarTitle}
+              {posterModalOffering.linkedMaterial.seminarTitle}
             </div>
           </div>
           <button
             type="button"
-            onClick={() => setPosterModalMaterial(null)}
+            onClick={() => setPosterModalOffering(null)}
             className="p-2 rounded-lg hover:bg-white/10 cursor-pointer shrink-0"
           >
             <X className="w-5 h-5" />
@@ -1372,7 +1536,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
 
         <div ref={modalQrWrapRef} className="hidden">
           <QRCodeCanvas
-            value={`${baseBursaUrl}&mid=${encodeURIComponent(posterModalMaterial.id)}`}
+            value={`${baseBursaUrl}&mid=${encodeURIComponent(posterModalOffering.offeringKey)}`}
             size={220}
             level="M"
             includeMargin
@@ -1388,7 +1552,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
           ) : (
             <img
               src={posterPreviewUrl}
-              alt={`Poster ${posterModalMaterial.seminarTitle}`}
+              alt={`Poster ${posterModalOffering.linkedMaterial.seminarTitle}`}
               className="w-full max-w-[340px] rounded-xl shadow-md border border-slate-200"
             />
           )}
@@ -1399,12 +1563,12 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
             type="button"
             onClick={async () => {
               const qrCanvas = modalQrWrapRef.current?.querySelector('canvas') || null;
-              await downloadMaterialPosterPng(posterModalMaterial, {
+              await downloadMaterialPosterPng(posterModalOffering.linkedMaterial, {
                 minQuota: campaign.minQuota,
                 deadlineLabel: campaign.deadlineLabel,
                 slotsSummary: slotsSummaryText,
-                pricing: getMaterialPricing(posterModalMaterial.id),
-                program: getMaterialProgram(posterModalMaterial),
+                pricing: posterModalOffering.pricing,
+                program: posterModalOffering.program,
                 qrCanvas,
               });
             }}
@@ -1418,7 +1582,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
             onClick={() =>
               handleCopyText(
                 'modal_link',
-                `${baseBursaUrl}&mid=${encodeURIComponent(posterModalMaterial.id)}`
+                `${baseBursaUrl}&mid=${encodeURIComponent(posterModalOffering.offeringKey)}`
               )
             }
             className="py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-[#1F3A5F] text-sm font-bold flex items-center gap-1.5 cursor-pointer"
@@ -1446,11 +1610,12 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
   if (!isHostMode) {
     const isScheduled = campaign.status === 'scheduled' || campaign.status === 'unlocked';
     const remainingToMin = Math.max(0, (campaign.minQuota || 15) - analytics.bestEffective);
-    const chosenModalMaterial =
-      materials.find((m) => m.id === primaryMaterialId) || candidateMaterials[0] || null;
-    const chosenModalProgram = chosenModalMaterial
-      ? getMaterialProgram(chosenModalMaterial)
-      : null;
+    const chosenModalTier =
+      resolveTierSafe(primaryMaterialId) || analytics.allEnabledOfferings[0] || null;
+    const chosenModalMaterial = chosenModalTier?.linkedMaterial || candidateMaterials[0] || null;
+    const chosenModalProgram = chosenModalTier?.program || null;
+    const chosenModalPricing =
+      chosenModalTier?.pricing || normalizePricingConfig(undefined);
     const isModalOneOnOneCoaching =
       chosenModalProgram?.format === 'coaching' &&
       chosenModalProgram.coachingScope === 'one_on_one';
@@ -1459,24 +1624,47 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
       : false;
 
     const programCounts = {
-      seminar: analytics.candidateStats.filter(
-        (c) => getMaterialProgram(c.material).format === 'seminar'
+      seminar: candidateMaterials.filter((anchorMat) =>
+        getEnabledTopicTiers(anchorMat, materials, campaign).some((t) => t.format === 'seminar')
       ).length,
-      workshop: analytics.candidateStats.filter(
-        (c) => getMaterialProgram(c.material).format === 'workshop'
+      workshop: candidateMaterials.filter((anchorMat) =>
+        getEnabledTopicTiers(anchorMat, materials, campaign).some((t) => t.format === 'workshop')
       ).length,
-      coaching: analytics.candidateStats.filter(
-        (c) => getMaterialProgram(c.material).format === 'coaching'
+      coaching: candidateMaterials.filter((anchorMat) =>
+        getEnabledTopicTiers(anchorMat, materials, campaign).some((t) => t.format === 'coaching')
       ).length,
     };
 
-    const visiblePublicStats = analytics.candidateStats.filter((c) => {
-      const prog = getMaterialProgram(c.material);
-      if (publicProgramFilter !== 'all' && prog.format !== publicProgramFilter) return false;
-      const mode: DeliveryModeType = prog.deliveryMode === 'offline' ? 'offline' : 'online';
-      if (publicDeliveryFilter !== 'all' && mode !== publicDeliveryFilter) return false;
-      return true;
-    });
+    const visiblePublicTopics = candidateMaterials
+      .map((anchorMat) => {
+        const enabledTiers = getEnabledTopicTiers(anchorMat, materials, campaign);
+        const matchesFilters = enabledTiers.some((t) => {
+          if (publicProgramFilter !== 'all' && t.format !== publicProgramFilter) return false;
+          const mode: DeliveryModeType = t.program.deliveryMode === 'offline' ? 'offline' : 'online';
+          if (publicDeliveryFilter !== 'all' && mode !== publicDeliveryFilter) return false;
+          return true;
+        });
+        if (!matchesFilters) return null;
+        const activeTier = getActiveTierForTopic(
+          anchorMat,
+          publicProgramFilter,
+          publicDeliveryFilter
+        );
+        const stat = analytics.offeringStatsMap.get(activeTier.offeringKey);
+        const totalTopicVotes = enabledTiers.reduce(
+          (acc, t) => acc + (analytics.offeringStatsMap.get(t.offeringKey)?.primaryCount || 0),
+          0
+        );
+        return {
+          anchorMat,
+          enabledTiers,
+          activeTier,
+          primaryCount: stat?.primaryCount || 0,
+          sharePct: stat?.sharePct || 0,
+          totalTopicVotes,
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null);
 
     return (
       <div className="max-w-[1380px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-9 space-y-8">
@@ -1502,15 +1690,18 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
               </p>
             </div>
 
-            {isScheduled && winningMaterialObj && winningSlotObj ? (
+            {isScheduled && winningOffering && winningSlotObj ? (
               <div className="bg-emerald-500/15 border border-emerald-400/40 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="space-y-1.5">
-                  <div className="flex items-center gap-2 text-emerald-300 text-sm font-bold">
+                  <div className="flex flex-wrap items-center gap-2 text-emerald-300 text-sm font-bold">
                     <CheckCircle2 className="w-4 h-4 shrink-0" />
                     <span>Kuota Tercapai — Kelas Resmi Dijadwalkan</span>
+                    <span className="px-2 py-0.5 rounded bg-emerald-400/20 text-emerald-100 text-xs font-extrabold">
+                      {PROGRAM_FORMAT_META[winningOffering.format].label}
+                    </span>
                   </div>
                   <h2 className="font-display text-xl font-extrabold text-white">
-                    {winningMaterialObj.seminarTitle}
+                    {winningOffering.linkedMaterial.seminarTitle}
                   </h2>
                   <p className="text-sm sm:text-base text-white/90">
                     Jadwal Sah: <strong>{winningSlotObj.label}</strong> ({winningSlotObj.dateText} ·{' '}
@@ -1540,7 +1731,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                     )}
                   <button
                     type="button"
-                    onClick={() => openVoteModalForMaterial(winningMaterialObj.id)}
+                    onClick={() => openVoteModalForMaterial(winningOffering.offeringKey)}
                     className="px-5 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm sm:text-[15px] font-bold whitespace-nowrap cursor-pointer transition-colors"
                   >
                     Daftar Ikut Kelas Ini
@@ -1555,9 +1746,16 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                       Kandidat Terkuat Saat Ini
                     </div>
                     <div className="text-base sm:text-lg font-bold text-white mt-0.5 leading-snug">
-                      {analytics.leadingCandidate
-                        ? analytics.leadingCandidate.material.seminarTitle
-                        : 'Pilih poster materi di bawah untuk mulai voting'}
+                      {analytics.leadingCandidate ? (
+                        <>
+                          <span className="inline-block mr-2 px-2 py-0.5 rounded bg-white/15 text-amber-200 text-xs font-extrabold align-middle">
+                            {PROGRAM_FORMAT_META[analytics.leadingCandidate.tier.format].label}
+                          </span>
+                          {analytics.leadingCandidate.material.seminarTitle}
+                        </>
+                      ) : (
+                        'Pilih poster materi di bawah untuk mulai voting'
+                      )}
                     </div>
                     {analytics.bestSlotStat && (
                       <div className="text-sm text-white/85 mt-1 leading-snug">
@@ -1588,7 +1786,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-2.5 text-sm text-white/85 leading-relaxed">
                   <span className="tabular-nums">
-                    {analytics.activeVotes.length} peserta sudah berpartisipasi · Alur: Pilih Poster → Isi Nama, WA & IG → Kunci Jadwal
+                    {analytics.activeVotes.length} pendaftaran masuk · Alur: Pilih Tema & Jenjang → Isi Nama, WA & IG → Kunci Jadwal
                   </span>
                   <button
                     type="button"
@@ -1611,66 +1809,107 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
               </div>
             )}
 
-            {/* Registered Identity & QRIS Payment Status Strip */}
-            {myExistingVote && (
-              <div className="bg-emerald-500/15 border border-emerald-400/35 rounded-xl px-4 py-3.5 flex flex-wrap items-center justify-between gap-3 text-sm sm:text-[15px]">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-emerald-100">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-300 shrink-0" />
-                    <span>
-                      Terdaftar sebagai <strong>{myExistingVote.displayName}</strong> ({myExistingVote.businessName}
-                      {instagram ? ` · ${instagram}` : ''})
+            {/* Registered Identity & QRIS Payment Status Strip (Multi-Jenjang Aware) */}
+            {myActiveStatusVote && (
+              <div className="bg-emerald-500/15 border border-emerald-400/35 rounded-xl px-4 py-3.5 space-y-3 text-sm sm:text-[15px]">
+                {myVotes.length > 1 && (
+                  <div className="flex flex-wrap items-center gap-1.5 pb-2 border-b border-emerald-400/25">
+                    <span className="text-xs font-bold text-emerald-200 mr-1">
+                      Pendaftaranmu ({myVotes.length}):
                     </span>
+                    {myVotes.map((mv) => {
+                      const mvTier = resolveTierSafe(mv.primaryMaterialId);
+                      const isSel = mv.id === myActiveStatusVote.id;
+                      const mvAnchor = mvTier
+                        ? materials.find((m) => m.id === mvTier.anchorMaterialId)
+                        : null;
+                      const mvTitle =
+                        mvAnchor?.seminarTitle ||
+                        mvTier?.linkedMaterial.seminarTitle ||
+                        mv.primaryMaterialId;
+                      return (
+                        <button
+                          key={mv.id}
+                          type="button"
+                          onClick={() => setSelectedMyVoteId(mv.id)}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-extrabold cursor-pointer transition-colors ${
+                            isSel
+                              ? 'bg-emerald-400 text-[#1F3A5F]'
+                              : 'bg-white/10 text-emerald-100 hover:bg-white/20'
+                          }`}
+                        >
+                          {mvTier ? `[${PROGRAM_FORMAT_META[mvTier.format].label}] ` : ''}
+                          {mvTitle.length > 26 ? `${mvTitle.slice(0, 23)}...` : mvTitle}
+                        </button>
+                      );
+                    })}
                   </div>
-                  {payableContext.pricing.isPaid && (
-                    <div className="flex flex-wrap items-center gap-2 pl-7 text-sm">
-                      {myExistingVote.paymentStatus === 'paid' ? (
-                        <span className="inline-flex items-center gap-1.5 font-bold text-emerald-300">
-                          <BadgeCheck className="w-4 h-4" />
-                          <span>Pembayaran Lunas Terverifikasi ({formatRupiah(payableContext.payableAmount)})</span>
-                        </span>
-                      ) : payableContext.isPaymentUnlocked ? (
-                        <span className="text-amber-200 font-semibold">
-                          {myExistingVote.paymentStatus === 'confirming'
-                            ? `Konfirmasi QRIS (${formatRupiah(payableContext.payableAmount)}) terkirim — menunggu verifikasi mentor.`
-                            : `Tagihan aktif: ${formatRupiah(payableContext.payableAmount)} (sudah termasuk kode unik +Rp${payableContext.uniqueCode})`}
-                        </span>
-                      ) : (
-                        <span className="text-white/85">
-                          Kelas Berbayar {formatRupiah(payableContext.pricing.price)} · QRIS otomatis aktif saat kuota kelas mencapai GO!
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
+                )}
 
-                <div className="flex flex-wrap items-center gap-2">
-                  {payableContext.pricing.isPaid &&
-                    payableContext.isPaymentUnlocked &&
-                    myExistingVote.paymentStatus !== 'paid' && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setPaymentConfirmSuccess('');
-                          setIsPaymentModalOpen(true);
-                        }}
-                        className="px-4 py-2.5 rounded-xl bg-[#F28C28] hover:bg-[#d97719] text-white text-sm font-extrabold cursor-pointer whitespace-nowrap flex items-center gap-1.5"
-                      >
-                        <QrCode className="w-4 h-4" />
-                        <span>
-                          {myExistingVote.paymentStatus === 'confirming'
-                            ? 'Lihat QRIS Pembayaran'
-                            : `Bayar QRIS (${formatRupiah(payableContext.payableAmount)})`}
-                        </span>
-                      </button>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-emerald-100">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-300 shrink-0" />
+                      <span>
+                        Terdaftar sebagai <strong>{myActiveStatusVote.displayName}</strong> (
+                        {myActiveStatusVote.businessName}
+                        {instagram ? ` · ${instagram}` : ''})
+                      </span>
+                    </div>
+                    {payableContext.pricing.isPaid && (
+                      <div className="flex flex-wrap items-center gap-2 pl-7 text-sm">
+                        {myActiveStatusVote.paymentStatus === 'paid' ? (
+                          <span className="inline-flex items-center gap-1.5 font-bold text-emerald-300">
+                            <BadgeCheck className="w-4 h-4" />
+                            <span>
+                              Pembayaran Lunas Terverifikasi ({formatRupiah(payableContext.payableAmount)})
+                            </span>
+                          </span>
+                        ) : payableContext.isPaymentUnlocked ? (
+                          <span className="text-amber-200 font-semibold">
+                            {myActiveStatusVote.paymentStatus === 'confirming'
+                              ? `Konfirmasi QRIS (${formatRupiah(payableContext.payableAmount)}) terkirim — menunggu verifikasi mentor.`
+                              : `Tagihan aktif: ${formatRupiah(payableContext.payableAmount)} (sudah termasuk kode unik +Rp${payableContext.uniqueCode})`}
+                          </span>
+                        ) : (
+                          <span className="text-white/85">
+                            Kelas Berbayar {formatRupiah(payableContext.pricing.price)} · QRIS otomatis aktif saat kuota kelas mencapai GO!
+                          </span>
+                        )}
+                      </div>
                     )}
-                  <button
-                    type="button"
-                    onClick={() => openVoteModalForMaterial(myExistingVote.primaryMaterialId)}
-                    className="px-4 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-sm font-bold cursor-pointer whitespace-nowrap"
-                  >
-                    Ubah Data / Pilihan Jadwal
-                  </button>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    {payableContext.pricing.isPaid &&
+                      payableContext.isPaymentUnlocked &&
+                      myActiveStatusVote.paymentStatus !== 'paid' && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPaymentConfirmSuccess('');
+                            setIsPaymentModalOpen(true);
+                          }}
+                          className="px-4 py-2.5 rounded-xl bg-[#F28C28] hover:bg-[#d97719] text-white text-sm font-extrabold cursor-pointer whitespace-nowrap flex items-center gap-1.5"
+                        >
+                          <QrCode className="w-4 h-4" />
+                          <span>
+                            {myActiveStatusVote.paymentStatus === 'confirming'
+                              ? 'Lihat QRIS Pembayaran'
+                              : `Bayar QRIS (${formatRupiah(payableContext.payableAmount)})`}
+                          </span>
+                        </button>
+                      )}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        openVoteModalForMaterial(myActiveStatusVote.primaryMaterialId)
+                      }
+                      className="px-4 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-sm font-bold cursor-pointer whitespace-nowrap"
+                    >
+                      Ubah Data / Pilihan Jadwal
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -1685,11 +1924,11 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                 Galeri Poster Kelas Pilihan Moderator
               </h2>
               <p className="text-[15px] sm:text-base text-[#1F3A5F]/80 mt-1.5 leading-relaxed">
-                Pilih <strong>Seminar</strong> untuk dasar konsep, <strong>Workshop</strong> untuk praktik intensif, atau <strong>Coaching</strong> untuk pendalaman 1-on-1 / per kategori usaha.
+                Satu tema dapat dibuka dalam beberapa jenjang: <strong>Seminar</strong> untuk dasar konsep, <strong>Workshop</strong> untuk praktik intensif, dan <strong>Coaching</strong> untuk pendalaman 1-on-1 / per kategori. Klik tab jenjang pada kartu untuk melihat materi & biaya.
               </p>
             </div>
             <span className="text-sm font-bold text-[#1F3A5F]/75 tabular-nums">
-              {visiblePublicStats.length} dari {candidateMaterials.length} Poster
+              {visiblePublicTopics.length} dari {candidateMaterials.length} Tema
             </span>
           </div>
 
@@ -1705,7 +1944,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                     : 'bg-white border-slate-200 text-[#1F3A5F] hover:bg-slate-50'
                 }`}
               >
-                Semua Program ({analytics.candidateStats.length})
+                Semua Program ({candidateMaterials.length})
               </button>
               <button
                 type="button"
@@ -1768,20 +2007,27 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
             </div>
           </div>
 
-          {visiblePublicStats.length === 0 ? (
+          {visiblePublicTopics.length === 0 ? (
             <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center text-sm sm:text-base text-slate-600">
               Belum ada poster pada jenjang ini yang ditampilkan moderator. Pilih tab <strong>Semua Program</strong> untuk melihat kelas lainnya.
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-7">
-              {visiblePublicStats.map(({ material, primaryCount, sharePct }) => {
-                const coverUrl = getMaterialCoverImageUrl(material);
+              {visiblePublicTopics.map(({ anchorMat, enabledTiers, activeTier, primaryCount, sharePct }) => {
+                const material = activeTier.linkedMaterial;
+                const coverUrl = getMaterialCoverImageUrl(material) || getMaterialCoverImageUrl(anchorMat);
                 const highlights = extractMaterialCoreHighlights(material).slice(0, 3);
-                const themePrimary = material.content.brandTheme?.primaryColor || '#1F3A5F';
-                const isMyVote = myExistingVote?.primaryMaterialId === material.id;
-                const isLeading = analytics.leadingMaterialId === material.id && primaryCount > 0;
-                const pricing = getMaterialPricing(material.id);
-                const program = getMaterialProgram(material);
+                const themePrimary =
+                  material.content.brandTheme?.primaryColor ||
+                  anchorMat.content.brandTheme?.primaryColor ||
+                  '#1F3A5F';
+                const isMyVoteForActiveTier = myVotes.some((v) =>
+                  doesVoteMatchOffering(v, activeTier.offeringKey)
+                );
+                const isLeading =
+                  analytics.leadingMaterialId === activeTier.offeringKey && primaryCount > 0;
+                const pricing = activeTier.pricing;
+                const program = activeTier.program;
                 const programMeta = PROGRAM_FORMAT_META[program.format];
                 const effectiveQuota = Math.max(
                   1,
@@ -1799,23 +2045,81 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
 
                 return (
                   <article
-                    key={material.id}
+                    key={anchorMat.id}
                     className={`rounded-3xl overflow-hidden flex flex-col border transition-all shadow-sm ${
-                      isMyVote
+                      isMyVoteForActiveTier
                         ? 'border-[#F28C28] ring-2 ring-[#F28C28]/30'
                         : 'border-[#1F3A5F]/15 hover:border-[#1F3A5F]/35'
                     }`}
                     style={{ backgroundColor: themePrimary }}
                   >
                     {/* Top Poster Masthead */}
-                    <div className="px-5 pt-4 pb-3 flex items-center justify-between gap-2 text-white">
+                    <div className="px-5 pt-4 pb-2.5 flex items-center justify-between gap-2 text-white">
                       <span className="text-[13px] font-bold truncate text-white/95">
-                        {material.organizerName || 'obeeAcademy'}
+                        {material.organizerName || anchorMat.organizerName || 'obeeAcademy'}
                       </span>
                       <span className="text-[13px] text-white/80 whitespace-nowrap shrink-0 tabular-nums">
                         {material.category || 'Materi'} · {material.content.slides.length} Slide
                       </span>
                     </div>
+
+                    {/* Interactive Multi-Jenjang Tier Tabs (only when topic has >1 active tier) */}
+                    {enabledTiers.length > 1 && (
+                      <div className="px-4 pb-2.5">
+                        <div className="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-black/25 border border-white/10">
+                          {PROGRAM_TIERS_ORDER.map((fmt) => {
+                            const tierItem = enabledTiers.find((t) => t.format === fmt);
+                            if (!tierItem) {
+                              return (
+                                <div
+                                  key={fmt}
+                                  className="py-1.5 px-1 rounded-lg text-[11px] font-semibold text-white/30 text-center select-none"
+                                >
+                                  {PROGRAM_FORMAT_META[fmt].label}
+                                </div>
+                              );
+                            }
+                            const isSelected = activeTier.format === fmt;
+                            const hasMyVoteOnThisTier = myVotes.some((v) =>
+                              doesVoteMatchOffering(v, tierItem.offeringKey)
+                            );
+                            return (
+                              <button
+                                key={fmt}
+                                type="button"
+                                onClick={() =>
+                                  setSelectedTierByTopic((prev) => ({
+                                    ...prev,
+                                    [anchorMat.id]: fmt,
+                                  }))
+                                }
+                                className={`py-1.5 px-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer flex flex-col items-center leading-tight ${
+                                  isSelected
+                                    ? 'bg-white text-[#1F3A5F] shadow-xs'
+                                    : 'text-white/85 hover:bg-white/10'
+                                }`}
+                              >
+                                <span className="flex items-center gap-1">
+                                  {hasMyVoteOnThisTier && (
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                                  )}
+                                  <span>{PROGRAM_FORMAT_META[fmt].label}</span>
+                                </span>
+                                <span
+                                  className={`text-[10px] font-bold tabular-nums mt-0.5 ${
+                                    isSelected ? 'text-[#F28C28]' : 'text-white/70'
+                                  }`}
+                                >
+                                  {tierItem.pricing.isPaid
+                                    ? formatRupiah(tierItem.pricing.price)
+                                    : 'Gratis'}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Poster Visual Showcase */}
                     <div className="px-4">
@@ -1954,7 +2258,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
 
                         <div className="border-t border-[#1F3A5F]/12 pt-3 space-y-2">
                           <div className="text-[13px] font-extrabold text-[#2A9D8F]">
-                            Inti Materi yang Dibahas:
+                            Inti Materi ({programMeta.label}):
                           </div>
                           <ul className="space-y-2 text-[15px] text-slate-800">
                             {highlights.map((item, idx) => (
@@ -2026,7 +2330,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                         ) : (
                           <>
                             <div className="flex items-center justify-between text-sm font-bold text-[#1F3A5F] tabular-nums">
-                              <span>Perolehan Polling</span>
+                              <span>Perolehan Polling ({programMeta.label})</span>
                               <span>
                                 {primaryCount} suara ({sharePct}%)
                               </span>
@@ -2047,15 +2351,15 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                       <button
                         type="button"
                         disabled={campaign.status === 'closed'}
-                        onClick={() => openVoteModalForMaterial(material.id)}
+                        onClick={() => openVoteModalForMaterial(activeTier.offeringKey)}
                         className={`flex-1 py-3.5 px-4 rounded-xl text-sm sm:text-[15px] font-extrabold transition-colors cursor-pointer whitespace-nowrap disabled:opacity-50 ${
-                          isMyVote
+                          isMyVoteForActiveTier
                             ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
                             : 'bg-[#F28C28] hover:bg-[#d97719] text-white'
                         }`}
                       >
-                        {isMyVote
-                          ? '✓ Pilihanmu (Edit)'
+                        {isMyVoteForActiveTier
+                          ? `✓ Pilihanmu (${programMeta.label}) · Edit`
                           : isOneOnOne
                           ? pricing.isPaid
                             ? `Booking 1-on-1 (${formatRupiah(pricing.price)})`
@@ -2074,11 +2378,11 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                             : 'Daftar Kelas Ini'
                           : pricing.isPaid
                           ? `Vote & Daftar (${formatRupiah(pricing.price)})`
-                          : 'Vote Poster Ini'}
+                          : `Vote ${programMeta.label}`}
                       </button>
                       <button
                         type="button"
-                        onClick={() => setPosterModalMaterial(material)}
+                        onClick={() => setPosterModalOffering(activeTier)}
                         className="py-3.5 px-3.5 rounded-xl text-sm font-bold bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0"
                         title="Unduh Poster PNG Resolusi Tinggi"
                       >
@@ -2116,7 +2420,14 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {analytics.activeVotes.slice(0, 36).map((v) => {
-                const chosenMat = materials.find((m) => m.id === v.primaryMaterialId);
+                const resolved = resolveTierSafe(v.primaryMaterialId);
+                const matTitle =
+                  resolved?.linkedMaterial.seminarTitle ||
+                  materials.find((m) => m.id === v.primaryMaterialId)?.seminarTitle ||
+                  v.primaryMaterialId;
+                const tierBadge = resolved
+                  ? PROGRAM_FORMAT_META[resolved.format].label
+                  : null;
                 return (
                   <div
                     key={v.id}
@@ -2127,7 +2438,8 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                         {v.displayName} · {v.businessName}
                       </div>
                       <div className="text-[13px] text-slate-600 truncate mt-0.5">
-                        {chosenMat?.seminarTitle || v.primaryMaterialId}
+                        {tierBadge ? `[${tierBadge}] ` : ''}
+                        {matTitle}
                       </div>
                     </div>
                     <span
@@ -2177,18 +2489,17 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                         </span>
                       </>
                     )}
-                    {chosenModalMaterial && (() => {
-                      const mp = getMaterialPricing(chosenModalMaterial.id);
-                      return mp.isPaid ? (
+                    {chosenModalMaterial && (
+                      chosenModalPricing.isPaid ? (
                         <span className="px-2 py-0.5 rounded bg-amber-400 text-[#1F3A5F] text-xs font-extrabold">
-                          Berbayar · {formatRupiah(mp.price)}
+                          Berbayar · {formatRupiah(chosenModalPricing.price)}
                         </span>
                       ) : (
                         <span className="px-2 py-0.5 rounded bg-emerald-500 text-white text-xs font-extrabold">
                           Gratis
                         </span>
-                      );
-                    })()}
+                      )
+                    )}
                   </div>
                   <div className="font-display text-lg font-extrabold truncate mt-1">
                     {chosenModalMaterial?.seminarTitle || 'Bursa Kelas Pelatihan'}
@@ -2347,104 +2658,227 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                   </div>
                 ) : (
                   <form onSubmit={handleSubmitForm} className="space-y-5">
-                    {/* Selected Poster Confirmation */}
-                    <div className="p-4 rounded-xl bg-[#FFF7EC] border border-[#F28C28]/40 space-y-2.5">
-                      <div className="text-sm font-bold text-[#F28C28]">
-                        Materi Utama yang Dipilih:
-                      </div>
-                      <select
-                        value={primaryMaterialId}
-                        onChange={(e) => {
-                          setPrimaryMaterialId(e.target.value);
-                          setSecondaryMaterialIds((prev) =>
-                            prev.filter((id) => id !== e.target.value)
-                          );
-                        }}
-                        className="w-full px-3.5 py-3 text-[15px] sm:text-base font-bold text-[#1F3A5F] bg-white border border-slate-300 rounded-xl"
-                      >
-                        {candidateMaterials.map((mat) => {
-                          const mp = getMaterialPricing(mat.id);
-                          const prog = getMaterialProgram(mat);
-                          const delLabel = prog.deliveryMode === 'offline' ? 'Offline' : 'Online';
-                          return (
-                            <option key={mat.id} value={mat.id}>
-                              [{PROGRAM_FORMAT_META[prog.format].label} · {delLabel}]
-                              {mp.isPaid ? ` [${formatRupiah(mp.price)}] ` : ' [Gratis] '}
-                              {mat.seminarTitle}
-                            </option>
-                          );
-                        })}
-                      </select>
+                    {/* Selected Tema & Jenjang Confirmation */}
+                    {(() => {
+                      const selectedAnchorId =
+                        chosenModalTier?.anchorMaterialId ||
+                        parseTierOfferingKey(primaryMaterialId).anchorMaterialId ||
+                        candidateMaterials[0]?.id ||
+                        '';
+                      const selectedAnchorMat =
+                        candidateMaterials.find((m) => m.id === selectedAnchorId) ||
+                        candidateMaterials[0] ||
+                        null;
+                      const anchorEnabledTiers = selectedAnchorMat
+                        ? getEnabledTopicTiers(selectedAnchorMat, materials, campaign)
+                        : [];
 
-                      {chosenModalProgram && (
-                        <div className="flex items-center gap-2 text-sm font-semibold text-[#1F3A5F]">
-                          {chosenModalProgram.deliveryMode === 'offline' ? (
-                            <MapPin className="w-4 h-4 text-violet-600 shrink-0" />
-                          ) : (
-                            <Video className="w-4 h-4 text-emerald-600 shrink-0" />
-                          )}
-                          <span>
-                            Metode:{' '}
-                            <strong>
-                              {chosenModalProgram.deliveryMode === 'offline' ? 'OFFLINE' : 'ONLINE'}
-                            </strong>{' '}
-                            — {chosenModalProgram.locationLabel ||
-                              DELIVERY_MODE_META[
-                                chosenModalProgram.deliveryMode === 'offline' ? 'offline' : 'online'
-                              ].defaultLocation}
-                          </span>
-                        </div>
-                      )}
-
-                      {chosenModalProgram?.format === 'coaching' &&
-                        chosenModalProgram.coachingScope === 'category_group' &&
-                        chosenModalProgram.targetCategory &&
-                        businessCategory !== chosenModalProgram.targetCategory && (
-                          <div className="p-3 rounded-lg bg-amber-100/75 border border-amber-300 text-sm font-semibold text-amber-950 leading-relaxed">
-                            Info: Sesi Coaching ini difokuskan untuk kategori{' '}
-                            <strong>{chosenModalProgram.targetCategory}</strong> (kategori usahamu tercatat:{' '}
-                            <strong>{businessCategory}</strong>). Mentor tetap meninjau kecocokan kelompok usahamu.
-                          </div>
-                        )}
-
-                      {isModalOneOnOneCoaching ? (
-                        <div className="p-3 rounded-lg bg-white border border-amber-300 text-sm text-[#1F3A5F] leading-relaxed">
-                          <strong>Sesi Coaching Privat 1-on-1:</strong> Pendalaman khusus langsung membedah masalah usahamu ({chosenModalProgram?.durationLabel || '90 Menit'}) tanpa harus menunggu kuota kelompok.
-                        </div>
-                      ) : (
-                        candidateMaterials.length > 1 && (
-                          <div className="pt-1">
-                            <div className="text-sm font-semibold text-slate-700 mb-2">
-                              Topik cadangan jika berminat (maks. 2):
+                      return (
+                        <div className="p-4 rounded-xl bg-[#FFF7EC] border border-[#F28C28]/40 space-y-3">
+                          <div className="space-y-1.5">
+                            <div className="text-sm font-bold text-[#F28C28]">
+                              1. Tema Materi yang Dipilih:
                             </div>
-                            <div className="flex flex-wrap gap-2">
-                              {candidateMaterials
-                                .filter((m) => m.id !== primaryMaterialId)
-                                .map((mat) => {
-                                  const checked = secondaryMaterialIds.includes(mat.id);
+                            <select
+                              value={selectedAnchorId}
+                              onChange={(e) => {
+                                const nextAnchor = candidateMaterials.find(
+                                  (m) => m.id === e.target.value
+                                );
+                                if (!nextAnchor) return;
+                                const nextTiers = getEnabledTopicTiers(
+                                  nextAnchor,
+                                  materials,
+                                  campaign
+                                );
+                                const keepFormat = chosenModalTier?.format;
+                                const targetTier =
+                                  (keepFormat
+                                    ? nextTiers.find((t) => t.format === keepFormat)
+                                    : null) || nextTiers[0];
+                                if (targetTier) {
+                                  setPrimaryMaterialId(targetTier.offeringKey);
+                                  setSecondaryMaterialIds((prev) =>
+                                    prev.filter((id) => id !== targetTier.offeringKey)
+                                  );
+                                }
+                              }}
+                              className="w-full px-3.5 py-3 text-[15px] sm:text-base font-bold text-[#1F3A5F] bg-white border border-slate-300 rounded-xl"
+                            >
+                              {candidateMaterials.map((anchorMat) => {
+                                const tiers = getEnabledTopicTiers(
+                                  anchorMat,
+                                  materials,
+                                  campaign
+                                );
+                                return (
+                                  <option key={anchorMat.id} value={anchorMat.id}>
+                                    {anchorMat.seminarTitle} ({tiers.length} jenjang)
+                                  </option>
+                                );
+                              })}
+                            </select>
+                          </div>
+
+                          {anchorEnabledTiers.length > 0 && (
+                            <div className="space-y-1.5">
+                              <div className="text-sm font-bold text-[#1F3A5F]">
+                                2. Pilih Jenjang Kelas:
+                              </div>
+                              <div
+                                className={`grid gap-2 ${
+                                  anchorEnabledTiers.length === 1
+                                    ? 'grid-cols-1'
+                                    : anchorEnabledTiers.length === 2
+                                    ? 'grid-cols-2'
+                                    : 'grid-cols-1 sm:grid-cols-3'
+                                }`}
+                              >
+                                {anchorEnabledTiers.map((tierOpt) => {
+                                  const isSel = chosenModalTier?.offeringKey === tierOpt.offeringKey;
+                                  const alreadyRegistered = myVotes.some((v) =>
+                                    doesVoteMatchOffering(v, tierOpt.offeringKey)
+                                  );
                                   return (
                                     <button
-                                      key={mat.id}
+                                      key={tierOpt.offeringKey}
                                       type="button"
-                                      onClick={() => toggleSecondaryTopic(mat.id)}
-                                      className={`px-3 py-2 rounded-lg text-sm font-semibold border transition-colors cursor-pointer ${
-                                        checked
-                                          ? 'bg-[#2A9D8F]/15 border-[#2A9D8F] text-[#1F3A5F]'
-                                          : 'bg-white border-slate-200 text-slate-700'
+                                      onClick={() => {
+                                        setPrimaryMaterialId(tierOpt.offeringKey);
+                                        setSecondaryMaterialIds((prev) =>
+                                          prev.filter((id) => id !== tierOpt.offeringKey)
+                                        );
+                                      }}
+                                      className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                                        isSel
+                                          ? 'bg-[#1F3A5F] border-[#1F3A5F] text-white shadow-xs'
+                                          : 'bg-white border-slate-200 text-[#1F3A5F] hover:border-[#F28C28]'
                                       }`}
                                     >
-                                      {checked ? '✓ ' : '+ '}
-                                      {mat.seminarTitle.length > 36
-                                        ? `${mat.seminarTitle.slice(0, 33)}...`
-                                        : mat.seminarTitle}
+                                      <div className="flex items-center justify-between gap-1">
+                                        <span className="text-xs sm:text-sm font-extrabold">
+                                          {PROGRAM_FORMAT_META[tierOpt.format].label}
+                                        </span>
+                                        {alreadyRegistered && (
+                                          <span
+                                            className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded ${
+                                              isSel
+                                                ? 'bg-emerald-400 text-[#1F3A5F]'
+                                                : 'bg-emerald-100 text-emerald-800'
+                                            }`}
+                                          >
+                                            ✓ Terdaftar
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div
+                                        className={`text-xs font-extrabold mt-1 tabular-nums ${
+                                          isSel ? 'text-[#F28C28]' : 'text-emerald-700'
+                                        }`}
+                                      >
+                                        {tierOpt.pricing.isPaid
+                                          ? formatRupiah(tierOpt.pricing.price)
+                                          : 'GRATIS'}
+                                      </div>
+                                      <div
+                                        className={`text-[11px] mt-0.5 truncate ${
+                                          isSel ? 'text-white/80' : 'text-slate-500'
+                                        }`}
+                                      >
+                                        {tierOpt.program.deliveryMode === 'offline'
+                                          ? 'Offline'
+                                          : 'Online'}{' '}
+                                        · {tierOpt.program.durationLabel}
+                                      </div>
                                     </button>
                                   );
                                 })}
+                              </div>
                             </div>
-                          </div>
-                        )
-                      )}
-                    </div>
+                          )}
+
+                          {chosenModalProgram && (
+                            <div className="flex items-center gap-2 text-sm font-semibold text-[#1F3A5F] pt-0.5">
+                              {chosenModalProgram.deliveryMode === 'offline' ? (
+                                <MapPin className="w-4 h-4 text-violet-600 shrink-0" />
+                              ) : (
+                                <Video className="w-4 h-4 text-emerald-600 shrink-0" />
+                              )}
+                              <span>
+                                Metode:{' '}
+                                <strong>
+                                  {chosenModalProgram.deliveryMode === 'offline'
+                                    ? 'OFFLINE'
+                                    : 'ONLINE'}
+                                </strong>{' '}
+                                —{' '}
+                                {chosenModalProgram.locationLabel ||
+                                  DELIVERY_MODE_META[
+                                    chosenModalProgram.deliveryMode === 'offline'
+                                      ? 'offline'
+                                      : 'online'
+                                  ].defaultLocation}
+                              </span>
+                            </div>
+                          )}
+
+                          {chosenModalProgram?.format === 'coaching' &&
+                            chosenModalProgram.coachingScope === 'category_group' &&
+                            chosenModalProgram.targetCategory &&
+                            businessCategory !== chosenModalProgram.targetCategory && (
+                              <div className="p-3 rounded-lg bg-amber-100/75 border border-amber-300 text-sm font-semibold text-amber-950 leading-relaxed">
+                                Info: Sesi Coaching ini difokuskan untuk kategori{' '}
+                                <strong>{chosenModalProgram.targetCategory}</strong> (kategori usahamu tercatat:{' '}
+                                <strong>{businessCategory}</strong>). Mentor tetap meninjau kecocokan kelompok usahamu.
+                              </div>
+                            )}
+
+                          {isModalOneOnOneCoaching ? (
+                            <div className="p-3 rounded-lg bg-white border border-amber-300 text-sm text-[#1F3A5F] leading-relaxed">
+                              <strong>Sesi Coaching Privat 1-on-1:</strong> Pendalaman khusus langsung membedah masalah usahamu ({chosenModalProgram?.durationLabel || '90 Menit'}) tanpa harus menunggu kuota kelompok.
+                            </div>
+                          ) : (
+                            analytics.allEnabledOfferings.filter(
+                              (o) => o.offeringKey !== chosenModalTier?.offeringKey
+                            ).length > 0 && (
+                              <div className="pt-1">
+                                <div className="text-sm font-semibold text-slate-700 mb-2">
+                                  Topik cadangan jika berminat (maks. 2):
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                  {analytics.allEnabledOfferings
+                                    .filter((o) => o.offeringKey !== chosenModalTier?.offeringKey)
+                                    .slice(0, 8)
+                                    .map((tierOpt) => {
+                                      const checked = secondaryMaterialIds.includes(
+                                        tierOpt.offeringKey
+                                      );
+                                      const labelText = `[${PROGRAM_FORMAT_META[tierOpt.format].label}] ${tierOpt.linkedMaterial.seminarTitle}`;
+                                      return (
+                                        <button
+                                          key={tierOpt.offeringKey}
+                                          type="button"
+                                          onClick={() => toggleSecondaryTopic(tierOpt.offeringKey)}
+                                          className={`px-3 py-2 rounded-lg text-sm font-semibold border transition-colors cursor-pointer ${
+                                            checked
+                                              ? 'bg-[#2A9D8F]/15 border-[#2A9D8F] text-[#1F3A5F]'
+                                              : 'bg-white border-slate-200 text-slate-700'
+                                          }`}
+                                        >
+                                          {checked ? '✓ ' : '+ '}
+                                          {labelText.length > 38
+                                            ? `${labelText.slice(0, 35)}...`
+                                            : labelText}
+                                        </button>
+                                      );
+                                    })}
+                                </div>
+                              </div>
+                            )
+                          )}
+                        </div>
+                      );
+                    })()}
 
                     {/* Time Slots Multi-Select or Fixed Schedule Confirmation */}
                     {isModalFixedSchedule ? (
@@ -2814,7 +3248,10 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
   // =========================================================================
   // RENDER: HOST / MENTOR COMMAND CENTER + BANK DATABASE UMKM CRM
   // =========================================================================
-  const decisionMat = materials.find((m) => m.id === decisionMaterialId);
+  const decisionOffering = useMemo(() => {
+    return decisionMaterialId ? resolveTierSafe(decisionMaterialId) : null;
+  }, [decisionMaterialId, materials, campaign]);
+  const decisionMat = decisionOffering?.linkedMaterial || null;
   const decisionSlot = campaign.timeSlots.find((s) => s.id === decisionSlotId);
   const broadcastText = buildBursaBroadcastText(campaign, materials, baseBursaUrl);
 
@@ -2957,7 +3394,9 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
             <div className="bg-white rounded-2xl border border-[#1F3A5F]/12 p-4">
               <div className="text-xs font-semibold text-slate-500">Topik Peringkat #1</div>
               <div className="font-display text-sm font-extrabold text-[#1F3A5F] mt-1 line-clamp-2">
-                {analytics.leadingCandidate?.material.seminarTitle || '-'}
+                {analytics.leadingCandidate
+                  ? `[${PROGRAM_FORMAT_META[analytics.leadingCandidate.tier.format].label}] ${analytics.leadingCandidate.material.seminarTitle}`
+                  : '-'}
               </div>
               <div className="text-[11px] text-[#2A9D8F] font-bold mt-1 tabular-nums">
                 {analytics.leadingCandidate?.primaryCount || 0} suara utama
@@ -3010,11 +3449,11 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                   Perolehan Suara Topik Materi
                 </h3>
                 <div className="space-y-3 mt-3">
-                  {analytics.sortedCandidates.map(({ material, primaryCount, secondaryCount, sharePct }, i) => (
-                    <div key={material.id} className="space-y-1">
+                  {analytics.sortedCandidates.map(({ tier, material, primaryCount, secondaryCount, sharePct }, i) => (
+                    <div key={tier.offeringKey} className="space-y-1">
                       <div className="flex items-center justify-between gap-2 text-xs">
                         <span className="font-bold text-[#1F3A5F] truncate">
-                          #{i + 1} · {material.seminarTitle}
+                          #{i + 1} · [{PROGRAM_FORMAT_META[tier.format].label}] {material.seminarTitle}
                         </span>
                         <span className="font-bold text-[#1F3A5F] whitespace-nowrap shrink-0 tabular-nums">
                           {primaryCount} utama ({secondaryCount} cadangan) · {sharePct}%
@@ -3089,16 +3528,16 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                 <div className="space-y-3">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Materi Pemenang
+                      Materi & Jenjang Pemenang
                     </label>
                     <select
-                      value={decisionMaterialId}
+                      value={decisionOffering?.offeringKey || decisionMaterialId}
                       onChange={(e) => setDecisionMaterialId(e.target.value)}
                       className="w-full px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-300 rounded-xl"
                     >
-                      {candidateMaterials.map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {m.seminarTitle}
+                      {analytics.allEnabledOfferings.map((tier) => (
+                        <option key={tier.offeringKey} value={tier.offeringKey}>
+                          [{PROGRAM_FORMAT_META[tier.format].label}] {tier.linkedMaterial.seminarTitle}
                         </option>
                       ))}
                     </select>
@@ -3131,9 +3570,9 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                       value={decisionNote}
                       onChange={(e) => setDecisionNote(e.target.value)}
                       placeholder={
-                        decisionMat && getMaterialProgram(decisionMat).deliveryMode === 'offline'
+                        decisionOffering?.program.deliveryMode === 'offline'
                           ? `Contoh: Dilaksanakan OFFLINE (${
-                              getMaterialProgram(decisionMat).locationLabel || 'Lokasi Studio'
+                              decisionOffering.program.locationLabel || 'Lokasi Studio'
                             }). Shareloc dikirim ke WA peserta H-1.`
                           : 'Contoh: Dilaksanakan ONLINE via Zoom Live. Link dikirim ke WA peserta H-1.'
                       }
@@ -3877,24 +4316,33 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {filteredHostPosterMaterials.map((material) => {
-                const isVisiblePublic = visiblePosterIdSet.has(material.id);
-                const isToggling = togglingPosterId === material.id;
-                const coverUrl = getMaterialCoverImageUrl(material);
+              {filteredHostPosterMaterials.map((anchorMaterial) => {
+                const isVisiblePublic = visiblePosterIdSet.has(anchorMaterial.id);
+                const isToggling = togglingPosterId === anchorMaterial.id;
+                const allTopicTiers = resolveTopicTiers(anchorMaterial, materials, campaign);
+                const activeTier = getActiveTierForTopic(
+                  anchorMaterial,
+                  posterProgramFilter,
+                  posterDeliveryFilter
+                );
+                const material = activeTier.linkedMaterial;
+                const coverUrl =
+                  getMaterialCoverImageUrl(material) || getMaterialCoverImageUrl(anchorMaterial);
                 const highlights = extractMaterialCoreHighlights(material).slice(0, 3);
-                const themePrimary = material.content.brandTheme?.primaryColor || '#1F3A5F';
-                const voteCount = analytics.activeVotes.filter(
-                  (v) => v.primaryMaterialId === material.id
+                const themePrimary =
+                  material.content.brandTheme?.primaryColor ||
+                  anchorMaterial.content.brandTheme?.primaryColor ||
+                  '#1F3A5F';
+                const voteCount = analytics.activeVotes.filter((v) =>
+                  doesVoteMatchOffering(v, activeTier.offeringKey)
                 ).length;
-                const matPricing = getMaterialPricing(material.id);
-                const isEditingPrice = editingPricingMaterialId === material.id;
-                const matProgram = getMaterialProgram(material);
+                const matPricing = activeTier.pricing;
+                const matProgram = activeTier.program;
                 const matProgramMeta = PROGRAM_FORMAT_META[matProgram.format];
-                const isEditingProgram = editingProgramMaterialId === material.id;
 
                 return (
                   <article
-                    key={material.id}
+                    key={anchorMaterial.id}
                     className={`rounded-3xl overflow-hidden flex flex-col border transition-all shadow-sm ${
                       isVisiblePublic
                         ? 'border-emerald-400 ring-2 ring-emerald-500/20'
@@ -3915,7 +4363,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                           type="checkbox"
                           checked={isVisiblePublic}
                           disabled={isToggling || isBusyHost}
-                          onChange={() => handleTogglePosterVisibility(material.id)}
+                          onChange={() => handleTogglePosterVisibility(anchorMaterial.id)}
                           className="w-4 h-4 accent-[#F28C28] rounded cursor-pointer shrink-0"
                         />
                         <span className="text-xs font-extrabold truncate">
@@ -3946,6 +4394,56 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                         )}
                       </span>
                     </label>
+
+                    {/* Host Multi-Jenjang Preview Switcher */}
+                    <div className="px-4 pt-3">
+                      <div className="grid grid-cols-3 gap-1 p-1 rounded-xl bg-black/25 border border-white/10">
+                        {PROGRAM_TIERS_ORDER.map((fmt) => {
+                          const tInfo = allTopicTiers[fmt];
+                          const isPreviewing = activeTier.format === fmt;
+                          return (
+                            <button
+                              key={fmt}
+                              type="button"
+                              onClick={() => {
+                                if (tInfo.enabled) {
+                                  setSelectedTierByTopic((prev) => ({
+                                    ...prev,
+                                    [anchorMaterial.id]: fmt,
+                                  }));
+                                } else {
+                                  openMultiTierModal(anchorMaterial, fmt);
+                                }
+                              }}
+                              className={`py-1 px-1 rounded-lg text-[10px] font-extrabold transition-colors cursor-pointer flex flex-col items-center leading-tight ${
+                                isPreviewing
+                                  ? 'bg-white text-[#1F3A5F] shadow-xs'
+                                  : tInfo.enabled
+                                  ? 'text-white/90 hover:bg-white/15'
+                                  : 'text-white/40 hover:bg-white/10'
+                              }`}
+                            >
+                              <span>{PROGRAM_FORMAT_META[fmt].label}</span>
+                              <span
+                                className={`text-[9px] font-bold tabular-nums ${
+                                  isPreviewing
+                                    ? 'text-[#F28C28]'
+                                    : tInfo.enabled
+                                    ? 'text-emerald-300'
+                                    : 'text-white/35'
+                                }`}
+                              >
+                                {tInfo.enabled
+                                  ? tInfo.pricing.isPaid
+                                    ? formatRupiah(tInfo.pricing.price)
+                                    : 'Gratis'
+                                  : 'OFF'}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
 
                     {/* Poster Visual Preview */}
                     <div className="px-4 pt-3">
@@ -4062,551 +4560,45 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                         </ul>
                       </div>
 
-                      {/* Inline Program Tier (Seminar / Workshop / Coaching) + Online/Offline Configuration */}
-                      <div className="pt-2.5 border-t border-[#1F3A5F]/10">
-                        {isEditingProgram ? (
-                          <div className="p-2.5 rounded-xl bg-white border border-slate-300 space-y-2 text-[11px]">
-                            <div className="grid grid-cols-3 gap-1">
-                              {(['seminar', 'workshop', 'coaching'] as ProgramFormatType[]).map(
-                                (fmt) => {
-                                  const active = programForm.format === fmt;
-                                  const meta = PROGRAM_FORMAT_META[fmt];
-                                  return (
-                                    <button
-                                      key={fmt}
-                                      type="button"
-                                      onClick={() =>
-                                        setProgramForm({
-                                          ...programForm,
-                                          format: fmt,
-                                          durationLabel: meta.defaultDuration,
-                                          quotaOverride:
-                                            fmt === 'coaching'
-                                              ? programForm.coachingScope === 'category_group'
-                                                ? 5
-                                                : 1
-                                              : fmt === 'workshop'
-                                              ? 8
-                                              : Math.max(5, campaign.minQuota || 15),
-                                          coachingScope:
-                                            fmt === 'coaching'
-                                              ? programForm.coachingScope || 'one_on_one'
-                                              : undefined,
-                                        })
-                                      }
-                                      className={`py-1.5 px-1 rounded-lg font-extrabold border cursor-pointer ${
-                                        active
-                                          ? 'bg-[#1F3A5F] border-[#1F3A5F] text-white'
-                                          : 'bg-slate-50 border-slate-200 text-slate-700'
-                                      }`}
-                                    >
-                                      {meta.label}
-                                    </button>
-                                  );
-                                }
-                              )}
-                            </div>
-
-                            {/* Online / Offline Toggle */}
-                            <div className="grid grid-cols-2 gap-1.5">
-                              {(['online', 'offline'] as DeliveryModeType[]).map((dm) => {
-                                const isActiveMode =
-                                  (programForm.deliveryMode || 'online') === dm;
-                                const dMeta = DELIVERY_MODE_META[dm];
-                                return (
-                                  <button
-                                    key={dm}
-                                    type="button"
-                                    onClick={() => {
-                                      const prevLoc = (programForm.locationLabel || '').trim();
-                                      const isPrevDefault =
-                                        !prevLoc ||
-                                        prevLoc === DELIVERY_MODE_META.online.defaultLocation ||
-                                        prevLoc === DELIVERY_MODE_META.offline.defaultLocation ||
-                                        prevLoc === 'Tatap Muka · Studio Praktik' ||
-                                        prevLoc === 'Tatap Muka / Studio Pendampingan';
-                                      setProgramForm({
-                                        ...programForm,
-                                        deliveryMode: dm,
-                                        locationLabel: isPrevDefault
-                                          ? dMeta.defaultLocation
-                                          : prevLoc,
-                                      });
-                                    }}
-                                    className={`py-1.5 px-2 rounded-lg font-extrabold border cursor-pointer flex items-center justify-center gap-1 ${
-                                      isActiveMode
-                                        ? dm === 'offline'
-                                          ? 'bg-violet-600 border-violet-600 text-white'
-                                          : 'bg-emerald-600 border-emerald-600 text-white'
-                                        : 'bg-slate-50 border-slate-200 text-slate-600'
-                                    }`}
-                                  >
-                                    {dm === 'offline' ? (
-                                      <MapPin className="w-3 h-3" />
-                                    ) : (
-                                      <Video className="w-3 h-3" />
-                                    )}
-                                    <span>Metode {dMeta.label}</span>
-                                  </button>
-                                );
-                              })}
-                            </div>
-
-                            <div>
-                              <label className="block text-[10px] font-bold text-slate-600">
-                                {programForm.deliveryMode === 'offline'
-                                  ? 'Lokasi Tatap Muka / Kota'
-                                  : 'Platform Online'}
-                              </label>
-                              <input
-                                type="text"
-                                maxLength={64}
-                                value={programForm.locationLabel || ''}
-                                onChange={(e) =>
-                                  setProgramForm({
-                                    ...programForm,
-                                    locationLabel: e.target.value,
-                                  })
-                                }
-                                placeholder={
-                                  programForm.deliveryMode === 'offline'
-                                    ? 'Contoh: Studio obeeCreatives, Yogyakarta'
-                                    : 'Contoh: Via Zoom / Google Meet'
-                                }
-                                className="w-full px-2 py-1 text-[11px] border border-slate-300 rounded-lg"
-                              />
-                            </div>
-
-                            {/* Hybrid Scheduling Mode: Polling vs Fixed Admin Schedule */}
-                            <div className="space-y-1.5 pt-1 border-t border-slate-200">
-                              <label className="block text-[10px] font-bold text-slate-600">
-                                Pendekatan Jadwal Kelas
-                              </label>
-                              <div className="grid grid-cols-2 gap-1.5">
-                                {(['polling', 'fixed'] as ScheduleModeType[]).map((sm) => {
-                                  const activeSm = (programForm.scheduleMode || 'polling') === sm;
-                                  const sMeta = SCHEDULE_MODE_META[sm];
-                                  return (
-                                    <button
-                                      key={sm}
-                                      type="button"
-                                      onClick={() => {
-                                        const firstSlot = campaign.timeSlots[0];
-                                        const seedSlot = firstSlot
-                                          ? `${firstSlot.dateText} · ${firstSlot.timeText}`
-                                          : 'Sabtu · 10:00 WIB';
-                                        setProgramForm({
-                                          ...programForm,
-                                          scheduleMode: sm,
-                                          fixedScheduleLabel:
-                                            sm === 'fixed' && !(programForm.fixedScheduleLabel || '').trim()
-                                              ? seedSlot
-                                              : programForm.fixedScheduleLabel,
-                                        });
-                                      }}
-                                      className={`py-1.5 px-2 rounded-lg font-extrabold border cursor-pointer flex items-center justify-center gap-1 ${
-                                        activeSm
-                                          ? sm === 'fixed'
-                                            ? 'bg-indigo-600 border-indigo-600 text-white'
-                                            : 'bg-[#1F3A5F] border-[#1F3A5F] text-white'
-                                          : 'bg-slate-50 border-slate-200 text-slate-600'
-                                      }`}
-                                    >
-                                      {sm === 'fixed' ? (
-                                        <Calendar className="w-3 h-3" />
-                                      ) : (
-                                        <Clock className="w-3 h-3" />
-                                      )}
-                                      <span>{sMeta.label}</span>
-                                    </button>
-                                  );
-                                })}
-                              </div>
-
-                              {programForm.scheduleMode === 'fixed' && (
-                                <div className="space-y-1.5 bg-indigo-50/70 p-2 rounded-lg border border-indigo-200">
-                                  <input
-                                    type="text"
-                                    maxLength={80}
-                                    value={programForm.fixedScheduleLabel || ''}
-                                    onChange={(e) =>
-                                      setProgramForm({
-                                        ...programForm,
-                                        fixedScheduleLabel: e.target.value,
-                                      })
-                                    }
-                                    placeholder="Contoh: Sabtu, 30 Nov · 10:00 - 12:00 WIB"
-                                    className="w-full px-2 py-1 text-[11px] bg-white border border-indigo-300 rounded-lg font-semibold text-[#1F3A5F]"
-                                  />
-                                  {campaign.timeSlots.length > 0 && (
-                                    <div className="flex flex-wrap gap-1">
-                                      {campaign.timeSlots.slice(0, 4).map((slot) => {
-                                        const presetVal = `${slot.dateText} · ${slot.timeText}`;
-                                        return (
-                                          <button
-                                            key={slot.id}
-                                            type="button"
-                                            onClick={() =>
-                                              setProgramForm({
-                                                ...programForm,
-                                                fixedScheduleLabel: presetVal,
-                                              })
-                                            }
-                                            className="px-1.5 py-0.5 rounded bg-white border border-indigo-200 text-[10px] font-semibold text-indigo-800 hover:bg-indigo-100 cursor-pointer"
-                                          >
-                                            + {slot.label}
-                                          </button>
-                                        );
-                                      })}
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-
-                            {programForm.format === 'coaching' && (
-                              <div className="space-y-1.5">
-                                <div className="grid grid-cols-2 gap-1.5">
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      setProgramForm({
-                                        ...programForm,
-                                        coachingScope: 'one_on_one',
-                                        quotaOverride: 1,
-                                        durationLabel: '90 Menit Privat',
-                                      })
-                                    }
-                                    className={`py-1 px-2 rounded-lg font-bold border cursor-pointer ${
-                                      programForm.coachingScope !== 'category_group'
-                                        ? 'bg-amber-400 border-amber-500 text-[#1F3A5F]'
-                                        : 'bg-slate-50 border-slate-200 text-slate-600'
-                                    }`}
-                                  >
-                                    1-on-1 Privat
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      setProgramForm({
-                                        ...programForm,
-                                        coachingScope: 'category_group',
-                                        quotaOverride: 5,
-                                        durationLabel: '2 Jam Fokus Kategori',
-                                        targetCategory:
-                                          programForm.targetCategory || BUSINESS_CATEGORIES[0],
-                                      })
-                                    }
-                                    className={`py-1 px-2 rounded-lg font-bold border cursor-pointer ${
-                                      programForm.coachingScope === 'category_group'
-                                        ? 'bg-amber-400 border-amber-500 text-[#1F3A5F]'
-                                        : 'bg-slate-50 border-slate-200 text-slate-600'
-                                    }`}
-                                  >
-                                    Per Kategori Usaha
-                                  </button>
-                                </div>
-
-                                {programForm.coachingScope === 'category_group' && (
-                                  <select
-                                    value={programForm.targetCategory || BUSINESS_CATEGORIES[0]}
-                                    onChange={(e) =>
-                                      setProgramForm({
-                                        ...programForm,
-                                        targetCategory: e.target.value,
-                                      })
-                                    }
-                                    className="w-full px-2 py-1 text-[11px] bg-slate-50 border border-slate-300 rounded-lg"
-                                  >
-                                    {BUSINESS_CATEGORIES.map((cat) => (
-                                      <option key={cat} value={cat}>
-                                        Fokus Kategori: {cat}
-                                      </option>
-                                    ))}
-                                  </select>
-                                )}
-                              </div>
-                            )}
-
-                            <div className="grid grid-cols-2 gap-1.5">
-                              <div>
-                                <label className="block text-[10px] font-bold text-slate-600">
-                                  Durasi Sesi
-                                </label>
-                                <input
-                                  type="text"
-                                  maxLength={48}
-                                  value={programForm.durationLabel}
-                                  onChange={(e) =>
-                                    setProgramForm({
-                                      ...programForm,
-                                      durationLabel: e.target.value,
-                                    })
-                                  }
-                                  placeholder="3 Jam Praktik"
-                                  className="w-full px-2 py-1 text-xs border border-slate-300 rounded-lg"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-[10px] font-bold text-slate-600">
-                                  Kuota Peserta
-                                </label>
-                                <input
-                                  type="number"
-                                  min={1}
-                                  max={200}
-                                  value={programForm.quotaOverride ?? 15}
-                                  onChange={(e) =>
-                                    setProgramForm({
-                                      ...programForm,
-                                      quotaOverride: Math.max(1, Number(e.target.value) || 1),
-                                    })
-                                  }
-                                  className="w-full px-2 py-1 text-xs border border-slate-300 rounded-lg tabular-nums"
-                                />
-                              </div>
-                            </div>
-
-                            <div>
-                              <label className="block text-[10px] font-bold text-slate-600">
-                                Catatan Prasyarat (Opsional)
-                              </label>
-                              <input
-                                type="text"
-                                maxLength={140}
-                                value={programForm.prerequisiteNote || ''}
-                                onChange={(e) =>
-                                  setProgramForm({
-                                    ...programForm,
-                                    prerequisiteNote: e.target.value,
-                                  })
-                                }
-                                placeholder="Mis. Disarankan sudah ikut Seminar Dasar"
-                                className="w-full px-2 py-1 text-[11px] border border-slate-300 rounded-lg"
-                              />
-                            </div>
-
-                            <div className="flex items-center justify-end gap-1.5 pt-1">
-                              <button
-                                type="button"
-                                onClick={() => setEditingProgramMaterialId(null)}
-                                className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-600 font-bold cursor-pointer"
-                              >
-                                Batal
-                              </button>
-                              <button
-                                type="button"
-                                disabled={isBusyHost}
-                                onClick={() => handleSavePosterProgram(material.id)}
-                                className="px-3 py-1 rounded-lg bg-[#1F3A5F] text-white font-bold cursor-pointer disabled:opacity-50"
-                              >
-                                Simpan Jenjang
-                              </button>
-                            </div>
+                      {/* Multi-Jenjang Summary & Editor Trigger */}
+                      <div className="pt-2.5 border-t border-[#1F3A5F]/10 space-y-2">
+                        <div className="space-y-1 text-[11px]">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <Layers className="w-3.5 h-3.5 text-[#2A9D8F] shrink-0" />
+                            <span className="font-bold text-[#1F3A5F] truncate tabular-nums">
+                              {matProgramMeta.label} · {matProgram.deliveryMode === 'offline' ? 'Offline' : 'Online'} · {matProgram.durationLabel}
+                              {matProgram.format === 'coaching'
+                                ? matProgram.coachingScope === 'category_group'
+                                  ? ` · ${matProgram.targetCategory || 'Kategori'}`
+                                  : ' · Privat 1-on-1'
+                                : ` · Kuota ${matProgram.quotaOverride || campaign.minQuota}`}
+                            </span>
                           </div>
-                        ) : (
-                          <div className="flex items-center justify-between gap-2 text-[11px]">
-                            <div className="flex items-center gap-1.5 min-w-0">
-                              <Layers className="w-3.5 h-3.5 text-[#2A9D8F] shrink-0" />
-                              <span className="font-bold text-[#1F3A5F] truncate tabular-nums">
-                                {matProgramMeta.label} · {matProgram.deliveryMode === 'offline' ? 'Offline' : 'Online'} · {matProgram.durationLabel}
-                                {matProgram.format === 'coaching'
-                                  ? matProgram.coachingScope === 'category_group'
-                                    ? ` · ${matProgram.targetCategory || 'Kategori'}`
-                                    : ' · Privat 1-on-1'
-                                  : ` · Kuota ${matProgram.quotaOverride || campaign.minQuota}`}
-                                {isFixedScheduleProgram(matProgram) ? ' · Jadwal Tetap' : ' · Poling'}
-                              </span>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setEditingProgramMaterialId(material.id);
-                                setProgramForm({
-                                  format: matProgram.format,
-                                  deliveryMode:
-                                    matProgram.deliveryMode === 'offline' ? 'offline' : 'online',
-                                  locationLabel:
-                                    matProgram.locationLabel ||
-                                    DELIVERY_MODE_META[
-                                      matProgram.deliveryMode === 'offline' ? 'offline' : 'online'
-                                    ].defaultLocation,
-                                  durationLabel: matProgram.durationLabel,
-                                  quotaOverride: matProgram.quotaOverride || campaign.minQuota,
-                                  coachingScope: matProgram.coachingScope || 'one_on_one',
-                                  targetCategory:
-                                    matProgram.targetCategory || BUSINESS_CATEGORIES[0],
-                                  prerequisiteNote: matProgram.prerequisiteNote || '',
-                                  scheduleMode:
-                                    matProgram.scheduleMode === 'fixed' ? 'fixed' : 'polling',
-                                  fixedScheduleLabel: matProgram.fixedScheduleLabel || '',
-                                });
-                              }}
-                              className="px-2.5 py-1 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 text-[#1F3A5F] font-bold cursor-pointer whitespace-nowrap shrink-0"
-                            >
-                              Atur Jenjang
-                            </button>
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <Wallet className="w-3.5 h-3.5 text-[#F28C28] shrink-0" />
+                            <span className="font-bold text-[#1F3A5F] truncate tabular-nums">
+                              {matPricing.isPaid
+                                ? `${formatRupiah(matPricing.price)} · ${
+                                    matPricing.paymentMode === 'direct_pay'
+                                      ? 'QRIS Langsung'
+                                      : 'QRIS saat GO!'
+                                  }`
+                                : 'Status: Kelas Gratis'}
+                              {activeTier.linkedMaterialId !== anchorMaterial.id
+                                ? ' · Modul Kustom Terkait'
+                                : ''}
+                            </span>
                           </div>
-                        )}
-                      </div>
+                        </div>
 
-                      {/* Inline Free vs Paid Pricing Configuration */}
-                      <div className="pt-2.5 border-t border-[#1F3A5F]/10">
-                        {isEditingPrice ? (
-                          <div className="p-2.5 rounded-xl bg-white border border-slate-300 space-y-2 text-[11px]">
-                            <div className="grid grid-cols-2 gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setPricingForm({ ...pricingForm, isPaid: false, price: 0 })
-                                }
-                                className={`py-1.5 rounded-lg font-bold border cursor-pointer ${
-                                  !pricingForm.isPaid
-                                    ? 'bg-emerald-600 border-emerald-600 text-white'
-                                    : 'bg-slate-50 border-slate-200 text-slate-600'
-                                }`}
-                              >
-                                Kelas Gratis
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setPricingForm({
-                                    ...pricingForm,
-                                    isPaid: true,
-                                    price: pricingForm.price > 0 ? pricingForm.price : 50000,
-                                  })
-                                }
-                                className={`py-1.5 rounded-lg font-bold border cursor-pointer ${
-                                  pricingForm.isPaid
-                                    ? 'bg-[#F28C28] border-[#F28C28] text-white'
-                                    : 'bg-slate-50 border-slate-200 text-slate-600'
-                                }`}
-                              >
-                                Berbayar QRIS
-                              </button>
-                            </div>
-
-                            {pricingForm.isPaid && (
-                              <div className="space-y-1.5">
-                                <div className="grid grid-cols-2 gap-1.5">
-                                  <div>
-                                    <label className="block text-[10px] font-bold text-slate-600">
-                                      Harga (Rp)
-                                    </label>
-                                    <input
-                                      type="number"
-                                      min={1000}
-                                      step={5000}
-                                      value={pricingForm.price || ''}
-                                      onChange={(e) =>
-                                        setPricingForm({
-                                          ...pricingForm,
-                                          price: Number(e.target.value) || 0,
-                                        })
-                                      }
-                                      className="w-full px-2 py-1 text-xs border border-slate-300 rounded-lg tabular-nums"
-                                      placeholder="50000"
-                                    />
-                                  </div>
-                                  <div>
-                                    <label className="block text-[10px] font-bold text-slate-600">
-                                      Harga Coret (Ops)
-                                    </label>
-                                    <input
-                                      type="number"
-                                      min={0}
-                                      step={5000}
-                                      value={pricingForm.originalPrice || ''}
-                                      onChange={(e) =>
-                                        setPricingForm({
-                                          ...pricingForm,
-                                          originalPrice: Number(e.target.value) || undefined,
-                                        })
-                                      }
-                                      className="w-full px-2 py-1 text-xs border border-slate-300 rounded-lg tabular-nums"
-                                      placeholder="99000"
-                                    />
-                                  </div>
-                                </div>
-                                <div>
-                                  <label className="block text-[10px] font-bold text-slate-600">
-                                    Waktu Muncul QRIS
-                                  </label>
-                                  <select
-                                    value={pricingForm.paymentMode || 'pay_when_go'}
-                                    onChange={(e) =>
-                                      setPricingForm({
-                                        ...pricingForm,
-                                        paymentMode: e.target.value as UnlockPaymentMode,
-                                      })
-                                    }
-                                    className="w-full px-2 py-1 text-[11px] bg-slate-50 border border-slate-300 rounded-lg"
-                                  >
-                                    <option value="pay_when_go">
-                                      Muncul otomatis saat kuota GO! (Disarankan)
-                                    </option>
-                                    <option value="direct_pay">
-                                      Langsung muncul QRIS setelah daftar
-                                    </option>
-                                  </select>
-                                </div>
-                              </div>
-                            )}
-
-                            <div className="flex items-center justify-end gap-1.5 pt-1">
-                              <button
-                                type="button"
-                                onClick={() => setEditingPricingMaterialId(null)}
-                                className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-600 font-bold cursor-pointer"
-                              >
-                                Batal
-                              </button>
-                              <button
-                                type="button"
-                                disabled={isBusyHost}
-                                onClick={() => handleSavePosterPricing(material.id)}
-                                className="px-3 py-1 rounded-lg bg-[#1F3A5F] text-white font-bold cursor-pointer disabled:opacity-50"
-                              >
-                                Simpan Harga
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-between gap-2 text-[11px]">
-                            <div className="flex items-center gap-1.5 min-w-0">
-                              <Wallet className="w-3.5 h-3.5 text-[#F28C28] shrink-0" />
-                              <span className="font-bold text-[#1F3A5F] truncate tabular-nums">
-                                {matPricing.isPaid
-                                  ? `${formatRupiah(matPricing.price)} · ${
-                                      matPricing.paymentMode === 'direct_pay'
-                                        ? 'QRIS Langsung'
-                                        : 'QRIS saat GO!'
-                                    }`
-                                  : 'Status: Kelas Gratis'}
-                              </span>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setEditingPricingMaterialId(material.id);
-                                setPricingForm(
-                                  matPricing.isPaid
-                                    ? matPricing
-                                    : {
-                                        isPaid: false,
-                                        price: 50000,
-                                        originalPrice: undefined,
-                                        paymentMode: 'pay_when_go',
-                                      }
-                                );
-                              }}
-                              className="px-2.5 py-1 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 text-[#1F3A5F] font-bold cursor-pointer whitespace-nowrap shrink-0"
-                            >
-                              Atur Harga
-                            </button>
-                          </div>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => openMultiTierModal(anchorMaterial, activeTier.format)}
+                          className="w-full py-2 px-3 rounded-xl bg-white border border-slate-300 hover:border-[#F28C28] hover:bg-amber-50/50 text-[#1F3A5F] text-xs font-extrabold cursor-pointer flex items-center justify-center gap-1.5 transition-colors"
+                        >
+                          <Layers className="w-3.5 h-3.5 text-[#F28C28]" />
+                          <span>Atur Multi-Jenjang, Materi & Harga</span>
+                        </button>
                       </div>
                     </div>
 
@@ -4614,9 +4606,13 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                     <div className="p-4 flex items-center gap-2">
                       <button
                         type="button"
-                        onClick={() => setStudioMaterialId(material.id)}
+                        onClick={() => {
+                          setStudioMaterialId(anchorMaterial.id);
+                          setStudioTierFormat(activeTier.format);
+                        }}
                         className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-colors cursor-pointer whitespace-nowrap ${
-                          studioMaterialId === material.id
+                          studioMaterialId === anchorMaterial.id &&
+                          studioTierFormat === activeTier.format
                             ? 'bg-white text-[#1F3A5F]'
                             : 'bg-white/15 hover:bg-white/25 text-white'
                         }`}
@@ -4625,7 +4621,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                       </button>
                       <button
                         type="button"
-                        onClick={() => setPosterModalMaterial(material)}
+                        onClick={() => setPosterModalOffering(activeTier)}
                         className="py-2 px-3 rounded-xl text-xs font-extrabold bg-[#F28C28] hover:bg-[#d97719] text-white transition-colors cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0"
                         title="Pratinjau & Unduh Poster PNG"
                       >
@@ -4640,7 +4636,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
           )}
 
           {/* Studio Poster PNG & Broadcast WA Section */}
-          {studioMaterial && (
+          {studioAnchorMaterial && studioResolvedTier && (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-2">
               <div className="lg:col-span-6 space-y-5">
                 <div className="bg-white rounded-2xl border border-[#1F3A5F]/12 p-5 space-y-4">
@@ -4649,26 +4645,60 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                       Studio Poster PNG Resolusi Tinggi & QR
                     </h3>
                     <p className="text-xs text-slate-500 mt-0.5">
-                      Sesuaikan hook atau teks ajakan poster sebelum diunduh sebagai 4:5 (1080×1350 px) untuk Story/Grup WA.
+                      Sesuaikan hook atau teks ajakan poster per jenjang sebelum diunduh sebagai 4:5 (1080×1350 px).
                     </p>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Modul yang Diedit di Studio ({materials.length} modul)
-                    </label>
-                    <select
-                      value={studioMaterial.id}
-                      onChange={(e) => setStudioMaterialId(e.target.value)}
-                      className="w-full px-3 py-2.5 text-xs font-bold bg-slate-50 border border-slate-300 rounded-xl"
-                    >
-                      {materials.map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {visiblePosterIdSet.has(m.id) ? '[Publik] ' : '[Tersembunyi] '}
-                          {m.seminarTitle}
-                        </option>
-                      ))}
-                    </select>
+                  <div className="space-y-2.5">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Tema yang Diedit di Studio ({materials.length} modul)
+                      </label>
+                      <select
+                        value={studioAnchorMaterial.id}
+                        onChange={(e) => setStudioMaterialId(e.target.value)}
+                        className="w-full px-3 py-2.5 text-xs font-bold bg-slate-50 border border-slate-300 rounded-xl"
+                      >
+                        {materials.map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {visiblePosterIdSet.has(m.id) ? '[Publik] ' : '[Tersembunyi] '}
+                            {m.seminarTitle}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {(() => {
+                      const studioEnabledTiers = getEnabledTopicTiers(
+                        studioAnchorMaterial,
+                        materials,
+                        campaign
+                      );
+                      return studioEnabledTiers.length > 1 ? (
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1">
+                            Pilih Jenjang Poster
+                          </label>
+                          <div className="flex flex-wrap gap-1.5">
+                            {studioEnabledTiers.map((t) => (
+                              <button
+                                key={t.format}
+                                type="button"
+                                onClick={() => setStudioTierFormat(t.format)}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-extrabold border cursor-pointer ${
+                                  studioResolvedTier.format === t.format
+                                    ? 'bg-[#1F3A5F] border-[#1F3A5F] text-white'
+                                    : 'bg-slate-50 border-slate-200 text-[#1F3A5F] hover:bg-slate-100'
+                                }`}
+                              >
+                                {PROGRAM_FORMAT_META[t.format].label} ·{' '}
+                                {t.pricing.isPaid ? formatRupiah(t.pricing.price) : 'Gratis'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null;
+                    })()}
                   </div>
 
                   <div>
@@ -4680,7 +4710,10 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                       maxLength={180}
                       value={studioCustomNote}
                       onChange={(e) => setStudioCustomNote(e.target.value)}
-                      placeholder={studioMaterial.description || 'Tulis kalimat pengantar singkat untuk poster...'}
+                      placeholder={
+                        studioResolvedTier.linkedMaterial.description ||
+                        'Tulis kalimat pengantar singkat untuk poster...'
+                      }
                       className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl"
                     />
                   </div>
@@ -4703,14 +4736,14 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                       type="button"
                       onClick={async () => {
                         const qrCanvas = studioQrWrapRef.current?.querySelector('canvas') || null;
-                        await downloadMaterialPosterPng(studioMaterial, {
+                        await downloadMaterialPosterPng(studioResolvedTier.linkedMaterial, {
                           minQuota: campaign.minQuota,
                           deadlineLabel: campaign.deadlineLabel,
                           slotsSummary: slotsSummaryText,
                           ctaLabel: studioCtaLabel,
                           customNote: studioCustomNote,
-                          pricing: getMaterialPricing(studioMaterial.id),
-                          program: getMaterialProgram(studioMaterial),
+                          pricing: studioResolvedTier.pricing,
+                          program: studioResolvedTier.program,
                           qrCanvas,
                         });
                       }}
@@ -4724,7 +4757,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                       onClick={() =>
                         handleCopyText(
                           'studio_mat_link',
-                          `${baseBursaUrl}&mid=${encodeURIComponent(studioMaterial.id)}`
+                          `${baseBursaUrl}&mid=${encodeURIComponent(studioResolvedTier.offeringKey)}`
                         )
                       }
                       className="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-[#1F3A5F] text-xs font-bold flex items-center gap-1.5 cursor-pointer"
@@ -4737,7 +4770,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                       ) : (
                         <>
                           <Copy className="w-3.5 h-3.5" />
-                          <span>Salin Link Voting Modul Ini</span>
+                          <span>Salin Link Voting Jenjang Ini</span>
                         </>
                       )}
                     </button>
@@ -4751,7 +4784,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                         Teks Broadcast Grup WhatsApp
                       </h3>
                       <p className="text-xs text-slate-500">
-                        Otomatis merangkum poster yang dicentang tampil publik, inti materi, opsi jadwal & link voting.
+                        Otomatis merangkum poster yang dicentang tampil publik, seluruh jenjang aktif & link voting.
                       </p>
                     </div>
                     <button
@@ -4783,13 +4816,15 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
 
               <div className="lg:col-span-6 bg-white rounded-2xl border border-[#1F3A5F]/12 p-5 flex flex-col items-center gap-4">
                 <div className="w-full flex items-center justify-between text-xs">
-                  <span className="font-bold text-[#1F3A5F]">Pratinjau Langsung Poster 4:5</span>
+                  <span className="font-bold text-[#1F3A5F]">
+                    Pratinjau Poster 4:5 ({PROGRAM_FORMAT_META[studioResolvedTier.format].label})
+                  </span>
                   <span className="text-slate-500 tabular-nums">1080 × 1350 px</span>
                 </div>
 
                 <div ref={studioQrWrapRef} className="hidden">
                   <QRCodeCanvas
-                    value={`${baseBursaUrl}&mid=${encodeURIComponent(studioMaterial.id)}`}
+                    value={`${baseBursaUrl}&mid=${encodeURIComponent(studioResolvedTier.offeringKey)}`}
                     size={220}
                     level="M"
                     includeMargin
@@ -4804,7 +4839,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                 ) : (
                   <img
                     src={studioPreviewUrl}
-                    alt={`Preview Poster ${studioMaterial.seminarTitle}`}
+                    alt={`Preview Poster ${studioResolvedTier.linkedMaterial.seminarTitle}`}
                     className="w-full max-w-[400px] rounded-2xl shadow-lg border border-slate-200"
                   />
                 )}
@@ -5209,6 +5244,531 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
           </div>
         </form>
       )}
+
+      {/* Multi-Jenjang, Kurikulum & Harga Modal */}
+      {editingMultiTierAnchorId && (() => {
+        const editingAnchorMat = materials.find((m) => m.id === editingMultiTierAnchorId);
+        if (!editingAnchorMat) return null;
+        const activeTierMeta = PROGRAM_FORMAT_META[editingTierTab];
+        const currentEntry = tierDraftMap[editingTierTab];
+        const linkedMatObj =
+          materials.find((m) => m.id === currentEntry.linkedMaterialId) || editingAnchorMat;
+        const enabledTierCount = PROGRAM_TIERS_ORDER.filter((f) => tierDraftMap[f].enabled).length;
+
+        const updateActiveEntry = (patch: Partial<MaterialTierEntry>) => {
+          setTierDraftMap((prev) => ({
+            ...prev,
+            [editingTierTab]: {
+              ...prev[editingTierTab],
+              ...patch,
+            },
+          }));
+        };
+
+        const updateActiveProgram = (patch: Partial<MaterialTierEntry['program']>) => {
+          setTierDraftMap((prev) => ({
+            ...prev,
+            [editingTierTab]: {
+              ...prev[editingTierTab],
+              program: {
+                ...prev[editingTierTab].program,
+                ...patch,
+              },
+            },
+          }));
+        };
+
+        const updateActivePricing = (patch: Partial<MaterialTierEntry['pricing']>) => {
+          setTierDraftMap((prev) => ({
+            ...prev,
+            [editingTierTab]: {
+              ...prev[editingTierTab],
+              pricing: {
+                ...prev[editingTierTab].pricing,
+                ...patch,
+              },
+            },
+          }));
+        };
+
+        return (
+          <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="bg-white border border-slate-200 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+              {/* Modal Header */}
+              <div className="px-5 py-4 border-b border-slate-200 bg-slate-50 flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-[#1F3A5F]">
+                    <Layers className="w-3.5 h-3.5 text-[#F28C28]" />
+                    <span>Atur Multi-Jenjang, Materi &amp; Harga ({enabledTierCount}/3 Aktif)</span>
+                  </div>
+                  <h3 className="text-base font-extrabold text-slate-900 truncate mt-0.5">
+                    {editingAnchorMat.seminarTitle}
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditingMultiTierAnchorId(null)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/70 cursor-pointer shrink-0"
+                  aria-label="Tutup modal multi-jenjang"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* 3 Tier Switcher Tabs */}
+              <div className="px-5 pt-3 pb-2 border-b border-slate-200 bg-white grid grid-cols-3 gap-2">
+                {PROGRAM_TIERS_ORDER.map((fmt) => {
+                  const meta = PROGRAM_FORMAT_META[fmt];
+                  const entry = tierDraftMap[fmt];
+                  const isTabActive = editingTierTab === fmt;
+                  const priceLabel = entry.pricing.isPaid
+                    ? formatRupiah(entry.pricing.price || 0)
+                    : 'Gratis';
+
+                  return (
+                    <button
+                      key={fmt}
+                      type="button"
+                      onClick={() => setEditingTierTab(fmt)}
+                      className={`p-2.5 rounded-xl border text-left transition cursor-pointer ${
+                        isTabActive
+                          ? 'border-[#1F3A5F] bg-[#1F3A5F]/5 ring-1 ring-[#1F3A5F]'
+                          : 'border-slate-200 bg-slate-50/70 hover:bg-slate-100'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-1.5">
+                        <span className="text-xs font-extrabold text-slate-900">{meta.label}</span>
+                        <span
+                          className={`px-1.5 py-0.5 rounded text-[10px] font-extrabold ${
+                            entry.enabled
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : 'bg-slate-200 text-slate-500'
+                          }`}
+                        >
+                          {entry.enabled ? 'ON' : 'OFF'}
+                        </span>
+                      </div>
+                      <div className="text-[11px] font-semibold text-slate-600 mt-1 truncate tabular-nums">
+                        {entry.enabled ? priceLabel : 'Nonaktif'}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Active Tier Form Body */}
+              <div className="p-5 overflow-y-auto space-y-5 flex-1">
+                {/* 1. Toggle Aktifkan Jenjang */}
+                <label className="flex items-start justify-between gap-3 p-3.5 rounded-xl border border-slate-200 bg-slate-50 cursor-pointer">
+                  <div>
+                    <div className="text-sm font-extrabold text-slate-900">
+                      Aktifkan Jenjang {activeTierMeta.label} pada Tema Ini
+                    </div>
+                    <p className="text-xs text-slate-600 mt-0.5">{activeTierMeta.description}</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={currentEntry.enabled}
+                    onChange={(e) => updateActiveEntry({ enabled: e.target.checked })}
+                    className="w-5 h-5 mt-0.5 accent-[#1F3A5F] cursor-pointer shrink-0"
+                  />
+                </label>
+
+                <div className={currentEntry.enabled ? 'space-y-5' : 'space-y-5 opacity-55'}>
+                  {/* 2. Kurikulum / Modul Bank Materi */}
+                  <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <h4 className="text-xs font-extrabold uppercase tracking-wider text-[#1F3A5F]">
+                          Kurikulum / Slide Bank Materi ({activeTierMeta.label})
+                        </h4>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          Tautkan slide modul berbeda untuk jenjang {activeTierMeta.label}.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={isCreatingTierDraft}
+                        onClick={() => handleCreateTierDraftMaterial(editingAnchorMat, editingTierTab)}
+                        className="px-3 py-1.5 rounded-lg bg-[#1F3A5F] hover:bg-[#162b47] disabled:opacity-50 text-white text-xs font-bold cursor-pointer inline-flex items-center gap-1.5 shrink-0"
+                      >
+                        {isCreatingTierDraft ? (
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                        )}
+                        <span>1-Klik Buat Draf Varian {activeTierMeta.label}</span>
+                      </button>
+                    </div>
+
+                    <select
+                      value={currentEntry.linkedMaterialId || editingAnchorMat.id}
+                      onChange={(e) => updateActiveEntry({ linkedMaterialId: e.target.value })}
+                      className="w-full px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-300 rounded-xl text-slate-800"
+                    >
+                      {materials.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.seminarTitle}
+                          {m.id === editingAnchorMat.id ? ' (Tema Induk)' : ''} —{' '}
+                          {m.content.slides.length} slide
+                        </option>
+                      ))}
+                    </select>
+                    <div className="text-[11px] text-slate-500">
+                      Modul tertaut saat ini:{' '}
+                      <span className="font-bold text-slate-700">{linkedMatObj.seminarTitle}</span> (
+                      {linkedMatObj.content.slides.length} slide ·{' '}
+                      {linkedMatObj.content.questions.length} worksheet)
+                    </div>
+                  </div>
+
+                  {/* 3. Harga & Pembayaran QRIS */}
+                  <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-3">
+                    <div className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-[#1F3A5F]">
+                      <Wallet className="w-3.5 h-3.5 text-[#F28C28]" />
+                      <span>Harga &amp; Skema QRIS ({activeTierMeta.label})</span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => updateActivePricing({ isPaid: false, price: 0 })}
+                        className={`py-2 px-3 rounded-xl border text-xs font-bold cursor-pointer ${
+                          !currentEntry.pricing.isPaid
+                            ? 'bg-emerald-50 border-emerald-500 text-emerald-900'
+                            : 'bg-slate-50 border-slate-200 text-slate-600'
+                        }`}
+                      >
+                        Gratis (Rp0)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateActivePricing({
+                            isPaid: true,
+                            price:
+                              currentEntry.pricing.price >= 1000
+                                ? currentEntry.pricing.price
+                                : editingTierTab === 'coaching'
+                                ? 450000
+                                : editingTierTab === 'workshop'
+                                ? 150000
+                                : 50000,
+                          })
+                        }
+                        className={`py-2 px-3 rounded-xl border text-xs font-bold cursor-pointer ${
+                          currentEntry.pricing.isPaid
+                            ? 'bg-amber-50 border-[#F28C28] text-amber-950'
+                            : 'bg-slate-50 border-slate-200 text-slate-600'
+                        }`}
+                      >
+                        Berbayar via QRIS
+                      </button>
+                    </div>
+
+                    {currentEntry.pricing.isPaid && (
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                            Harga Jenjang (Rp)
+                          </label>
+                          <input
+                            type="number"
+                            min={1000}
+                            step={5000}
+                            value={currentEntry.pricing.price || ''}
+                            onChange={(e) =>
+                              updateActivePricing({ price: Number(e.target.value) || 0 })
+                            }
+                            className="w-full px-3 py-2 text-xs font-bold bg-slate-50 border border-slate-300 rounded-xl tabular-nums"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                            Harga Coret (Opsional)
+                          </label>
+                          <input
+                            type="number"
+                            min={0}
+                            step={5000}
+                            value={currentEntry.pricing.originalPrice || ''}
+                            placeholder="Misal: 300000"
+                            onChange={(e) =>
+                              updateActivePricing({
+                                originalPrice: e.target.value ? Number(e.target.value) : undefined,
+                              })
+                            }
+                            className="w-full px-3 py-2 text-xs font-bold bg-slate-50 border border-slate-300 rounded-xl tabular-nums"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                            Waktu Muncul QRIS
+                          </label>
+                          <select
+                            value={currentEntry.pricing.paymentMode || 'pay_when_go'}
+                            onChange={(e) =>
+                              updateActivePricing({
+                                paymentMode: e.target.value as UnlockPaymentMode,
+                              })
+                            }
+                            className="w-full px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-300 rounded-xl"
+                          >
+                            <option value="pay_when_go">Saat Kelas GO (Lock Kuota)</option>
+                            <option value="direct_pay">Langsung Saat Daftar</option>
+                          </select>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 4. Metode, Lokasi, Jadwal & Kuota */}
+                  <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-3">
+                    <h4 className="text-xs font-extrabold uppercase tracking-wider text-[#1F3A5F]">
+                      Metode, Lokasi, Jadwal &amp; Kuota ({activeTierMeta.label})
+                    </h4>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                          Metode Pelaksanaan
+                        </label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {(['online', 'offline'] as DeliveryModeType[]).map((mode) => {
+                            const selected =
+                              (currentEntry.program.deliveryMode || 'online') === mode;
+                            return (
+                              <button
+                                key={mode}
+                                type="button"
+                                onClick={() =>
+                                  updateActiveProgram({
+                                    deliveryMode: mode,
+                                    locationLabel: DELIVERY_MODE_META[mode].defaultLocation,
+                                  })
+                                }
+                                className={`py-2 px-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer ${
+                                  selected
+                                    ? 'bg-[#1F3A5F] border-[#1F3A5F] text-white'
+                                    : 'bg-slate-50 border-slate-200 text-slate-600'
+                                }`}
+                              >
+                                {mode === 'online' ? (
+                                  <Video className="w-3.5 h-3.5" />
+                                ) : (
+                                  <MapPin className="w-3.5 h-3.5" />
+                                )}
+                                <span>{DELIVERY_MODE_META[mode].label}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                          Platform / Lokasi Tatap Muka
+                        </label>
+                        <input
+                          type="text"
+                          maxLength={80}
+                          value={currentEntry.program.locationLabel || ''}
+                          onChange={(e) => updateActiveProgram({ locationLabel: e.target.value })}
+                          placeholder={
+                            (currentEntry.program.deliveryMode || 'online') === 'online'
+                              ? 'Via Zoom / Google Meet'
+                              : 'Contoh: Ruang Pelatihan / Gedung Koperasi'
+                          }
+                          className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                          Pengaturan Jadwal
+                        </label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {(['polling', 'fixed'] as ScheduleModeType[]).map((sm) => {
+                            const selected = (currentEntry.program.scheduleMode || 'polling') === sm;
+                            return (
+                              <button
+                                key={sm}
+                                type="button"
+                                onClick={() => updateActiveProgram({ scheduleMode: sm })}
+                                className={`py-2 px-2.5 rounded-xl border text-xs font-bold cursor-pointer ${
+                                  selected
+                                    ? 'bg-indigo-600 border-indigo-600 text-white'
+                                    : 'bg-slate-50 border-slate-200 text-slate-600'
+                                }`}
+                              >
+                                {SCHEDULE_MODE_META[sm].label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {(currentEntry.program.scheduleMode || 'polling') === 'fixed' && (
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                            Tanggal &amp; Jam Pasti
+                          </label>
+                          <input
+                            type="text"
+                            maxLength={80}
+                            value={currentEntry.program.fixedScheduleLabel || ''}
+                            onChange={(e) =>
+                              updateActiveProgram({ fixedScheduleLabel: e.target.value })
+                            }
+                            placeholder="Misal: Sabtu, 14 Des · 10.00 WIB"
+                            className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl"
+                          />
+                          {campaign.timeSlots.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1.5">
+                              {campaign.timeSlots.map((slot) => (
+                                <button
+                                  key={slot.id}
+                                  type="button"
+                                  onClick={() =>
+                                    updateActiveProgram({
+                                      fixedScheduleLabel: `${slot.dateText} · ${slot.timeText}`,
+                                    })
+                                  }
+                                  className="px-2 py-0.5 rounded bg-slate-100 hover:bg-indigo-50 border border-slate-200 text-[10px] font-semibold text-slate-700 cursor-pointer"
+                                >
+                                  {slot.dateText} ({slot.timeText})
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {editingTierTab === 'coaching' && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-xl bg-amber-50/60 border border-amber-200">
+                        <div>
+                          <label className="block text-[11px] font-bold text-amber-950 mb-1">
+                            Model Coaching
+                          </label>
+                          <select
+                            value={currentEntry.program.coachingScope || 'one_on_one'}
+                            onChange={(e) =>
+                              updateActiveProgram({
+                                coachingScope: e.target.value as CoachingScopeType,
+                              })
+                            }
+                            className="w-full px-3 py-2 text-xs bg-white border border-amber-300 rounded-xl font-semibold"
+                          >
+                            <option value="one_on_one">1-on-1 Private Review</option>
+                            <option value="category_group">Mini Group Sejenis (Max Kuota)</option>
+                          </select>
+                        </div>
+                        {(currentEntry.program.coachingScope || 'one_on_one') ===
+                          'category_group' && (
+                          <div>
+                            <label className="block text-[11px] font-bold text-amber-950 mb-1">
+                              Fokus Bidang Usaha
+                            </label>
+                            <select
+                              value={currentEntry.program.targetCategory || BUSINESS_CATEGORIES[0]}
+                              onChange={(e) =>
+                                updateActiveProgram({ targetCategory: e.target.value })
+                              }
+                              className="w-full px-3 py-2 text-xs bg-white border border-amber-300 rounded-xl font-semibold"
+                            >
+                              {BUSINESS_CATEGORIES.map((cat) => (
+                                <option key={cat} value={cat}>
+                                  {cat}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                          Durasi Sesi
+                        </label>
+                        <input
+                          type="text"
+                          maxLength={40}
+                          value={currentEntry.program.durationLabel || ''}
+                          onChange={(e) => updateActiveProgram({ durationLabel: e.target.value })}
+                          placeholder={activeTierMeta.defaultDuration}
+                          className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                          Target Kuota GO
+                        </label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={500}
+                          value={currentEntry.program.quotaOverride ?? activeTierMeta.defaultQuota}
+                          onChange={(e) =>
+                            updateActiveProgram({
+                              quotaOverride: Math.max(1, Number(e.target.value) || 1),
+                            })
+                          }
+                          className="w-full px-3 py-2 text-xs font-bold bg-slate-50 border border-slate-300 rounded-xl tabular-nums"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                          Catatan / Prasyarat (Opsional)
+                        </label>
+                        <input
+                          type="text"
+                          maxLength={100}
+                          value={currentEntry.program.prerequisiteNote || ''}
+                          onChange={(e) =>
+                            updateActiveProgram({ prerequisiteNote: e.target.value })
+                          }
+                          placeholder="Misal: Bawa produk / laptop"
+                          className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Sticky Footer */}
+              <div className="px-5 py-3.5 border-t border-slate-200 bg-slate-50 flex items-center justify-between gap-3">
+                <span className="text-[11px] text-slate-500">
+                  Peserta memilih langsung jenjang di kartu bursa.
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditingMultiTierAnchorId(null)}
+                    className="px-4 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-xs font-bold text-slate-700 cursor-pointer"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isBusyHost}
+                    onClick={() => handleSaveMultiTierConfig(editingAnchorMat.id)}
+                    className="px-5 py-2 rounded-xl bg-[#F28C28] hover:bg-[#d97719] disabled:opacity-50 text-white text-xs font-extrabold cursor-pointer inline-flex items-center gap-1.5"
+                  >
+                    <Check className="w-4 h-4" />
+                    <span>{isBusyHost ? 'Menyimpan...' : 'Simpan Semua Jenjang'}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Poster PNG Download Modal */}
       {posterDownloadModalJsx}

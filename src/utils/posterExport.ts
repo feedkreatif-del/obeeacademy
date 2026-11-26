@@ -10,11 +10,11 @@ import {
   PROGRAM_FORMAT_META,
   getDefaultProgramForMaterial,
   getDeliveryDisplayLabel,
+  getEnabledTopicTiers,
   getProgramQuotaBadgeText,
   getProgramShortPillText,
   getProgramTierLabelOnly,
   isFixedScheduleProgram,
-  resolveMaterialProgram,
 } from './programTier';
 
 export interface PosterRenderOptions {
@@ -542,16 +542,17 @@ export async function downloadMaterialPosterPng(
     .replace(/[^a-z0-9]+/g, '_')
     .replace(/^_+|_+$/g, '')
     .slice(0, 48);
+  const tierPrefix = options.program?.format ? `${options.program.format}_` : '';
   const a = document.createElement('a');
   a.href = dataUrl;
-  a.download = `Poster_${slug || 'kelas_pelatihan'}.png`;
+  a.download = `Poster_${tierPrefix}${slug || 'kelas_pelatihan'}.png`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
 }
 
 /**
- * Buat teks siap salin untuk broadcast ke Grup WhatsApp UMKM.
+ * Buat teks siap salin untuk broadcast ke Grup WhatsApp (mendukung Multi-Jenjang per Tema).
  */
 export function buildBursaBroadcastText(
   campaign: UnlockCampaignDoc,
@@ -562,21 +563,55 @@ export function buildBursaBroadcastText(
     .map((id) => materials.find((m) => m.id === id))
     .filter((m): m is SavedMaterial => Boolean(m));
 
+  let hasFixed = false;
+  let hasPolling = false;
+
   const topicLines = candidates
-    .map((mat, idx) => {
-      const inti = extractMaterialCoreHighlights(mat).slice(0, 2).join(' · ');
-      const pricing = campaign.materialPricing?.[mat.id];
-      const prog = resolveMaterialProgram(mat, campaign);
-      const progTag = `[${getProgramShortPillText(prog)}]`;
-      const deliveryTag = `[${getDeliveryDisplayLabel(prog)}]`;
-      const priceTag =
-        pricing?.isPaid && pricing.price > 0
-          ? `[Berbayar ${formatRupiah(pricing.price)}]`
-          : '[Gratis]';
-      const scheduleInfo = isFixedScheduleProgram(prog)
-        ? `\n   Jadwal Pasti (Mentor): *${prog.fixedScheduleLabel}*`
-        : `\n   Jadwal: Poling opsi peserta`;
-      return `${idx + 1}. *${mat.seminarTitle}* ${progTag} ${deliveryTag} ${priceTag}${scheduleInfo}\n   Inti: ${inti}`;
+    .map((anchorMat, idx) => {
+      const enabledTiers = getEnabledTopicTiers(anchorMat, materials, campaign);
+      enabledTiers.forEach((tier) => {
+        if (isFixedScheduleProgram(tier.program)) {
+          hasFixed = true;
+        } else {
+          hasPolling = true;
+        }
+      });
+
+      if (enabledTiers.length <= 1) {
+        const tier = enabledTiers[0];
+        const mat = tier?.linkedMaterial || anchorMat;
+        const inti = extractMaterialCoreHighlights(mat).slice(0, 2).join(' · ');
+        const prog = tier.program;
+        const progTag = `[${getProgramShortPillText(prog)}]`;
+        const deliveryTag = `[${getDeliveryDisplayLabel(prog)}]`;
+        const priceTag =
+          tier.pricing.isPaid && tier.pricing.price > 0
+            ? `[Berbayar ${formatRupiah(tier.pricing.price)}]`
+            : '[Gratis]';
+        const scheduleInfo = isFixedScheduleProgram(prog)
+          ? `\n   Jadwal Pasti: *${prog.fixedScheduleLabel}*`
+          : `\n   Jadwal: Poling opsi peserta`;
+        return `${idx + 1}. *${mat.seminarTitle}* ${progTag} ${deliveryTag} ${priceTag}${scheduleInfo}\n   Inti: ${inti}`;
+      }
+
+      const tierBullets = enabledTiers
+        .map((tier, tIdx) => {
+          const letter = String.fromCharCode(97 + tIdx);
+          const prog = tier.program;
+          const progTag = `[${getProgramShortPillText(prog)}]`;
+          const deliveryTag = `[${getDeliveryDisplayLabel(prog)}]`;
+          const priceTag =
+            tier.pricing.isPaid && tier.pricing.price > 0
+              ? `[Berbayar ${formatRupiah(tier.pricing.price)}]`
+              : '[Gratis]';
+          const schedulePart = isFixedScheduleProgram(prog)
+            ? `Jadwal Pasti: ${prog.fixedScheduleLabel}`
+            : 'Poling Jadwal';
+          return `   ${letter}) ${progTag} ${deliveryTag} ${priceTag} (${schedulePart})`;
+        })
+        .join('\n');
+      const inti = extractMaterialCoreHighlights(anchorMat).slice(0, 2).join(' · ');
+      return `${idx + 1}. *${anchorMat.seminarTitle}* (${enabledTiers.length} Pilihan Jenjang)\n${tierBullets}\n   Inti: ${inti}`;
     })
     .join('\n\n');
 
@@ -584,25 +619,22 @@ export function buildBursaBroadcastText(
     .map((s) => `• ${s.label} (${s.dateText}, ${s.timeText})`)
     .join('\n');
 
-  const hasFixed = candidates.some((m) => isFixedScheduleProgram(resolveMaterialProgram(m, campaign)));
-  const hasPolling = candidates.some((m) => !isFixedScheduleProgram(resolveMaterialProgram(m, campaign)));
-
   return [
     `*${campaign.title}*`,
     campaign.subtitle,
     '',
     hasFixed && hasPolling
-      ? `Tersedia kelas dengan *Jadwal Pasti dari Mentor* maupun kelas *Poling Jadwal* (resmi GO jika mencapai minimal *${campaign.minQuota} peserta* cocok).`
+      ? `Tersedia kelas dengan *Jadwal Pasti* maupun kelas *Poling Jadwal* (resmi GO jika mencapai minimal *${campaign.minQuota} peserta* cocok).`
       : hasFixed
-      ? `Jadwal kelas telah ditetapkan mentor — silakan langsung pilih materi & kunci kursi Anda!`
-      : `Supaya waktu belajar kita efektif & ramai, kelas akan *RESMI DIBUKA (GO!)* jika mencapai minimal *${campaign.minQuota} peserta berkomitmen hadir* pada topik suara terbanyak dan jadwal yang paling banyak cocok.`,
+      ? `Jadwal kelas telah ditetapkan — silakan langsung pilih materi & jenjang lalu kunci kursi Anda!`
+      : `Supaya waktu belajar kita efektif & sesuai level kebutuhan, pilih tema & jenjang (Seminar / Workshop / Coaching) yang paling pas! Kelas grup resmi jalan (GO!) saat kuota terpenuhi.`,
     '',
-    '*DAFTAR MATERI YANG TERSEDIA:*',
+    '*DAFTAR MATERI & JENJANG YANG TERSEDIA:*',
     topicLines,
     ...(hasPolling ? ['', '*OPSI JADWAL UNTUK KELAS POLING:*', slotLines] : []),
     '',
     `Batas pendaftaran/voting: *${campaign.deadlineLabel}*`,
-    `Silakan pilih kelas & kunci kursi Anda di tautan ini:`,
+    `Silakan pilih kelas, jenjang & kunci kursi Anda di tautan ini:`,
     votingUrl,
   ].join('\n');
 }

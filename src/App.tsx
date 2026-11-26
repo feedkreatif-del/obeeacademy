@@ -61,6 +61,11 @@ import {
   DEFAULT_GOPAY_QRIS_IMAGE,
   DEFAULT_GOPAY_QRIS_PAYLOAD,
 } from './utils/qris';
+import {
+  buildOfferingVoteSlug,
+  parseTierOfferingKey,
+  resolveOfferingByKey,
+} from './utils/programTier';
 import { ProjectorView } from './components/ProjectorView';
 import { ParticipantView } from './components/ParticipantView';
 import { ModerationView } from './components/ModerationView';
@@ -1573,7 +1578,27 @@ export default function App() {
   ) => {
     const safeCampId = (voteData.campaignId || 'active').replace(/[^a-zA-Z0-9_\-]/g, '');
     const safePartId = voteData.participantId.replace(/[^a-zA-Z0-9_\-]/g, '');
-    const deterministicVoteId = `${safeCampId}__${safePartId}`.slice(0, 128);
+    const parsedIncoming = parseTierOfferingKey(voteData.primaryMaterialId);
+    const resolvedIncoming = resolveOfferingByKey(
+      voteData.primaryMaterialId,
+      materials,
+      unlockCampaign
+    );
+    const effectiveFormat = resolvedIncoming?.format || parsedIncoming.format || 'seminar';
+    const canonicalOfferingKey = `${parsedIncoming.anchorMaterialId}::${effectiveFormat}`;
+    const offeringSlug = buildOfferingVoteSlug(canonicalOfferingKey);
+    const scopedVoteId = `${safeCampId}__${safePartId}__${offeringSlug}`.slice(0, 128);
+    const legacyVoteId = `${safeCampId}__${safePartId}`.slice(0, 128);
+
+    const legacyMatch = unlockVotes.find((v) => {
+      if (v.id !== legacyVoteId) return false;
+      const p = parseTierOfferingKey(v.primaryMaterialId);
+      const r = resolveOfferingByKey(v.primaryMaterialId, materials, unlockCampaign);
+      const fmt = r?.format || p.format || 'seminar';
+      return p.anchorMaterialId === parsedIncoming.anchorMaterialId && fmt === effectiveFormat;
+    });
+
+    const deterministicVoteId = legacyMatch ? legacyVoteId : scopedVoteId;
 
     const voteRef = doc(db, 'unlock_votes', deterministicVoteId);
     const contactRef = doc(db, 'unlock_contacts', deterministicVoteId);
@@ -2353,6 +2378,10 @@ export default function App() {
             onActivateWinningMaterial={async (mat) => {
               await handleSelectActiveMaterial(mat);
               setViewRole('slides');
+            }}
+            onCreateMaterial={async (newMat) => {
+              const nextList = await persistMaterial(db, newMat, false);
+              setMaterials(nextList);
             }}
             onBackToPresenter={() => setViewRole('projector')}
           />

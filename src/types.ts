@@ -128,6 +128,20 @@ export type DeliveryModeType = 'online' | 'offline';
 
 export type ScheduleModeType = 'polling' | 'fixed';
 
+export interface MaterialPricingConfig {
+  isPaid: boolean;
+  price: number;
+  originalPrice?: number;
+  paymentMode?: UnlockPaymentMode;
+}
+
+export interface MaterialTierEntry {
+  enabled: boolean;
+  linkedMaterialId?: string;
+  program: Omit<MaterialProgramConfig, 'tiers'>;
+  pricing: MaterialPricingConfig;
+}
+
 export interface MaterialProgramConfig {
   format: ProgramFormatType;
   deliveryMode?: DeliveryModeType;
@@ -139,13 +153,7 @@ export interface MaterialProgramConfig {
   coachingScope?: CoachingScopeType;
   targetCategory?: string;
   prerequisiteNote?: string;
-}
-
-export interface MaterialPricingConfig {
-  isPaid: boolean;
-  price: number;
-  originalPrice?: number;
-  paymentMode?: UnlockPaymentMode;
+  tiers?: Partial<Record<ProgramFormatType, MaterialTierEntry>>;
 }
 
 export type UnlockPaymentStatus = 'free' | 'unpaid' | 'confirming' | 'paid';
