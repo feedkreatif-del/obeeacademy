@@ -24,6 +24,9 @@ import {
   db,
   auth,
   loginWithGoogle,
+  loginWithGoogleRedirect,
+  checkGoogleRedirectResult,
+  formatGoogleAuthError,
   logoutUser,
   OperationType,
   handleFirestoreError,
@@ -457,8 +460,20 @@ export default function App() {
     }
   };
 
-  // Track Firebase Google Auth state for protected admin contact queries
+  const [mentorAuthExternalError, setMentorAuthExternalError] = useState<string>('');
+
+  // Track Firebase Google Auth state & redirect results for protected admin contact queries
   useEffect(() => {
+    checkGoogleRedirectResult()
+      .then((redirectUser) => {
+        if (redirectUser) {
+          setMentorUser(redirectUser);
+          setMentorAuthExternalError('');
+        }
+      })
+      .catch((err) => {
+        setMentorAuthExternalError(formatGoogleAuthError(err));
+      });
     const unsub = onAuthStateChanged(auth, (u) => {
       setMentorUser(u);
     });
@@ -466,7 +481,7 @@ export default function App() {
   }, []);
 
   const isVerifiedMentorAdmin = Boolean(
-    mentorUser?.email === 'feedkreatif@gmail.com' && mentorUser?.emailVerified
+    mentorUser?.email?.toLowerCase() === 'feedkreatif@gmail.com' && mentorUser?.emailVerified
   );
 
   // Sync saved materials library from Firestore on startup
@@ -2377,11 +2392,18 @@ export default function App() {
             participantId={participantId}
             isVerifiedMentorAdmin={isVerifiedMentorAdmin}
             mentorEmail={mentorUser?.email || null}
+            mentorAuthExternalError={mentorAuthExternalError}
             initialHighlightedMaterialId={initialQrTargetRef.current.materialId}
             onLoginMentorGoogle={async () => {
-              await loginWithGoogle();
+              setMentorAuthExternalError('');
+              await loginWithGoogle({ forceAccountSwitch: true });
+            }}
+            onLoginMentorRedirect={async () => {
+              setMentorAuthExternalError('');
+              await loginWithGoogleRedirect({ forceAccountSwitch: true });
             }}
             onLogoutMentorGoogle={async () => {
+              setMentorAuthExternalError('');
               await logoutUser();
             }}
             onSaveCampaign={handleSaveUnlockCampaign}

@@ -97,6 +97,7 @@ import {
   formatRupiah,
   isValidQrisPayload,
 } from '../utils/qris';
+import { formatGoogleAuthError } from '../firebase';
 
 interface ClassUnlockPortalViewProps {
   isHostMode: boolean;
@@ -107,8 +108,10 @@ interface ClassUnlockPortalViewProps {
   participantId: string;
   isVerifiedMentorAdmin: boolean;
   mentorEmail: string | null;
+  mentorAuthExternalError?: string;
   initialHighlightedMaterialId?: string | null;
   onLoginMentorGoogle: () => Promise<void>;
+  onLoginMentorRedirect?: () => Promise<void>;
   onLogoutMentorGoogle: () => Promise<void>;
   onSaveCampaign: (next: UnlockCampaignDoc) => Promise<void>;
   onSubmitVoteAndContact: (
@@ -240,8 +243,10 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
   participantId,
   isVerifiedMentorAdmin,
   mentorEmail,
+  mentorAuthExternalError,
   initialHighlightedMaterialId,
   onLoginMentorGoogle,
+  onLoginMentorRedirect,
   onLogoutMentorGoogle,
   onSaveCampaign,
   onSubmitVoteAndContact,
@@ -617,6 +622,14 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [hostMessage, setHostMessage] = useState<string>('');
   const [isBusyHost, setIsBusyHost] = useState<boolean>(false);
+  const [isLoggingInMentor, setIsLoggingInMentor] = useState<boolean>(false);
+  const [mentorAuthError, setMentorAuthError] = useState<string>('');
+
+  useEffect(() => {
+    if (isVerifiedMentorAdmin) {
+      setMentorAuthError('');
+    }
+  }, [isVerifiedMentorAdmin]);
 
   // Host Decision Controls (holds offeringKey)
   const [decisionMaterialId, setDecisionMaterialId] = useState<string>(
@@ -3661,26 +3674,81 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
         <div className="space-y-5">
           {/* Mentor Google Auth Gate */}
           {!isVerifiedMentorAdmin ? (
-            <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-start gap-2.5 text-xs text-amber-950">
-                <Lock className="w-4 h-4 text-[#F28C28] shrink-0 mt-0.5" />
-                <div>
-                  <span className="font-bold block text-sm">
-                    Database Kontak WhatsApp & Instagram Terproteksi
-                  </span>
-                  <span>
-                    Login dengan akun Google mentor terverifikasi (feedkreatif@gmail.com) untuk membuka Bank Database UMKM, audit profil Instagram peserta, kirim pengingat H-1, serta mengelola pipeline prospek klien.
-                  </span>
+            <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-start gap-2.5 text-xs text-amber-950 max-w-2xl">
+                  <Lock className="w-4 h-4 text-[#F28C28] shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <span className="font-bold block text-sm">
+                      Database Kontak WhatsApp & Instagram Terproteksi
+                    </span>
+                    <span className="block leading-relaxed">
+                      Login dengan akun Google mentor terverifikasi (feedkreatif@gmail.com) untuk membuka Bank Database UMKM, audit profil Instagram peserta, kirim pengingat H-1, serta mengelola pipeline prospek klien.
+                    </span>
+                    {mentorEmail && (
+                      <div className="mt-1.5 px-2.5 py-1.5 rounded-lg bg-rose-100/90 border border-rose-300 text-rose-900 font-semibold">
+                        Saat ini sesi Google terbaca sebagai <strong>{mentorEmail}</strong>, bukan <strong>feedkreatif@gmail.com</strong>. Klik tombol di kanan untuk ganti akun.
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    disabled={isLoggingInMentor}
+                    onClick={async () => {
+                      setIsLoggingInMentor(true);
+                      setMentorAuthError('');
+                      try {
+                        await onLoginMentorGoogle();
+                      } catch (err) {
+                        setMentorAuthError(formatGoogleAuthError(err));
+                      } finally {
+                        setIsLoggingInMentor(false);
+                      }
+                    }}
+                    className="px-4 py-2.5 rounded-xl bg-[#1F3A5F] hover:bg-[#162a45] disabled:opacity-50 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                  >
+                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                    <span>
+                      {isLoggingInMentor
+                        ? 'Membuka Login Google...'
+                        : mentorEmail
+                        ? 'Ganti Akun ke feedkreatif@gmail.com'
+                        : 'Verifikasi Akun Mentor (Google)'}
+                    </span>
+                  </button>
+                  {onLoginMentorRedirect && (
+                    <button
+                      type="button"
+                      disabled={isLoggingInMentor}
+                      onClick={async () => {
+                        setIsLoggingInMentor(true);
+                        setMentorAuthError('');
+                        try {
+                          await onLoginMentorRedirect();
+                        } catch (err) {
+                          setMentorAuthError(formatGoogleAuthError(err));
+                          setIsLoggingInMentor(false);
+                        }
+                      }}
+                      className="px-3 py-2.5 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 disabled:opacity-50 text-[#1F3A5F] text-xs font-bold cursor-pointer whitespace-nowrap"
+                      title="Alternatif jika pop-up diblokir atau tertutup otomatis di jendela PWA"
+                    >
+                      Mode Redirect
+                    </button>
+                  )}
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={onLoginMentorGoogle}
-                className="px-4 py-2.5 rounded-xl bg-[#1F3A5F] hover:bg-[#162a45] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
-              >
-                <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                <span>Verifikasi Akun Mentor (Google)</span>
-              </button>
+
+              {(mentorAuthError || mentorAuthExternalError) && (
+                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-900 space-y-1">
+                  <div className="font-bold">Kendala Verifikasi Google:</div>
+                  <div className="leading-relaxed">
+                    {mentorAuthError || mentorAuthExternalError}
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 flex flex-wrap items-center justify-between gap-2 text-xs text-emerald-900">

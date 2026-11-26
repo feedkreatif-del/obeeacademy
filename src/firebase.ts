@@ -1,5 +1,12 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
+import {
+  getAuth,
+  getRedirectResult,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signInWithRedirect,
+  signOut,
+} from 'firebase/auth';
 import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
 import firebaseAppletConfig from '../firebase-applet-config.json';
 
@@ -20,6 +27,7 @@ const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ prompt: 'select_account' });
 
 export enum OperationType {
   CREATE = 'create',
@@ -69,12 +77,63 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   throw new Error(JSON.stringify(errInfo));
 }
 
-export async function loginWithGoogle() {
+export function formatGoogleAuthError(err: unknown): string {
+  const code =
+    typeof err === 'object' && err !== null && 'code' in err
+      ? String((err as { code?: unknown }).code || '')
+      : '';
+  const host = typeof window !== 'undefined' ? window.location.hostname : '';
+
+  if (code === 'auth/unauthorized-domain') {
+    return `Domain "${host}" belum terdaftar di Authorized Domains Firebase Auth (${code}). Tambahkan domain tersebut di Firebase Console -> Authentication -> Settings -> Authorized domains, atau buka lewat domain resmi yang sudah terdaftar.`;
+  }
+  if (code === 'auth/popup-blocked') {
+    return `Pop-up login diblokir oleh browser / jendela PWA (${code}). Izinkan pop-up untuk situs ini atau gunakan tombol "Coba Login Mode Redirect" di bawah.`;
+  }
+  if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
+    return `Jendela pop-up login Google tertutup sebelum proses selesai (${code}). Jika kamu menjalankan aplikasi dari jendela PWA (aplikasi terinstal) atau iframe, pop-up sering terblokir/tertutup otomatis — coba tombol "Login Mode Redirect" di bawah atau buka di tab browser normal.`;
+  }
+  if (code === 'auth/operation-not-allowed') {
+    return `Provider Google Sign-In belum aktif pada proyek Firebase ini (${code}).`;
+  }
+  if (code === 'auth/network-request-failed') {
+    return `Gagal terhubung ke server autentikasi Google karena koneksi jaringan (${code}).`;
+  }
+  const msg = err instanceof Error ? err.message : String(err || 'Gagal login Google.');
+  return code ? `${msg} (${code})` : msg;
+}
+
+export async function loginWithGoogle(options?: { forceAccountSwitch?: boolean }) {
   try {
+    if (options?.forceAccountSwitch && auth.currentUser) {
+      await signOut(auth).catch(() => undefined);
+    }
     const result = await signInWithPopup(auth, googleProvider);
     return result.user;
   } catch (err) {
     console.error('Login error:', err);
+    throw err;
+  }
+}
+
+export async function loginWithGoogleRedirect(options?: { forceAccountSwitch?: boolean }) {
+  try {
+    if (options?.forceAccountSwitch && auth.currentUser) {
+      await signOut(auth).catch(() => undefined);
+    }
+    await signInWithRedirect(auth, googleProvider);
+  } catch (err) {
+    console.error('Redirect login error:', err);
+    throw err;
+  }
+}
+
+export async function checkGoogleRedirectResult() {
+  try {
+    const res = await getRedirectResult(auth);
+    return res?.user || null;
+  } catch (err) {
+    console.error('Redirect result error:', err);
     throw err;
   }
 }
