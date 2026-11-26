@@ -126,10 +126,14 @@ export type CoachingScopeType = 'one_on_one' | 'category_group';
 
 export type DeliveryModeType = 'online' | 'offline';
 
+export type ScheduleModeType = 'polling' | 'fixed';
+
 export interface MaterialProgramConfig {
   format: ProgramFormatType;
   deliveryMode?: DeliveryModeType;
   locationLabel?: string;
+  scheduleMode?: ScheduleModeType;
+  fixedScheduleLabel?: string;
   durationLabel?: string;
   quotaOverride?: number;
   coachingScope?: CoachingScopeType;

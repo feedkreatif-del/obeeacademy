@@ -4,6 +4,7 @@ import {
   MaterialProgramConfig,
   ProgramFormatType,
   SavedMaterial,
+  ScheduleModeType,
   UnlockCampaignDoc,
 } from '../types';
 
@@ -49,6 +50,28 @@ export const DELIVERY_MODE_META: Record<DeliveryModeType, DeliveryModeMeta> = {
     badgeClass: 'bg-violet-50 border-violet-200 text-violet-900',
     posterBgColor: '#7C3AED',
     posterTextColor: '#FFFFFF',
+  },
+};
+
+export interface ScheduleModeMeta {
+  mode: ScheduleModeType;
+  label: string;
+  shortLabel: string;
+  badgeClass: string;
+}
+
+export const SCHEDULE_MODE_META: Record<ScheduleModeType, ScheduleModeMeta> = {
+  polling: {
+    mode: 'polling',
+    label: 'Poling Jadwal',
+    shortLabel: 'POLING',
+    badgeClass: 'bg-slate-100 border-slate-300 text-slate-700',
+  },
+  fixed: {
+    mode: 'fixed',
+    label: 'Jadwal Tetap Admin',
+    shortLabel: 'JADWAL PASTI',
+    badgeClass: 'bg-indigo-50 border-indigo-200 text-indigo-900',
   },
 };
 
@@ -120,6 +143,7 @@ export function getDefaultProgramForMaterial(
         deliveryMode === 'offline'
           ? 'Tatap Muka / Studio Pendampingan'
           : DELIVERY_MODE_META.online.defaultLocation,
+      scheduleMode: 'polling',
       durationLabel: isGroup ? '2 Jam Fokus Kategori' : '90 Menit Privat',
       quotaOverride: isGroup ? 5 : 1,
       coachingScope: isGroup ? 'category_group' : 'one_on_one',
@@ -149,6 +173,7 @@ export function getDefaultProgramForMaterial(
         deliveryMode === 'offline'
           ? 'Tatap Muka · Studio Praktik'
           : DELIVERY_MODE_META.online.defaultLocation,
+      scheduleMode: 'polling',
       durationLabel: '2,5 – 3 Jam Praktik',
       quotaOverride: 8,
       prerequisiteNote: 'Materi lanjutan praktik — disarankan sudah ikut Seminar Dasar.',
@@ -161,6 +186,7 @@ export function getDefaultProgramForMaterial(
     locationLabel: haystack.includes('offline')
       ? DELIVERY_MODE_META.offline.defaultLocation
       : DELIVERY_MODE_META.online.defaultLocation,
+    scheduleMode: 'polling',
     durationLabel: '60–90 Menit',
     quotaOverride: Math.max(5, campaignMinQuota || 15),
   };
@@ -213,10 +239,17 @@ export function resolveMaterialProgram(
       ? Math.min(200, Math.round(rawQuota))
       : defaultQuotaForChoice;
 
+  const scheduleMode: ScheduleModeType =
+    override.scheduleMode === 'fixed' ? 'fixed' : 'polling';
+  const fixedScheduleLabel =
+    scheduleMode === 'fixed' ? (override.fixedScheduleLabel || '').trim() : '';
+
   return {
     format,
     deliveryMode,
     locationLabel,
+    scheduleMode,
+    ...(fixedScheduleLabel ? { fixedScheduleLabel } : {}),
     durationLabel: (override.durationLabel || '').trim() || meta.defaultDuration,
     quotaOverride,
     ...(coachingScope ? { coachingScope } : {}),
@@ -269,4 +302,10 @@ export function getDeliveryDisplayLabel(program: MaterialProgramConfig): string 
   const meta = DELIVERY_MODE_META[mode];
   const loc = (program.locationLabel || '').trim() || meta.defaultLocation;
   return `${meta.shortLabel} · ${loc}`;
+}
+
+export function isFixedScheduleProgram(program?: MaterialProgramConfig | null): boolean {
+  return Boolean(
+    program && program.scheduleMode === 'fixed' && (program.fixedScheduleLabel || '').trim()
+  );
 }

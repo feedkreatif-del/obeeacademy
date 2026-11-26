@@ -13,6 +13,7 @@ import {
   getProgramQuotaBadgeText,
   getProgramShortPillText,
   getProgramTierLabelOnly,
+  isFixedScheduleProgram,
   resolveMaterialProgram,
 } from './programTier';
 
@@ -456,22 +457,39 @@ export async function renderMaterialPosterDataUrl(
   }
 
   // Bottom callout inside cream card: Schedule & Rule
+  const isFixedSchedule = isFixedScheduleProgram(resolvedProgram);
   const infoBoxY = sheetY + sheetH - 116;
   ctx.fillStyle = '#FFFFFF';
   drawRoundedRect(ctx, 100, infoBoxY, W - 200, 90, 18);
   ctx.fill();
-  ctx.strokeStyle = `${accent}66`;
+  ctx.strokeStyle = isFixedSchedule ? '#6366F180' : `${accent}66`;
   ctx.lineWidth = 2;
   ctx.stroke();
 
-  ctx.fillStyle = primary;
+  ctx.fillStyle = isFixedSchedule ? '#3730A3' : primary;
   ctx.font = '800 19px system-ui, -apple-system, sans-serif';
-  ctx.fillText(`METODE ${deliveryShort} · MEKANISME BURSA KELAS:`, 124, infoBoxY + 32);
+  ctx.fillText(
+    isFixedSchedule
+      ? `JADWAL RESMI PENYELENGGARA · METODE ${deliveryShort}:`
+      : `METODE ${deliveryShort} · MEKANISME BURSA KELAS:`,
+    124,
+    infoBoxY + 32
+  );
 
-  ctx.fillStyle = '#334155';
-  ctx.font = '600 18px system-ui, -apple-system, sans-serif';
-  const mechLine1 = `Topik suara terbanyak + jadwal dengan min. ${minQuota} peserta terkonfirmasi resmi jalan!`;
-  const mechLine2 = `${deliveryShort} (${deliveryLoc}) · ${slotsSummary} · ${deadlineLabel}`;
+  ctx.fillStyle = '#1E293B';
+  ctx.font = '700 19px system-ui, -apple-system, sans-serif';
+  const quotaScopeText =
+    resolvedProgram.format === 'coaching' && resolvedProgram.coachingScope === 'one_on_one'
+      ? 'Sesi Privat 1-on-1'
+      : resolvedProgram.format === 'workshop'
+      ? `Maks. ${resolvedProgram.quotaOverride || 8} Kursi`
+      : `Min. ${resolvedProgram.quotaOverride || minQuota} Peserta`;
+  const mechLine1 = isFixedSchedule
+    ? `${resolvedProgram.fixedScheduleLabel} (${deliveryLoc})`
+    : `Topik suara terbanyak + jadwal dengan min. ${minQuota} peserta terkonfirmasi resmi jalan!`;
+  const mechLine2 = isFixedSchedule
+    ? `Jadwal ditetapkan mentor · Kuota ${quotaScopeText} · ${deadlineLabel}`
+    : `${deliveryShort} (${deliveryLoc}) · ${slotsSummary} · ${deadlineLabel}`;
   const mechL1 = wrapTextLines(ctx, mechLine1, W - 250, 1)[0] || mechLine1;
   const mechL2 = wrapTextLines(ctx, mechLine2, W - 250, 1)[0] || mechLine2;
   ctx.fillText(mechL1, 124, infoBoxY + 57);
@@ -486,7 +504,11 @@ export async function renderMaterialPosterDataUrl(
   const footerKicker = isPaidClass
     ? options.pricing?.paymentMode === 'direct_pay'
       ? `KELAS SPESIALIS ${formatRupiah(options.pricing!.price)} · QRIS OTOMATIS`
+      : isFixedSchedule
+      ? `KELAS BERBAYAR ${formatRupiah(options.pricing!.price)} · JADWAL PASTI`
       : `KELAS BERBAYAR ${formatRupiah(options.pricing!.price)} · BAYAR SAAT KUOTA GO!`
+    : isFixedSchedule
+    ? 'GRATIS UNTUK UMKM · DAFTAR JADWAL PASTI'
     : 'GRATIS UNTUK UMKM · BURSA VOTING KELAS';
   ctx.fillText(footerKicker, 64, footY + 34);
 
@@ -551,7 +573,10 @@ export function buildBursaBroadcastText(
         pricing?.isPaid && pricing.price > 0
           ? `[Berbayar ${formatRupiah(pricing.price)}]`
           : '[Gratis]';
-      return `${idx + 1}. *${mat.seminarTitle}* ${progTag} ${deliveryTag} ${priceTag}\n   Inti: ${inti}`;
+      const scheduleInfo = isFixedScheduleProgram(prog)
+        ? `\n   Jadwal Pasti (Mentor): *${prog.fixedScheduleLabel}*`
+        : `\n   Jadwal: Poling opsi peserta`;
+      return `${idx + 1}. *${mat.seminarTitle}* ${progTag} ${deliveryTag} ${priceTag}${scheduleInfo}\n   Inti: ${inti}`;
     })
     .join('\n\n');
 
@@ -559,20 +584,25 @@ export function buildBursaBroadcastText(
     .map((s) => `• ${s.label} (${s.dateText}, ${s.timeText})`)
     .join('\n');
 
+  const hasFixed = candidates.some((m) => isFixedScheduleProgram(resolveMaterialProgram(m, campaign)));
+  const hasPolling = candidates.some((m) => !isFixedScheduleProgram(resolveMaterialProgram(m, campaign)));
+
   return [
     `*${campaign.title}*`,
     campaign.subtitle,
     '',
-    `Supaya waktu belajar kita efektif & ramai, kelas akan *RESMI DIBUKA (GO!)* jika mencapai minimal *${campaign.minQuota} peserta berkomitmen hadir* pada topik suara terbanyak dan jadwal yang paling banyak cocok.`,
+    hasFixed && hasPolling
+      ? `Tersedia kelas dengan *Jadwal Pasti dari Mentor* maupun kelas *Poling Jadwal* (resmi GO jika mencapai minimal *${campaign.minQuota} peserta* cocok).`
+      : hasFixed
+      ? `Jadwal kelas telah ditetapkan mentor — silakan langsung pilih materi & kunci kursi Anda!`
+      : `Supaya waktu belajar kita efektif & ramai, kelas akan *RESMI DIBUKA (GO!)* jika mencapai minimal *${campaign.minQuota} peserta berkomitmen hadir* pada topik suara terbanyak dan jadwal yang paling banyak cocok.`,
     '',
-    '*KANDIDAT MATERI YANG BISA DIPILIH:*',
+    '*DAFTAR MATERI YANG TERSEDIA:*',
     topicLines,
+    ...(hasPolling ? ['', '*OPSI JADWAL UNTUK KELAS POLING:*', slotLines] : []),
     '',
-    '*OPSI JADWAL TERSEDIA:*',
-    slotLines,
-    '',
-    `Batas voting: *${campaign.deadlineLabel}*`,
-    `Silakan pilih topik & centang semua jam yang Anda bisa di tautan ini:`,
+    `Batas pendaftaran/voting: *${campaign.deadlineLabel}*`,
+    `Silakan pilih kelas & kunci kursi Anda di tautan ini:`,
     votingUrl,
   ].join('\n');
 }

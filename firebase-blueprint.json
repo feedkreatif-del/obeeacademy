@@ -448,7 +448,7 @@
         },
         "materialProgram": {
           "type": "object",
-          "description": "Map of materialId to 3-tier program classification (format: seminar|workshop|coaching, deliveryMode: online|offline, locationLabel, durationLabel, quotaOverride, coachingScope, targetCategory, prerequisiteNote)"
+          "description": "Map of materialId to 3-tier program classification (format: seminar|workshop|coaching, deliveryMode: online|offline, locationLabel, scheduleMode: polling|fixed, fixedScheduleLabel, durationLabel, quotaOverride, coachingScope, targetCategory, prerequisiteNote)"
         },
         "qrisPayload": {
           "type": "string",
