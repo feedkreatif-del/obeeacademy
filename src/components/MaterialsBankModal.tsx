@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   SavedMaterial,
   DEFAULT_PARTNERUP_CURRICULUM,
@@ -13,6 +13,15 @@ import {
 } from '../utils/materialsManager';
 import { exportCurriculumToPowerPoint } from '../utils/pptxExport';
 import { exportFacilitatorDeepDivePdf } from '../utils/facilitatorPdfExport';
+import { db } from '../firebase';
+import {
+  CurriculumRoadmapItem,
+  DEFAULT_CURRICULUM_ROADMAP,
+  RoadmapPriority,
+  RoadmapStatus,
+  saveCurriculumRoadmap,
+  subscribeCurriculumRoadmap,
+} from '../utils/curriculumRoadmap';
 import {
   Layers,
   BookOpen,
@@ -27,10 +36,13 @@ import {
   Edit3,
   Calendar,
   Sparkles,
-  HelpCircle,
   FileText,
-  AlertTriangle,
   RotateCcw,
+  ClipboardList,
+  Flag,
+  ChevronDown,
+  ChevronUp,
+  ArrowRight,
 } from 'lucide-react';
 
 interface MaterialsBankModalProps {
@@ -54,10 +66,34 @@ export const MaterialsBankModal: React.FC<MaterialsBankModalProps> = ({
   onSaveNewMaterial,
   onDeleteMaterial,
 }) => {
-  const [activeTab, setActiveTab] = useState<'list' | 'create'>('list');
+  const [activeTab, setActiveTab] = useState<'list' | 'roadmap' | 'create'>('list');
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [activatingId, setActivatingId] = useState<string | null>(null);
   const [actionSuccessNotice, setActionSuccessNotice] = useState<string | null>(null);
+
+  // Roadmap State (Synced to Cloud Firestore & LocalStorage)
+  const [roadmapItems, setRoadmapItems] = useState<CurriculumRoadmapItem[]>(DEFAULT_CURRICULUM_ROADMAP);
+  const [roadmapFilter, setRoadmapFilter] = useState<'semua' | RoadmapStatus>('semua');
+  const [showAddRoadmapForm, setShowAddRoadmapForm] = useState(false);
+  const [rmTitle, setRmTitle] = useState('');
+  const [rmPillar, setRmPillar] = useState('Pilar Konten Visual');
+  const [rmPriority, setRmPriority] = useState<RoadmapPriority>('tinggi');
+  const [rmSummary, setRmSummary] = useState('');
+  const [rmSeminar, setRmSeminar] = useState('');
+  const [rmWorkshop, setRmWorkshop] = useState('');
+  const [rmCoaching, setRmCoaching] = useState('');
+  const [editingRoadmapId, setEditingRoadmapId] = useState<string | null>(null);
+  const [expandedTierId, setExpandedTierId] = useState<string | null>(null);
+  const [confirmDeleteRoadmapId, setConfirmDeleteRoadmapId] = useState<string | null>(null);
+  const [creatingFromRoadmapId, setCreatingFromRoadmapId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const unsubscribe = subscribeCurriculumRoadmap(db, (items) => {
+      setRoadmapItems(items);
+    });
+    return () => unsubscribe();
+  }, [isOpen]);
 
   // Form State for Creating New Material
   const [newTitle, setNewTitle] = useState('');
@@ -258,6 +294,147 @@ export const MaterialsBankModal: React.FC<MaterialsBankModalProps> = ({
     e.target.value = '';
   };
 
+  const persistRoadmapUpdate = async (nextItems: CurriculumRoadmapItem[], notice?: string) => {
+    setRoadmapItems(nextItems);
+    const saved = await saveCurriculumRoadmap(db, nextItems);
+    setRoadmapItems(saved);
+    if (notice) {
+      setActionSuccessNotice(notice);
+      setTimeout(() => setActionSuccessNotice(null), 4500);
+    }
+  };
+
+  const handleAddOrUpdateRoadmap = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!rmTitle.trim()) return;
+    const now = Date.now();
+    if (editingRoadmapId) {
+      const next = roadmapItems.map((it) =>
+        it.id === editingRoadmapId
+          ? {
+              ...it,
+              title: rmTitle.trim(),
+              pillar: rmPillar.trim() || 'Pilar Kurikulum',
+              priority: rmPriority,
+              summary: rmSummary.trim(),
+              tierPlan: {
+                seminar: rmSeminar.trim(),
+                workshop: rmWorkshop.trim(),
+                coaching: rmCoaching.trim(),
+              },
+              updatedAt: now,
+            }
+          : it
+      );
+      await persistRoadmapUpdate(next, `Rencana materi "${rmTitle.trim()}" diperbarui & tersimpan di Cloud!`);
+    } else {
+      const newItem: CurriculumRoadmapItem = {
+        id: `rm_${now}_${Math.random().toString(36).slice(2, 6)}`,
+        title: rmTitle.trim(),
+        pillar: rmPillar.trim() || 'Pilar Kurikulum',
+        priority: rmPriority,
+        status: 'ide',
+        summary: rmSummary.trim(),
+        tierPlan: {
+          seminar: rmSeminar.trim(),
+          workshop: rmWorkshop.trim(),
+          coaching: rmCoaching.trim(),
+        },
+        createdAt: now,
+        updatedAt: now,
+      };
+      await persistRoadmapUpdate([newItem, ...roadmapItems], `Ide materi "${newItem.title}" ditambahkan ke daftar rencana!`);
+    }
+    setShowAddRoadmapForm(false);
+    setEditingRoadmapId(null);
+    setRmTitle('');
+    setRmPillar('Pilar Konten Visual');
+    setRmPriority('tinggi');
+    setRmSummary('');
+    setRmSeminar('');
+    setRmWorkshop('');
+    setRmCoaching('');
+  };
+
+  const handleOpenEditRoadmap = (item: CurriculumRoadmapItem) => {
+    setEditingRoadmapId(item.id);
+    setRmTitle(item.title);
+    setRmPillar(item.pillar);
+    setRmPriority(item.priority);
+    setRmSummary(item.summary);
+    setRmSeminar(item.tierPlan.seminar);
+    setRmWorkshop(item.tierPlan.workshop);
+    setRmCoaching(item.tierPlan.coaching);
+    setShowAddRoadmapForm(true);
+  };
+
+  const handleChangeRoadmapStatus = async (itemId: string, nextStatus: RoadmapStatus) => {
+    const next = roadmapItems.map((it) =>
+      it.id === itemId ? { ...it, status: nextStatus, updatedAt: Date.now() } : it
+    );
+    await persistRoadmapUpdate(next);
+  };
+
+  const handleChangeRoadmapPriority = async (itemId: string, nextPriority: RoadmapPriority) => {
+    const next = roadmapItems.map((it) =>
+      it.id === itemId ? { ...it, priority: nextPriority, updatedAt: Date.now() } : it
+    );
+    await persistRoadmapUpdate(next);
+  };
+
+  const handleDeleteRoadmapItem = async (itemId: string) => {
+    const next = roadmapItems.filter((it) => it.id !== itemId);
+    setConfirmDeleteRoadmapId(null);
+    await persistRoadmapUpdate(next, 'Item rencana materi dihapus dari daftar.');
+  };
+
+  const handleCreateDraftFromRoadmap = async (item: CurriculumRoadmapItem) => {
+    setCreatingFromRoadmapId(item.id);
+    try {
+      const draft = createBlankMaterial(item.title, 'obeeAcademy | Obeecreatives');
+      draft.category = item.pillar || 'Materi Kustom';
+      draft.description = item.summary || `Modul pelatihan ${item.title} (${item.pillar}).`;
+      draft.content.category = draft.category;
+      draft.content.description = draft.description;
+      if (draft.content.slides[0]) {
+        draft.content.slides[0] = {
+          ...draft.content.slides[0],
+          badge: item.pillar.toUpperCase(),
+          subtitle: item.summary || draft.content.slides[0].subtitle,
+          speakerNotes: [
+            item.tierPlan.seminar ? `Seminar: ${item.tierPlan.seminar}` : '',
+            item.tierPlan.workshop ? `Workshop: ${item.tierPlan.workshop}` : '',
+            item.tierPlan.coaching ? `Coaching: ${item.tierPlan.coaching}` : '',
+          ]
+            .filter(Boolean)
+            .join('\n'),
+        };
+      }
+      await onSaveNewMaterial(draft, false);
+      const nextRoadmap = roadmapItems.map((it) =>
+        it.id === item.id
+          ? {
+              ...it,
+              status: it.status === 'ide' ? ('menyusun' as RoadmapStatus) : it.status,
+              linkedMaterialId: draft.id,
+              updatedAt: Date.now(),
+            }
+          : it
+      );
+      await persistRoadmapUpdate(
+        nextRoadmap,
+        `Draf "${draft.seminarTitle}" berhasil dibuat di Bank Materi & status rencana ditandai Sedang Disusun!`
+      );
+    } finally {
+      setCreatingFromRoadmapId(null);
+    }
+  };
+
+  const filteredRoadmapItems =
+    roadmapFilter === 'semua'
+      ? roadmapItems
+      : roadmapItems.filter((it) => it.status === roadmapFilter);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-[#1F3A5F]/80 backdrop-blur-xs overflow-y-auto">
       <div className="bg-white rounded-3xl shadow-2xl border border-[#1F3A5F]/20 w-full max-w-5xl max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
@@ -302,7 +479,7 @@ export const MaterialsBankModal: React.FC<MaterialsBankModalProps> = ({
 
         {/* Tab Switcher & Quick Actions */}
         <div className="bg-[#FFF7EC] px-5 sm:px-6 py-3 border-b border-[#1F3A5F]/10 flex flex-wrap items-center justify-between gap-3 shrink-0">
-          <div className="flex items-center gap-1.5 bg-white p-1 rounded-xl border border-[#1F3A5F]/15 shadow-2xs">
+          <div className="flex flex-wrap items-center gap-1.5 bg-white p-1 rounded-xl border border-[#1F3A5F]/15 shadow-2xs">
             <button
               type="button"
               onClick={() => setActiveTab('list')}
@@ -314,6 +491,18 @@ export const MaterialsBankModal: React.FC<MaterialsBankModalProps> = ({
             >
               <BookOpen className="w-3.5 h-3.5" />
               <span>Daftar Bank Materi ({materials.length})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('roadmap')}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
+                activeTab === 'roadmap'
+                  ? 'bg-[#2A9D8F] text-white'
+                  : 'text-[#1F3A5F]/80 hover:bg-[#FFF7EC]'
+              }`}
+            >
+              <ClipboardList className="w-3.5 h-3.5" />
+              <span>Rencana Materi ({roadmapItems.length})</span>
             </button>
             <button
               type="button"
@@ -622,6 +811,452 @@ export const MaterialsBankModal: React.FC<MaterialsBankModalProps> = ({
                   })}
                 </div>
               </div>
+            </div>
+          ) : activeTab === 'roadmap' ? (
+            <div className="space-y-5">
+              {/* Header & Summary Strip */}
+              <div className="bg-gradient-to-r from-[#1F3A5F] via-[#264775] to-[#1F3A5F] rounded-2xl p-4 sm:p-5 text-white flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
+                <div className="space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#2A9D8F] text-white text-[10px] font-extrabold uppercase tracking-wider">
+                      Roadmap Kurikulum obeeAcademy
+                    </span>
+                    <span className="text-[11px] font-bold text-white/80">
+                      {roadmapItems.filter((i) => i.priority === 'tinggi').length} Prioritas Tinggi ·{' '}
+                      {roadmapItems.filter((i) => i.status === 'menyusun').length} Sedang Disusun ·{' '}
+                      {roadmapItems.filter((i) => i.status === 'selesai').length} Selesai
+                    </span>
+                  </div>
+                  <h3 className="font-display font-extrabold text-base sm:text-lg">
+                    Daftar Rencana Penambahan Materi Baru
+                  </h3>
+                  <p className="text-xs text-white/80 max-w-2xl leading-relaxed">
+                    Simpan ide topik lanjutan, catat skema 3 jenjang (Seminar · Workshop · Coaching), lalu klik{' '}
+                    <strong>"Buat Draf di Bank Materi"</strong> kapan pun kamu siap menyusun slidenya.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingRoadmapId(null);
+                    setRmTitle('');
+                    setRmPillar('Pilar Konten Visual');
+                    setRmPriority('tinggi');
+                    setRmSummary('');
+                    setRmSeminar('');
+                    setRmWorkshop('');
+                    setRmCoaching('');
+                    setShowAddRoadmapForm((prev) => !prev);
+                  }}
+                  className="px-4 py-2.5 rounded-xl bg-[#F28C28] hover:bg-[#d9771e] text-white text-xs font-extrabold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-xs"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>{showAddRoadmapForm && !editingRoadmapId ? 'Tutup Form' : '+ Tambah Ide Materi'}</span>
+                </button>
+              </div>
+
+              {/* Inline Add / Edit Form */}
+              {showAddRoadmapForm && (
+                <form
+                  onSubmit={handleAddOrUpdateRoadmap}
+                  className="bg-[#FFF7EC] border-2 border-[#F28C28]/40 rounded-2xl p-4 sm:p-5 space-y-4 animate-in fade-in duration-150"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <h4 className="font-display font-extrabold text-sm text-[#1F3A5F]">
+                      {editingRoadmapId ? 'Sunting Rencana Materi' : 'Catat Ide Materi Baru ke Roadmap'}
+                    </h4>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowAddRoadmapForm(false);
+                        setEditingRoadmapId(null);
+                      }}
+                      className="text-xs font-bold text-[#1F3A5F]/65 hover:text-[#1F3A5F] cursor-pointer"
+                    >
+                      Tutup
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="sm:col-span-2">
+                      <label className="block text-[11px] font-bold uppercase text-[#1F3A5F]/80 mb-1">
+                        Judul Topik Materi *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        maxLength={140}
+                        placeholder="Contoh: Optimasi Konten TikTok Affiliate untuk Produk Lokal"
+                        value={rmTitle}
+                        onChange={(e) => setRmTitle(e.target.value)}
+                        className="w-full rounded-xl border border-[#1F3A5F]/20 bg-white px-3 py-2 text-xs font-bold text-[#1F3A5F] focus:outline-hidden focus:ring-2 focus:ring-[#F28C28]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold uppercase text-[#1F3A5F]/80 mb-1">
+                        Prioritas Garapan
+                      </label>
+                      <select
+                        value={rmPriority}
+                        onChange={(e) => setRmPriority(e.target.value as RoadmapPriority)}
+                        className="w-full rounded-xl border border-[#1F3A5F]/20 bg-white px-3 py-2 text-xs font-bold text-[#1F3A5F]"
+                      >
+                        <option value="tinggi">Prioritas Tinggi</option>
+                        <option value="sedang">Prioritas Sedang</option>
+                        <option value="santai">Cadangan / Santai</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold uppercase text-[#1F3A5F]/80 mb-1">
+                        Pilar / Kategori
+                      </label>
+                      <input
+                        type="text"
+                        maxLength={60}
+                        list="roadmap-pillar-options"
+                        value={rmPillar}
+                        onChange={(e) => setRmPillar(e.target.value)}
+                        className="w-full rounded-xl border border-[#1F3A5F]/20 bg-white px-3 py-2 text-xs font-semibold text-[#1F3A5F]"
+                      />
+                      <datalist id="roadmap-pillar-options">
+                        <option value="Pilar Konten Visual" />
+                        <option value="Pilar Fotografi Lanjutan" />
+                        <option value="Pilar Digital Presence" />
+                        <option value="Pilar Traffic & Iklan" />
+                        <option value="Pilar AI & Produktivitas" />
+                        <option value="Pilar Sistem Kerja" />
+                        <option value="Pilar Bisnis & Keuangan" />
+                      </datalist>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="block text-[11px] font-bold uppercase text-[#1F3A5F]/80 mb-1">
+                        Ringkasan Tujuan & Manfaat untuk UMKM
+                      </label>
+                      <input
+                        type="text"
+                        maxLength={400}
+                        placeholder="Apa masalah peserta yang diselesaikan oleh materi ini?"
+                        value={rmSummary}
+                        onChange={(e) => setRmSummary(e.target.value)}
+                        className="w-full rounded-xl border border-[#1F3A5F]/20 bg-white px-3 py-2 text-xs text-[#1F3A5F]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+                    <div>
+                      <label className="block text-[11px] font-bold text-[#1F3A5F] mb-1">
+                        Catatan Jenjang Seminar (90 Menit)
+                      </label>
+                      <textarea
+                        rows={2}
+                        maxLength={220}
+                        placeholder="Pola pikir & konsep kunci yang dibedah..."
+                        value={rmSeminar}
+                        onChange={(e) => setRmSeminar(e.target.value)}
+                        className="w-full rounded-xl border border-[#1F3A5F]/20 bg-white px-3 py-2 text-xs text-[#1F3A5F]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-[#2A9D8F] mb-1">
+                        Catatan Jenjang Workshop (Praktik)
+                      </label>
+                      <textarea
+                        rows={2}
+                        maxLength={220}
+                        placeholder="Output nyata yang dikerjakan peserta..."
+                        value={rmWorkshop}
+                        onChange={(e) => setRmWorkshop(e.target.value)}
+                        className="w-full rounded-xl border border-[#1F3A5F]/20 bg-white px-3 py-2 text-xs text-[#1F3A5F]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-[#F28C28] mb-1">
+                        Catatan Coaching (Studi Kasus)
+                      </label>
+                      <textarea
+                        rows={2}
+                        maxLength={220}
+                        placeholder="Fokus bedah kasus & review personal..."
+                        value={rmCoaching}
+                        onChange={(e) => setRmCoaching(e.target.value)}
+                        className="w-full rounded-xl border border-[#1F3A5F]/20 bg-white px-3 py-2 text-xs text-[#1F3A5F]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowAddRoadmapForm(false);
+                        setEditingRoadmapId(null);
+                      }}
+                      className="px-4 py-2 rounded-xl border border-[#1F3A5F]/20 bg-white text-xs font-bold text-[#1F3A5F] cursor-pointer"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={!rmTitle.trim()}
+                      className="px-5 py-2 rounded-xl bg-[#1F3A5F] hover:bg-[#162a45] text-white text-xs font-extrabold cursor-pointer disabled:opacity-50"
+                    >
+                      {editingRoadmapId ? 'Simpan Perubahan' : 'Simpan ke Daftar Rencana'}
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {/* Status Filter Bar */}
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {(
+                    [
+                      { key: 'semua', label: `Semua (${roadmapItems.length})` },
+                      { key: 'ide', label: `Ide (${roadmapItems.filter((i) => i.status === 'ide').length})` },
+                      {
+                        key: 'menyusun',
+                        label: `Sedang Disusun (${roadmapItems.filter((i) => i.status === 'menyusun').length})`,
+                      },
+                      { key: 'selesai', label: `Selesai (${roadmapItems.filter((i) => i.status === 'selesai').length})` },
+                    ] as const
+                  ).map((f) => (
+                    <button
+                      key={f.key}
+                      type="button"
+                      onClick={() => setRoadmapFilter(f.key)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer border ${
+                        roadmapFilter === f.key
+                          ? 'bg-[#1F3A5F] text-white border-[#1F3A5F]'
+                          : 'bg-white text-[#1F3A5F]/80 border-[#1F3A5F]/15 hover:bg-slate-50'
+                      }`}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+                <span className="text-[11px] font-medium text-[#1F3A5F]/60">
+                  Tersinkronisasi otomatis ke Cloud Firestore
+                </span>
+              </div>
+
+              {/* Roadmap Items List */}
+              {filteredRoadmapItems.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-[#1F3A5F]/25 bg-slate-50 p-8 text-center space-y-2">
+                  <p className="text-sm font-bold text-[#1F3A5F]">Belum ada rencana materi di filter ini.</p>
+                  <p className="text-xs text-[#1F3A5F]/65">
+                    Pilih filter "Semua" atau klik tombol "+ Tambah Ide Materi" untuk mencatat topik baru.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {filteredRoadmapItems.map((item, idx) => {
+                    const linkedMat = item.linkedMaterialId
+                      ? materials.find((m) => m.id === item.linkedMaterialId)
+                      : undefined;
+                    const isTierExpanded = expandedTierId === item.id;
+
+                    return (
+                      <div
+                        key={item.id}
+                        className={`rounded-2xl border p-4 sm:p-5 transition-all bg-white ${
+                          item.status === 'selesai'
+                            ? 'border-emerald-300 bg-emerald-50/25'
+                            : item.status === 'menyusun'
+                            ? 'border-[#F28C28]/45 bg-[#FFFBF5]'
+                            : 'border-[#1F3A5F]/15'
+                        }`}
+                      >
+                        <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+                          <div className="space-y-2 flex-1 min-w-0">
+                            {/* Badges Row */}
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="text-[11px] font-extrabold text-[#1F3A5F]/55 font-mono">
+                                #{String(idx + 1).padStart(2, '0')}
+                              </span>
+                              <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-md bg-[#1F3A5F]/8 text-[#1F3A5F] border border-[#1F3A5F]/15">
+                                {item.pillar}
+                              </span>
+                              <select
+                                value={item.priority}
+                                onChange={(e) =>
+                                  handleChangeRoadmapPriority(item.id, e.target.value as RoadmapPriority)
+                                }
+                                className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md border cursor-pointer ${
+                                  item.priority === 'tinggi'
+                                    ? 'bg-amber-50 text-[#C2620A] border-amber-300'
+                                    : item.priority === 'sedang'
+                                    ? 'bg-sky-50 text-[#1F3A5F] border-sky-200'
+                                    : 'bg-slate-100 text-slate-600 border-slate-200'
+                                }`}
+                                title="Ubah prioritas garapan"
+                              >
+                                <option value="tinggi">Prioritas Tinggi</option>
+                                <option value="sedang">Prioritas Sedang</option>
+                                <option value="santai">Cadangan</option>
+                              </select>
+
+                              <select
+                                value={item.status}
+                                onChange={(e) =>
+                                  handleChangeRoadmapStatus(item.id, e.target.value as RoadmapStatus)
+                                }
+                                className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md border cursor-pointer ${
+                                  item.status === 'selesai'
+                                    ? 'bg-emerald-600 text-white border-emerald-600'
+                                    : item.status === 'menyusun'
+                                    ? 'bg-[#F28C28] text-white border-[#F28C28]'
+                                    : 'bg-slate-100 text-[#1F3A5F] border-slate-300'
+                                }`}
+                                title="Ubah status penyusunan"
+                              >
+                                <option value="ide">Ide Baru</option>
+                                <option value="menyusun">Sedang Disusun</option>
+                                <option value="selesai">Selesai / Rilis</option>
+                              </select>
+                            </div>
+
+                            <h4 className="font-display font-extrabold text-sm sm:text-base text-[#1F3A5F] leading-snug">
+                              {item.title}
+                            </h4>
+
+                            {item.summary && (
+                              <p className="text-xs text-[#1F3A5F]/75 leading-relaxed">{item.summary}</p>
+                            )}
+
+                            {/* Toggleable 3-Tier Plan Preview */}
+                            <div className="pt-1">
+                              <button
+                                type="button"
+                                onClick={() => setExpandedTierId(isTierExpanded ? null : item.id)}
+                                className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#2A9D8F] hover:text-[#218276] cursor-pointer"
+                              >
+                                <Flag className="w-3 h-3" />
+                                <span>
+                                  {isTierExpanded
+                                    ? 'Sembunyikan Rencana 3 Jenjang'
+                                    : 'Lihat Rencana 3 Jenjang (Seminar · Workshop · Coaching)'}
+                                </span>
+                                {isTierExpanded ? (
+                                  <ChevronUp className="w-3.5 h-3.5" />
+                                ) : (
+                                  <ChevronDown className="w-3.5 h-3.5" />
+                                )}
+                              </button>
+
+                              {isTierExpanded && (
+                                <div className="mt-2.5 grid grid-cols-1 md:grid-cols-3 gap-2.5">
+                                  <div className="rounded-xl bg-slate-50 border border-[#1F3A5F]/10 p-3 space-y-1">
+                                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#1F3A5F]">
+                                      1. Seminar (90 Menit)
+                                    </span>
+                                    <p className="text-xs text-[#1F3A5F]/80 leading-relaxed">
+                                      {item.tierPlan.seminar || 'Belum diisi — klik Edit untuk melengkapi catatan.'}
+                                    </p>
+                                  </div>
+                                  <div className="rounded-xl bg-teal-50/50 border border-[#2A9D8F]/20 p-3 space-y-1">
+                                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#2A9D8F]">
+                                      2. Workshop (Praktik)
+                                    </span>
+                                    <p className="text-xs text-[#1F3A5F]/80 leading-relaxed">
+                                      {item.tierPlan.workshop || 'Belum diisi — klik Edit untuk melengkapi catatan.'}
+                                    </p>
+                                  </div>
+                                  <div className="rounded-xl bg-[#FFF7EC] border border-[#F28C28]/25 p-3 space-y-1">
+                                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#D9771E]">
+                                      3. Coaching (Studi Kasus)
+                                    </span>
+                                    <p className="text-xs text-[#1F3A5F]/80 leading-relaxed">
+                                      {item.tierPlan.coaching || 'Belum diisi — klik Edit untuk melengkapi catatan.'}
+                                    </p>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Action Column */}
+                          <div className="flex flex-wrap lg:flex-col items-center lg:items-end justify-between gap-2 shrink-0 pt-2 lg:pt-0 border-t lg:border-t-0 border-[#1F3A5F]/10">
+                            <div className="flex flex-wrap items-center gap-2">
+                              {linkedMat ? (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    onEditMaterialInEditor(linkedMat);
+                                    onClose();
+                                  }}
+                                  className="px-3.5 py-2 rounded-xl bg-[#1F3A5F] hover:bg-[#162a45] text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5 text-[#F28C28]" />
+                                  <span>Buka Draf di Editor</span>
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  disabled={creatingFromRoadmapId === item.id}
+                                  onClick={() => handleCreateDraftFromRoadmap(item)}
+                                  className="px-3.5 py-2 rounded-xl bg-[#2A9D8F] hover:bg-[#218276] text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs disabled:opacity-50"
+                                >
+                                  <ArrowRight className="w-3.5 h-3.5" />
+                                  <span>
+                                    {creatingFromRoadmapId === item.id
+                                      ? 'Membuat Draf...'
+                                      : 'Buat Draf di Bank Materi'}
+                                  </span>
+                                </button>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEditRoadmap(item)}
+                                className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#1F3A5F] text-xs font-bold flex items-center gap-1 cursor-pointer"
+                                title="Edit judul, pilar, dan rencana 3 jenjang"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                                <span>Edit</span>
+                              </button>
+
+                              {confirmDeleteRoadmapId === item.id ? (
+                                <div className="flex items-center gap-1.5 bg-rose-50 border border-rose-300 px-2.5 py-1 rounded-lg">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteRoadmapItem(item.id)}
+                                    className="text-[11px] font-bold text-rose-700 hover:underline cursor-pointer"
+                                  >
+                                    Ya, Hapus
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setConfirmDeleteRoadmapId(null)}
+                                    className="text-[11px] text-slate-600 hover:underline cursor-pointer"
+                                  >
+                                    Batal
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => setConfirmDeleteRoadmapId(item.id)}
+                                  className="p-1.5 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
+                                  title="Hapus dari daftar rencana"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           ) : (
             /* Create New Material Form */
