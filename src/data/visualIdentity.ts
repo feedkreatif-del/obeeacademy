@@ -23,7 +23,7 @@ const VISUAL_IDENTITY_QUESTIONS: WorksheetQuestion[] = [
       'Jika logo sering dicetak sangat kecil (stiker segel, ikon profil WA/IG, atau bordir seragam), hindari detail garis tipis yang mudah pecah.',
       'Simple Brief ini bisa langsung dipakai sebagai panduan kerja saat menugaskan desainer internal maupun vendor eksternal.',
     ],
-    linkedSlideIndex: 4,
+    linkedSlideIndex: 6,
   },
   {
     index: 1,
@@ -42,7 +42,7 @@ const VISUAL_IDENTITY_QUESTIONS: WorksheetQuestion[] = [
       'Jangan menaruh semua nilai di posisi "tengah" — tentukan minimal 2 karakter yang paling menonjol sebagai pembeda dari kompetitor.',
       'Untuk skala korporasi & industri, spektrum Modern + Simple + Dewasa umumnya paling efektif membangun kesan kredibel dan rapi.',
     ],
-    linkedSlideIndex: 5,
+    linkedSlideIndex: 7,
   },
   {
     index: 2,
@@ -61,7 +61,7 @@ const VISUAL_IDENTITY_QUESTIONS: WorksheetQuestion[] = [
       'Hindari memakai simbol abstrak berdiri sendiri tanpa teks jika audiens belum mengenal nama merek Anda secara luas.',
       'Pastikan logo tetap jelas dan tegas saat diubah ke versi 1 warna (hitam di kertas putih atau putih di foto gelap).',
     ],
-    linkedSlideIndex: 7,
+    linkedSlideIndex: 9,
   },
   {
     index: 3,
@@ -80,7 +80,7 @@ const VISUAL_IDENTITY_QUESTIONS: WorksheetQuestion[] = [
       'Warna 10% aksen berfungsi mengarahkan mata pembaca ke informasi paling penting (tombol daftar, promo, atau angka utama).',
       'Selalu tes kontras warna tulisan di atas latar: hindari teks kuning/hijau muda di atas background putih.',
     ],
-    linkedSlideIndex: 8,
+    linkedSlideIndex: 10,
   },
   {
     index: 4,
@@ -99,7 +99,7 @@ const VISUAL_IDENTITY_QUESTIONS: WorksheetQuestion[] = [
       'Gunakan perbedaan ketebalan (Bold vs Regular) dari 1 keluarga font yang sama jika ingin tampilan yang super bersih dan korporat (seperti contoh "MADIUN TODAY").',
       'Pastikan angka dan tanda baca terlihat jelas dan sejajar, terutama pada daftar harga, tabel teknis, dan kemasan.',
     ],
-    linkedSlideIndex: 9,
+    linkedSlideIndex: 11,
   },
   {
     index: 5,
@@ -118,7 +118,7 @@ const VISUAL_IDENTITY_QUESTIONS: WorksheetQuestion[] = [
       'Simpan file logo asli (PNG transparan & vektor SVG/PDF), kode warna HEX/CMYK, dan nama font di 1 folder cloud bersama tim.',
       'Semakin konsisten titik sentuh visualmu dilihat orang, semakin cepat kepercayaan dan nilai jual merekmu meningkat.',
     ],
-    linkedSlideIndex: 11,
+    linkedSlideIndex: 13,
   },
 ];
 
@@ -160,7 +160,7 @@ const VISUAL_IDENTITY_POLLS: LivePollConfig[] = [
     id: 'poll_vi_jenis_logo',
     title: 'Jenis Logo Mana yang Paling Sesuai untuk Identitas Anda Sekarang?',
     subtitle: 'Pilih jenis logo yang menurut Anda paling efektif dibaca audiens target:',
-    linkedSlideIndex: 6,
+    linkedSlideIndex: 8,
     type: 'bar',
     options: [
       {
@@ -209,14 +209,65 @@ const VISUAL_IDENTITY_SLIDES: SlideDefinition[] = [
   {
     index: 1,
     pageNumber: 2,
+    badge: 'URGENSI BISNIS • PERSEPSI NILAI',
+    title: 'Isi Sama, Wajah Beda: Mengapa Visual Identity Menentukan Nilai Jual',
+    subtitle:
+      'Dua produk atau perusahaan dengan kualitas mutu yang sama persis bisa diperlakukan sangat berbeda oleh pasar hanya karena konsistensi visualnya:',
+    type: 'comparison',
+    linkedPollId: 'poll_vi_tantangan_utama',
+    speakerNotes:
+      'Buka diskusi dengan polling tantangan visual saat ini, lalu tekankan realita bisnis & korporasi: tanpa visual identity, setiap postingan atau proposal baru harus membangun ulang kepercayaan dari nol ("reset trust"), membuat produk mudah ditawar murah, dan tim bingung saat memproduksi desain.',
+    comparison: {
+      leftTitle: 'Tanpa Visual Identity (Reset Trust Terus-Menerus)',
+      leftBody:
+        '• Warna, font, dan gaya desain berubah tiap minggu—audiens gagal mengingat siapa Anda meski sering melihat promosi.\n• Kesan acak memicu keraguan terhadap profesionalisme & mutu layanan (sering ditawar murah / kalah tender).\n• Tim internal & vendor cetak bingung karena tidak ada acuan pasti.',
+      rightTitle: 'Dengan Visual Identity Konsisten (Naik Perceived Value)',
+      rightBody:
+        '• Audiens mengenali merek/perusahaan dalam 3 detik bahkan sebelum membaca tulisan panjang.\n• Tampilan tertata memberi sinyal mutu terjaga sehingga harga pantas lebih mudah diterima pasar & B2B.\n• Biaya & waktu produksi desain lebih hemat karena semua divisi memakai sistem yang sama.',
+    },
+    bottomBanner:
+      'Fakta Pasar: Pelanggan menilai kredibilitas usaha dari apa yang terlihat oleh mata jauh sebelum mereka sempat mencoba kualitas produk atau layanan Anda.',
+  },
+  {
+    index: 2,
+    pageNumber: 3,
+    badge: 'PENJERNIHAN KONSEP • HIERARKI BRAND',
+    title: 'Bedakan 3 Hal Ini: Brand, Visual Identity, dan Logo',
+    subtitle:
+      'Banyak pemilik usaha & tim masih menyamakan identitas visual hanya sebatas logo—padahal ketiganya punya peran berbeda yang saling mengunci:',
+    type: 'concept',
+    speakerNotes:
+      'Luruskan kesalahpahaman paling umum di kelas: logo hanyalah salah satu tanda pengenal. Brand adalah reputasi di kepala audiens, sedangkan Visual Identity adalah keseluruhan wajah, seragam, warna, huruf, dan gaya visual yang membuat reputasi itu tampak konsisten di mata publik.',
+    cards: [
+      {
+        title: '1. Brand (Reputasi & Makna)',
+        body: 'Apa yang dirasakan, dipercaya, dan diingat orang di kepala mereka saat menyebut nama produk atau perusahaan Anda.',
+        accent: 'teal',
+      },
+      {
+        title: '2. Visual Identity (Wajah & Seragam)',
+        body: 'Sistem visual terpadu—warna, tipografi, simbol, gaya foto, hingga aset fisik—yang membuat reputasi itu terlihat nyata dan konsisten.',
+        accent: 'orange',
+      },
+      {
+        title: '3. Logo & Desain Harian (Alat Eksekusi)',
+        body: 'Logo adalah tanda pengenal utamanya; desain poster, kemasan, dan slide adalah terapan harian dari sistem Visual Identity.',
+        accent: 'teal',
+      },
+    ],
+    bottomBanner:
+      'Analogi Mudah: Jika Brand adalah karakter & reputasi seseorang, maka Visual Identity adalah gaya berpakaian, kerapian, dan pembawaan dirinya di depan umum.',
+  },
+  {
+    index: 3,
+    pageNumber: 4,
     badge: 'FONDASI 1 • MENGAPA PENTING',
     title: '4 Alasan Visual Identity Dibutuhkan Bisnis & Korporasi',
     subtitle:
       'Tanpa sistem visual yang konsisten, biaya promosi & materi komunikasi perusahaan bekerja jauh lebih berat:',
     type: 'concept',
-    linkedPollId: 'poll_vi_tantangan_utama',
     speakerNotes:
-      'Ajak peserta mengisi polling terlebih dahulu mengenai kendala visual mereka saat ini, lalu tekankan 4 alasan utama: awareness/recognition, diferensiasi dari kompetitor, kedekatan emosional dengan target audiens, serta kepercayaan instan di kesan pertama.',
+      'Tekankan 4 alasan utama: awareness/recognition, diferensiasi dari kompetitor, kedekatan emosional dengan target audiens, serta kepercayaan instan di kesan pertama.',
     cards: [
       {
         title: '1. Brand Awareness & Recognition',
@@ -241,8 +292,8 @@ const VISUAL_IDENTITY_SLIDES: SlideDefinition[] = [
     ],
   },
   {
-    index: 2,
-    pageNumber: 3,
+    index: 4,
+    pageNumber: 5,
     badge: 'FONDASI 2 • TUJUAN STRATEGIS',
     title: 'Tujuan Utama Visual Identity Dibentuk',
     subtitle:
@@ -269,8 +320,8 @@ const VISUAL_IDENTITY_SLIDES: SlideDefinition[] = [
     ],
   },
   {
-    index: 3,
-    pageNumber: 4,
+    index: 5,
+    pageNumber: 6,
     badge: 'ANATOMI IDENTITAS • STUDI KASUS',
     title: 'Bedah Anatomi Visual Identity: Studi Kasus "MADIUN TODAY"',
     subtitle:
@@ -301,8 +352,8 @@ const VISUAL_IDENTITY_SLIDES: SlideDefinition[] = [
     ],
   },
   {
-    index: 4,
-    pageNumber: 5,
+    index: 6,
+    pageNumber: 7,
     badge: 'PRAKTIK 1 • SIMPLE BRIEF',
     title: 'Mulai dari Simple Brief Sebelum Mendesain Apa Pun',
     subtitle:
@@ -335,8 +386,8 @@ const VISUAL_IDENTITY_SLIDES: SlideDefinition[] = [
     ],
   },
   {
-    index: 5,
-    pageNumber: 6,
+    index: 7,
+    pageNumber: 8,
     badge: 'PRAKTIK 2 • BRAND PERSONALITY',
     title: 'Menetapkan Personality Brand Lewat 6 Spektrum Visual',
     subtitle:
@@ -363,8 +414,8 @@ const VISUAL_IDENTITY_SLIDES: SlideDefinition[] = [
     ],
   },
   {
-    index: 6,
-    pageNumber: 7,
+    index: 8,
+    pageNumber: 9,
     badge: 'ELEMEN 1 • ANATOMI LOGO',
     title: 'Jenis Logo: Logotype vs Logogram (Plus Monogram & Maskot)',
     subtitle:
@@ -385,8 +436,8 @@ const VISUAL_IDENTITY_SLIDES: SlideDefinition[] = [
       'Aturan Emas: Brand bertumbuh paling aman memakai Logo Kombinasi (Simbol + Teks), lalu pastikan punya versi Simbol/Monogram untuk ikon profil kecil.',
   },
   {
-    index: 7,
-    pageNumber: 8,
+    index: 9,
+    pageNumber: 10,
     badge: 'PRAKTIK 3 • 4 ELEMEN VISUAL',
     title: '4 Elemen Inti Pembentuk Sistem Visual Identity',
     subtitle:
@@ -419,8 +470,8 @@ const VISUAL_IDENTITY_SLIDES: SlideDefinition[] = [
     ],
   },
   {
-    index: 8,
-    pageNumber: 9,
+    index: 10,
+    pageNumber: 11,
     badge: 'PENGAYAAN KORPORASI • WARNA 60-30-10',
     title: 'Aturan Warna 60-30-10 & Konsistensi Layar (RGB) vs Cetak (CMYK)',
     subtitle:
@@ -450,8 +501,8 @@ const VISUAL_IDENTITY_SLIDES: SlideDefinition[] = [
       'Catatan Produksi: Simpan kode HEX/RGB untuk medsos & slide presentasi, serta konversi CMYK/Pantone untuk cetak kemasan, brosur, & seragam.',
   },
   {
-    index: 9,
-    pageNumber: 10,
+    index: 11,
+    pageNumber: 12,
     badge: 'PENGAYAAN KORPORASI • TIPOGRAFI',
     title: 'Tipografi & Hierarki Baca: Cukup 2 Keluarga Huruf',
     subtitle:
@@ -479,8 +530,8 @@ const VISUAL_IDENTITY_SLIDES: SlideDefinition[] = [
     ],
   },
   {
-    index: 10,
-    pageNumber: 11,
+    index: 12,
+    pageNumber: 13,
     badge: 'PENERAPAN LINTAS SEGMEN • TOUCHPOINTS',
     title: 'Aset Fisik & Digital: Skala UMKM vs Korporasi & Industri',
     subtitle:
@@ -500,8 +551,8 @@ const VISUAL_IDENTITY_SLIDES: SlideDefinition[] = [
     },
   },
   {
-    index: 11,
-    pageNumber: 12,
+    index: 13,
+    pageNumber: 14,
     badge: 'OUTPUT WAJIB • BRAND GUIDELINE',
     title: 'Merangkum Mini Brand Guideline 1 Halaman',
     subtitle:
@@ -533,8 +584,8 @@ const VISUAL_IDENTITY_SLIDES: SlideDefinition[] = [
     ],
   },
   {
-    index: 12,
-    pageNumber: 13,
+    index: 14,
+    pageNumber: 15,
     badge: 'PENUTUP & RENCANA AKSI',
     title: 'Kesimpulan: Konsistensi Mengalahkan Desain Rumit',
     subtitle:
@@ -567,11 +618,11 @@ export const VISUAL_IDENTITY_CURRICULUM: SavedMaterial = {
   seminarTitle: 'Visual Identity: Membangun Identitas Visual Brand & Korporasi yang Konsisten',
   organizerName: 'obeeAcademy | obeecreatives',
   description:
-    'Modul lengkap penyusunan Identitas Visual (adaptasi MJC Madiun + pengayaan korporasi & industri): Alasan & Tujuan Visual Identity, Anatomi Elemen, Jenis Logo (Logotype/Logogram/Monogram/Maskot), Aturan Warna 60-30-10, Tipografi 2 Font, Simple Brief & Brand Personality Slider, hingga Mini Brand Guideline 1 Halaman (6 Lembar Kerja, 2 Polling, 13 Slide).',
+    'Modul lengkap penyusunan Identitas Visual (adaptasi MJC Madiun + pengayaan korporasi & industri): Urgensi Persepsi Nilai, Beda Brand vs Visual Identity vs Logo, Anatomi Elemen, Jenis Logo (Logotype/Logogram/Monogram/Maskot), Aturan Warna 60-30-10, Tipografi 2 Font, Simple Brief & Brand Personality Slider, hingga Mini Brand Guideline 1 Halaman (6 Lembar Kerja, 2 Polling, 15 Slide).',
   category: 'Seri Desain & Branding',
   isDefault: false,
   createdAt: 1734300000000,
-  updatedAt: 1734400000000,
+  updatedAt: 1734500000000,
   content: {
     seminarTitle: 'Visual Identity: Membangun Identitas Visual Brand & Korporasi yang Konsisten',
     organizerName: 'obeeAcademy | obeecreatives',
@@ -579,11 +630,11 @@ export const VISUAL_IDENTITY_CURRICULUM: SavedMaterial = {
     polls: VISUAL_IDENTITY_POLLS,
     slides: VISUAL_IDENTITY_SLIDES,
     qnaTopics: [
+      'Urgensi & Nilai Jual Visual Identity',
       'Simple Brief & Brand Personality',
       'Pemilihan Jenis Logo',
       'Palet Warna 60-30-10 & RGB/CMYK',
-      'Tipografi & Keterbacaan',
-      'Implementasi UMKM vs Korporasi',
+      'Tipografi & Implementasi Korporasi',
     ],
     brandTheme: {
       presetId: 'visual_identity_forest',
@@ -593,7 +644,7 @@ export const VISUAL_IDENTITY_CURRICULUM: SavedMaterial = {
       secondaryColor: '#4E8468',
       bgColor: '#F7FAF7',
     },
-    updatedAt: 1734400000000,
+    updatedAt: 1734500000000,
     materialId: 'visual_identity_master_1',
     description:
       'Modul Visual Identity untuk UMKM maupun Korporasi & Industri: Simple Brief, Personality Brand, Jenis Logo, Warna 60-30-10, Tipografi, & Mini Brand Guideline 1 Halaman.',

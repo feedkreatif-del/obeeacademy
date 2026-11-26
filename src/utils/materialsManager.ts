@@ -1759,7 +1759,7 @@ export function getSavedMaterialsLocal(): SavedMaterial[] {
           const currentVi = updated[viIdx];
           const needsViRefresh =
             !currentVi?.updatedAt ||
-            currentVi.updatedAt < 1734400000000 ||
+            currentVi.updatedAt < 1734500000000 ||
             !currentVi?.content?.polls?.some((p: LivePollConfig) => p.id === 'poll_vi_jenis_logo');
           if (needsViRefresh && currentVi) {
             updated[viIdx] = VISUAL_IDENTITY_CURRICULUM;
