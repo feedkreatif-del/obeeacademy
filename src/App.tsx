@@ -81,6 +81,7 @@ import {
   SESI_2_ACTION_PLAN_CURRICULUM,
   SESI_3_BRANDING_MARKETING_SELLING_CURRICULUM,
 } from './utils/materialsManager';
+import { VISUAL_IDENTITY_CURRICULUM } from './data/visualIdentity';
 import { MaterialsBankModal } from './components/MaterialsBankModal';
 import { Download, BookOpen, Lock, Unlock, ShieldCheck, Settings, Layers, CalendarCheck } from 'lucide-react';
 import { SystemGuideModal } from './components/SystemGuideModal';
@@ -118,6 +119,8 @@ const DEFAULT_CUSTOM_CONTENT: CustomContentDoc = {
   materialId: 'partnerup_sesi_1_curriculum',
   updatedAt: Date.now(),
 };
+
+const VI_POSTER_SEEDED_KEY = 'obee_seeded_vi_poster_v1';
 
 const LEGACY_CAMPAIGN_TITLES = new Set([
   'Bursa Kelas UMKM obeeAcademy — Vote Topik & Jadwal',
@@ -483,7 +486,23 @@ export default function App() {
             !data.organizerName || data.organizerName.trim() === 'obeeAcademy | PartnerUp'
               ? DEFAULT_UNLOCK_CAMPAIGN.organizerName
               : data.organizerName;
-          setUnlockCampaign({
+          const baseCandidateIds =
+            Array.isArray(data.candidateMaterialIds) && data.candidateMaterialIds.length > 0
+              ? data.candidateMaterialIds
+              : DEFAULT_UNLOCK_CAMPAIGN.candidateMaterialIds;
+          let alreadySeededVi = false;
+          try {
+            alreadySeededVi = window.localStorage.getItem(VI_POSTER_SEEDED_KEY) === '1';
+          } catch {
+            alreadySeededVi = false;
+          }
+          const hasViPoster = baseCandidateIds.includes(VISUAL_IDENTITY_CURRICULUM.id);
+          const nextCandidateIds =
+            !hasViPoster && !alreadySeededVi && baseCandidateIds.length < 20
+              ? [...baseCandidateIds, VISUAL_IDENTITY_CURRICULUM.id]
+              : baseCandidateIds;
+
+          const nextCampaignState: UnlockCampaignDoc = {
             id: snap.id,
             title: normalizedTitle,
             subtitle: data.subtitle || DEFAULT_UNLOCK_CAMPAIGN.subtitle,
@@ -491,10 +510,7 @@ export default function App() {
             minQuota: typeof data.minQuota === 'number' ? data.minQuota : 15,
             status: data.status || 'open',
             deadlineLabel: data.deadlineLabel || DEFAULT_UNLOCK_CAMPAIGN.deadlineLabel,
-            candidateMaterialIds:
-              Array.isArray(data.candidateMaterialIds) && data.candidateMaterialIds.length > 0
-                ? data.candidateMaterialIds
-                : DEFAULT_UNLOCK_CAMPAIGN.candidateMaterialIds,
+            candidateMaterialIds: nextCandidateIds,
             timeSlots:
               Array.isArray(data.timeSlots) && data.timeSlots.length > 0
                 ? data.timeSlots
@@ -510,7 +526,23 @@ export default function App() {
             qrisFallbackImageUrl: data.qrisFallbackImageUrl || DEFAULT_GOPAY_QRIS_IMAGE,
             mentorWhatsapp: data.mentorWhatsapp || '',
             updatedAt: typeof data.updatedAt === 'number' ? data.updatedAt : Date.now(),
-          });
+          };
+          setUnlockCampaign(nextCampaignState);
+
+          if (isHostRoleRef.current && !hasViPoster && !alreadySeededVi) {
+            try {
+              window.localStorage.setItem(VI_POSTER_SEEDED_KEY, '1');
+            } catch {
+              // noop
+            }
+            const { id: _id, ...syncPayload } = sanitizeForFirestore({
+              ...nextCampaignState,
+              updatedAt: Date.now(),
+            });
+            setDoc(campRef, syncPayload).catch((err) =>
+              console.warn('Auto-add Visual Identity poster skipped:', err)
+            );
+          }
         } else if (isHostRoleRef.current) {
           const { id: _id, ...payload } = DEFAULT_UNLOCK_CAMPAIGN;
           setDoc(campRef, sanitizeForFirestore({ ...payload, updatedAt: Date.now() })).catch(
@@ -1488,6 +1520,11 @@ export default function App() {
 
   // Bursa Kelas & Voting Kuota Handlers
   const handleSaveUnlockCampaign = async (nextCampaign: UnlockCampaignDoc) => {
+    try {
+      window.localStorage.setItem(VI_POSTER_SEEDED_KEY, '1');
+    } catch {
+      // noop
+    }
     const safeCandidateIds =
       Array.isArray(nextCampaign.candidateMaterialIds) && nextCampaign.candidateMaterialIds.length > 0
         ? nextCampaign.candidateMaterialIds.slice(0, 20)

@@ -11,6 +11,7 @@ import { SESI_4_BRANDING_CURRICULUM } from '../data/sesi4Branding';
 import { SESI_5_MARKETING_CURRICULUM } from '../data/sesi5Marketing';
 import { SESI_6_SELLING_CURRICULUM } from '../data/sesi6Selling';
 import { STROBIST_LIGHTING_CURRICULUM } from '../data/strobistLightingMastery';
+import { VISUAL_IDENTITY_CURRICULUM } from '../data/visualIdentity';
 import { CustomContentDoc, SavedMaterial, BrandThemeConfig } from '../types';
 export type { SavedMaterial };
 import { DEFAULT_BRAND_THEME, sanitizeBrandTheme } from '../brandTheme';
@@ -1582,6 +1583,7 @@ export const INITIAL_PRESET_MATERIALS: SavedMaterial[] = [
   SESI_5_MARKETING_CURRICULUM,
   SESI_6_SELLING_CURRICULUM,
   STROBIST_LIGHTING_CURRICULUM,
+  VISUAL_IDENTITY_CURRICULUM,
   COPYWRITING_MATERIAL_PRESET,
 ];
 
@@ -1606,6 +1608,7 @@ export function getSavedMaterialsLocal(): SavedMaterial[] {
       const hasSesi5 = parsed.some((m) => m.id === SESI_5_MARKETING_CURRICULUM.id);
       const hasSesi6 = parsed.some((m) => m.id === SESI_6_SELLING_CURRICULUM.id);
       const hasStrobist1 = parsed.some((m) => m.id === STROBIST_LIGHTING_CURRICULUM.id);
+      const hasVisualIdentity = parsed.some((m) => m.id === VISUAL_IDENTITY_CURRICULUM.id);
       const hasCopywriting = parsed.some((m) => m.id === COPYWRITING_MATERIAL_PRESET.id);
 
       let updated = [...parsed];
@@ -1742,6 +1745,24 @@ export function getSavedMaterialsLocal(): SavedMaterial[] {
             !currentStrobist?.content?.polls?.some((p: LivePollConfig) => p.id === 'poll_strobist_tebak_efek');
           if (needsStrobistRefresh && currentStrobist) {
             updated[strobistIdx] = STROBIST_LIGHTING_CURRICULUM;
+            changed = true;
+          }
+        }
+      }
+      if (!hasVisualIdentity) {
+        const strobistPos = updated.findIndex((m) => m.id === STROBIST_LIGHTING_CURRICULUM.id);
+        updated.splice(strobistPos >= 0 ? strobistPos + 1 : 8, 0, VISUAL_IDENTITY_CURRICULUM);
+        changed = true;
+      } else {
+        const viIdx = updated.findIndex((m) => m.id === VISUAL_IDENTITY_CURRICULUM.id);
+        if (viIdx >= 0) {
+          const currentVi = updated[viIdx];
+          const needsViRefresh =
+            !currentVi?.updatedAt ||
+            currentVi.updatedAt < 1734400000000 ||
+            !currentVi?.content?.polls?.some((p: LivePollConfig) => p.id === 'poll_vi_jenis_logo');
+          if (needsViRefresh && currentVi) {
+            updated[viIdx] = VISUAL_IDENTITY_CURRICULUM;
             changed = true;
           }
         }
