@@ -137,6 +137,8 @@ const LOCAL_NAME_CACHE_KEY = 'partnerup_bursa_my_name_v1';
 const LOCAL_BIZ_CACHE_KEY = 'partnerup_bursa_my_biz_v1';
 
 const BUSINESS_CATEGORIES = [
+  'Korporasi / Perusahaan / Industri',
+  'Instansi / Pendidikan / Komunitas',
   'F&B / Kuliner',
   'Kriya / Handmade',
   'Fashion / Busana',
@@ -734,7 +736,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
       return;
     }
     if (cleanBiz.length < 2) {
-      setFormError('Nama usaha UMKM wajib diisi.');
+      setFormError('Nama perusahaan / usaha / instansi wajib diisi.');
       return;
     }
     if (waDigits.length < 8 || cleanWa.length < 6) {
@@ -869,7 +871,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
             : isPaidTopic
             ? `Pilihan kelas berbayar (${formatRupiah(chosenPricing.price)}) tercatat! QRIS pembayaran otomatis terbuka saat kelas mencapai kuota GO.`
             : myExistingVote
-            ? 'Pilihan topik, jadwal & data UMKM kamu berhasil diperbarui!'
+            ? 'Pilihan topik, jadwal & data peserta berhasil diperbarui!'
             : 'Suaramu resmi terkunci! Terima kasih sudah berkomitmen hadir.'
         );
       }
@@ -1023,10 +1025,12 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
     try {
       await onSaveCampaign({
         ...draftCampaign,
-        title: draftCampaign.title.trim().slice(0, 120) || 'Bursa Kelas UMKM obeeAcademy',
+        title:
+          draftCampaign.title.trim().slice(0, 120) ||
+          'Bursa Kelas Pelatihan obeeAcademy - Vote Topik & Jadwal',
         subtitle: draftCampaign.subtitle.trim().slice(0, 300),
         organizerName:
-          draftCampaign.organizerName.trim().slice(0, 100) || 'obeeAcademy | PartnerUp',
+          draftCampaign.organizerName.trim().slice(0, 100) || 'obeeAcademy',
         minQuota: Math.min(200, Math.max(5, Number(draftCampaign.minQuota) || 15)),
         deadlineLabel: draftCampaign.deadlineLabel.trim().slice(0, 80),
         winningMaterialId: draftCampaign.winningMaterialId || '',
@@ -1481,7 +1485,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
           <div className="relative z-10 space-y-5">
             <div className="flex flex-wrap items-center justify-between gap-2 text-sm sm:text-[15px] text-white/80">
               <span className="font-semibold tracking-wide text-[#F28C28]">
-                {campaign.organizerName || 'obeeAcademy | PartnerUp'} · Bursa Kelas UMKM
+                {campaign.organizerName || 'obeeAcademy'} | Bursa Materi Pelatihan
               </span>
               <span className="tabular-nums">{campaign.deadlineLabel}</span>
             </div>
@@ -1584,7 +1588,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-2.5 text-sm text-white/85 leading-relaxed">
                   <span className="tabular-nums">
-                    {analytics.activeVotes.length} UMKM sudah berpartisipasi · Alur: Pilih Poster → Isi Nama, WA & IG → Kunci Jadwal
+                    {analytics.activeVotes.length} peserta sudah berpartisipasi · Alur: Pilih Poster → Isi Nama, WA & IG → Kunci Jadwal
                   </span>
                   <button
                     type="button"
@@ -1970,7 +1974,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                         {isOneOnOne ? (
                           <div className="flex items-center justify-between text-sm font-bold text-[#1F3A5F] tabular-nums">
                             <span>Sesi Privat 1-on-1</span>
-                            <span>{primaryCount} UMKM mengajukan jadwal</span>
+                            <span>{primaryCount} peserta mengajukan jadwal</span>
                           </div>
                         ) : isCategoryCoaching ? (
                           <>
@@ -1979,7 +1983,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                                 Khusus {program.targetCategory || 'Kategori'}
                               </span>
                               <span className="shrink-0">
-                                {primaryCount} / {effectiveQuota} UMKM
+                                {primaryCount} / {effectiveQuota} Peserta
                               </span>
                             </div>
                             <div className="w-full h-2.5 rounded-full bg-slate-200 overflow-hidden">
@@ -2094,14 +2098,14 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <h3 className="font-display text-lg sm:text-xl font-extrabold text-[#1F3A5F]">
-                Daftar Rekan UMKM yang Sudah Ikut Polling
+                Daftar Peserta yang Sudah Terdaftar
               </h3>
               <p className="text-sm sm:text-[15px] text-slate-600 mt-0.5 leading-relaxed">
-                Hanya menampilkan nama & usaha untuk transparansi kuota. Nomor WhatsApp & Instagram tersimpan privat.
+                Hanya menampilkan nama & perusahaan/usaha untuk transparansi kuota. Nomor WhatsApp & Instagram tersimpan privat.
               </p>
             </div>
             <span className="text-sm font-bold text-[#1F3A5F] tabular-nums">
-              {analytics.activeVotes.length} UMKM Terdaftar
+              {analytics.activeVotes.length} Peserta Terdaftar
             </span>
           </div>
 
@@ -2151,7 +2155,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-[#F28C28]">
                     <span>
-                      Langkah {voteStep} dari 2 · {voteStep === 1 ? 'Identitas Peserta & UMKM' : isModalOneOnOneCoaching ? 'Ajukan Jadwal Coaching Privat' : 'Pilih Jadwal & Kunci Suara'}
+                      Langkah {voteStep} dari 2 · {voteStep === 1 ? 'Identitas Peserta & Instansi/Usaha' : isModalOneOnOneCoaching ? 'Ajukan Jadwal Coaching Privat' : 'Pilih Jadwal & Kunci Suara'}
                     </span>
                     {chosenModalMaterial && chosenModalProgram && (
                       <>
@@ -2187,7 +2191,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                     })()}
                   </div>
                   <div className="font-display text-lg font-extrabold truncate mt-1">
-                    {chosenModalMaterial?.seminarTitle || 'Polling Bursa Kelas'}
+                    {chosenModalMaterial?.seminarTitle || 'Bursa Kelas Pelatihan'}
                   </div>
                 </div>
                 <button
@@ -2235,7 +2239,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                 {voteStep === 1 ? (
                   <div className="space-y-4">
                     <div className="text-[15px] text-slate-700 leading-relaxed">
-                      Lengkapi data diri & usahamu terlebih dahulu sebelum memilih jadwal polling. Data kontakmu aman dan digunakan mentor untuk pengingat H-1 serta kurasi pembahasan studi kasus UMKM.
+                      Lengkapi data diri & perusahaan/usahamu terlebih dahulu sebelum memilih jadwal pelatihan. Data kontakmu aman dan digunakan mentor untuk pengingat H-1 serta kurasi pembahasan studi kasus kelas.
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -2256,7 +2260,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
 
                       <div>
                         <label className="block text-sm font-bold text-slate-800 mb-1.5">
-                          Nama Usaha UMKM *
+                          Nama Perusahaan / Usaha / Instansi *
                         </label>
                         <input
                           type="text"
@@ -2264,7 +2268,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                           maxLength={60}
                           value={businessName}
                           onChange={(e) => setBusinessName(e.target.value)}
-                          placeholder="Contoh: Keripik Apel Makmur"
+                          placeholder="Contoh: PT Karya Nusantara / Kopi Makmur"
                           className="w-full px-3.5 py-3 text-base bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#F28C28]"
                         />
                       </div>
@@ -2286,7 +2290,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
 
                       <div>
                         <label className="block text-sm font-bold text-slate-800 mb-1.5">
-                          Akun Instagram (Usaha/Pribadi) *
+                          Akun Instagram (Perusahaan/Pribadi) *
                         </label>
                         <input
                           type="text"
@@ -2294,14 +2298,14 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                           maxLength={64}
                           value={instagram}
                           onChange={(e) => setInstagram(e.target.value)}
-                          placeholder="Contoh: @keripikapel.makmur"
+                          placeholder="Contoh: @kopi.makmur / @karyanusantara"
                           className="w-full px-3.5 py-3 text-base bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#F28C28]"
                         />
                       </div>
 
                       <div className="sm:col-span-2">
                         <label className="block text-sm font-bold text-slate-800 mb-1.5">
-                          Kategori Bidang Usaha *
+                          Kategori Bidang Industri / Usaha *
                         </label>
                         <select
                           value={businessCategory}
@@ -2629,7 +2633,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                     <span>Pembayaran QRIS GoPay Merchant</span>
                   </div>
                   <div className="font-display text-base sm:text-lg font-extrabold truncate mt-0.5">
-                    {payableContext.materialObj?.seminarTitle || 'Kelas Pilihan UMKM'}
+                    {payableContext.materialObj?.seminarTitle || 'Kelas Pelatihan Pilihan'}
                   </div>
                 </div>
                 <button
@@ -2782,7 +2786,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                           href={`https://wa.me/${normalizeWhatsappForWaMe(
                             campaign.mentorWhatsapp
                           )}?text=${encodeURIComponent(
-                            `Halo Mentor, saya ${displayName || myExistingVote?.displayName || 'Peserta'} (${businessName || myExistingVote?.businessName || 'UMKM'}) sudah melakukan pembayaran QRIS sebesar ${formatRupiah(
+                            `Halo Mentor, saya ${displayName || myExistingVote?.displayName || 'Peserta'} (${businessName || myExistingVote?.businessName || 'Peserta'}) sudah melakukan pembayaran QRIS sebesar ${formatRupiah(
                               payableContext.payableAmount
                             )} untuk kelas "${payableContext.materialObj?.seminarTitle || ''}".`
                           )}`}
@@ -3961,7 +3965,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                         ) : (
                           <div className="w-full h-full flex flex-col justify-center px-4 bg-gradient-to-br from-[#0F243E] to-[#1E466E] text-white">
                             <span className="text-[10px] font-semibold text-[#F28C28]">
-                              {material.category || 'Modul Pelatihan UMKM'}
+                              {material.category || 'Modul Kelas Pelatihan'}
                             </span>
                             <p className="font-display text-sm font-extrabold mt-1 line-clamp-2">
                               {material.seminarTitle}

@@ -208,7 +208,7 @@ export async function renderMaterialPosterDataUrl(
 
   ctx.fillStyle = '#FFFFFF';
   ctx.font = '800 26px system-ui, -apple-system, sans-serif';
-  ctx.fillText(material.organizerName || 'obeeAcademy | PartnerUp', 92, 82);
+  ctx.fillText(material.organizerName || 'obeeAcademy', 92, 82);
 
   ctx.fillStyle = 'rgba(255,255,255,0.72)';
   ctx.font = '600 22px system-ui, -apple-system, sans-serif';
@@ -273,7 +273,7 @@ export async function renderMaterialPosterDataUrl(
 
     ctx.fillStyle = 'rgba(255,255,255,0.88)';
     ctx.font = '800 34px system-ui, -apple-system, sans-serif';
-    ctx.fillText('KANDIDAT BURSA KELAS UMKM', imgX + 44, imgY + imgH / 2 - 6);
+    ctx.fillText('KANDIDAT BURSA KELAS PELATIHAN', imgX + 44, imgY + imgH / 2 - 6);
     ctx.fillStyle = accent;
     ctx.font = '700 22px system-ui, -apple-system, sans-serif';
     ctx.fillText(
@@ -291,7 +291,7 @@ export async function renderMaterialPosterDataUrl(
   const isPaidClass = Boolean(options.pricing?.isPaid && (options.pricing?.price || 0) > 0);
   const priceLabel = isPaidClass
     ? `BERBAYAR · ${formatRupiah(options.pricing!.price)}`
-    : 'KELAS GRATIS UMKM';
+    : 'KELAS GRATIS TERBUKA';
   ctx.font = '800 21px system-ui, -apple-system, sans-serif';
   const badgeTextW = ctx.measureText(priceLabel).width;
   const badgeW = badgeTextW + 40;
@@ -409,7 +409,7 @@ export async function renderMaterialPosterDataUrl(
   const descSource =
     options.customNote?.trim() ||
     material.description ||
-    'Pelatihan interaktif langsung praktik untuk membantu UMKM berkembang terukur.';
+    'Pelatihan interaktif langsung praktik untuk membantu peserta & tim berkembang terukur.';
   ctx.fillStyle = '#475569';
   ctx.font = '500 22px system-ui, -apple-system, sans-serif';
   const descLines = wrapTextLines(ctx, descSource, W - 200, 2);
@@ -508,8 +508,8 @@ export async function renderMaterialPosterDataUrl(
       ? `KELAS BERBAYAR ${formatRupiah(options.pricing!.price)} · JADWAL PASTI`
       : `KELAS BERBAYAR ${formatRupiah(options.pricing!.price)} · BAYAR SAAT KUOTA GO!`
     : isFixedSchedule
-    ? 'GRATIS UNTUK UMKM · DAFTAR JADWAL PASTI'
-    : 'GRATIS UNTUK UMKM · BURSA VOTING KELAS';
+    ? 'GRATIS UNTUK PESERTA · DAFTAR JADWAL PASTI'
+    : 'GRATIS UNTUK PESERTA · BURSA VOTING KELAS';
   ctx.fillText(footerKicker, 64, footY + 34);
 
   ctx.fillStyle = '#FFFFFF';
@@ -544,7 +544,7 @@ export async function downloadMaterialPosterPng(
     .slice(0, 48);
   const a = document.createElement('a');
   a.href = dataUrl;
-  a.download = `Poster_${slug || 'kelas_umkm'}.png`;
+  a.download = `Poster_${slug || 'kelas_pelatihan'}.png`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

@@ -119,12 +119,18 @@ const DEFAULT_CUSTOM_CONTENT: CustomContentDoc = {
   updatedAt: Date.now(),
 };
 
+const LEGACY_CAMPAIGN_TITLES = new Set([
+  'Bursa Kelas UMKM obeeAcademy — Vote Topik & Jadwal',
+  'Bursa Kelas UMKM obeeAcademy - Vote Topik & Jadwal',
+  'Bursa Kelas UMKM obeeAcademy',
+]);
+
 const DEFAULT_UNLOCK_CAMPAIGN: UnlockCampaignDoc = {
   id: 'active',
-  title: 'Bursa Kelas UMKM obeeAcademy — Vote Topik & Jadwal',
+  title: 'Bursa Kelas Pelatihan obeeAcademy - Vote Topik & Jadwal',
   subtitle:
     'Pilih topik materi yang paling kamu butuhkan dan centang semua jadwal yang kamu bisa hadiri. Kelas resmi dibuka (GO!) begitu terkumpul minimal 15 peserta berkomitmen pada topik & jam yang cocok.',
-  organizerName: 'obeeAcademy | PartnerUp',
+  organizerName: 'obeeAcademy',
   minQuota: 15,
   status: 'open',
   deadlineLabel: 'Voting dibuka s.d. Kamis 20.00 WIB',
@@ -469,11 +475,19 @@ export default function App() {
       (snap) => {
         if (snap.exists()) {
           const data = snap.data() as Partial<UnlockCampaignDoc>;
+          const normalizedTitle =
+            !data.title || LEGACY_CAMPAIGN_TITLES.has(data.title.trim())
+              ? DEFAULT_UNLOCK_CAMPAIGN.title
+              : data.title;
+          const normalizedOrganizer =
+            !data.organizerName || data.organizerName.trim() === 'obeeAcademy | PartnerUp'
+              ? DEFAULT_UNLOCK_CAMPAIGN.organizerName
+              : data.organizerName;
           setUnlockCampaign({
             id: snap.id,
-            title: data.title || DEFAULT_UNLOCK_CAMPAIGN.title,
+            title: normalizedTitle,
             subtitle: data.subtitle || DEFAULT_UNLOCK_CAMPAIGN.subtitle,
-            organizerName: data.organizerName || DEFAULT_UNLOCK_CAMPAIGN.organizerName,
+            organizerName: normalizedOrganizer,
             minQuota: typeof data.minQuota === 'number' ? data.minQuota : 15,
             status: data.status || 'open',
             deadlineLabel: data.deadlineLabel || DEFAULT_UNLOCK_CAMPAIGN.deadlineLabel,
@@ -1703,7 +1717,7 @@ export default function App() {
             secondaryMaterialIds: [],
             availableSlotIds: p.slots,
             flexibleTopic: p.flex,
-            mainChallenge: 'Ingin naik kelas & konsisten praktik bersama UMKM lain.',
+            mainChallenge: 'Ingin meningkatkan kompetensi tim & praktik terukur bersama peserta lain.',
             status: p.status,
             ts: tsVal,
           })
@@ -1844,7 +1858,7 @@ export default function App() {
               </h1>
               <p className="text-[11px] text-white/70 truncate leading-none mt-0.5">
                 {isPublicBursaHeader
-                  ? unlockCampaign.organizerName || 'obeeAcademy | PartnerUp'
+                  ? unlockCampaign.organizerName || 'obeeAcademy'
                   : customContent.organizerName || 'obeeAcademy | Obeecreatives'}
               </p>
             </div>
@@ -2112,7 +2126,7 @@ export default function App() {
             {!window.location.search.includes('view=participant') && window.innerWidth >= 768 && (
               <div className="bg-[#FFF7EC] border-b border-[#1F3A5F]/10 px-4 py-2 text-center text-xs text-[#1F3A5F]/75 flex flex-wrap items-center justify-center gap-3">
                 <span>
-                  Mode Simulasi: <strong>HP Peserta UMKM</strong> ({customContent.seminarTitle}).
+                  Mode Simulasi: <strong>HP Peserta</strong> ({customContent.seminarTitle}).
                 </span>
                 <button
                   onClick={() => setViewRole('projector')}
@@ -2319,7 +2333,7 @@ export default function App() {
         ) : (
           <div className="flex items-center gap-2">
             <span className="text-[11px] text-[#1F3A5F]/50">
-              {isPublicBursaHeader ? 'Portal Bursa Kelas UMKM' : 'Portal Interaktif Peserta UMKM'}
+              {isPublicBursaHeader ? 'Portal Bursa Materi Pelatihan' : 'Portal Interaktif Peserta'}
             </span>
             {/* Subtle discreet lock for developer login */}
             <button
