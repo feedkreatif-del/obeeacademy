@@ -127,6 +127,26 @@ export const SAMPLE_SLIDE_IMAGES = [
     url: '/assets/images/wadah_kemasan_modern_1793832959142.jpg',
     caption: 'Pilihan Wadah Food-Grade UMKM: Kraft Pouch, Black Zipper & Toples Kaca',
   },
+  {
+    label: 'Sistem Visual Identity',
+    url: '/assets/images/visual_identity_cover_1795656930653.jpg',
+    caption: 'Sistem Identitas Visual Terpadu: Logo, Warna, Tipografi & Kemasan',
+  },
+  {
+    label: 'Touchpoints Visual',
+    url: '/assets/images/visual_identity_touchpoints_1795656930908.jpg',
+    caption: 'Penerapan Identitas Visual Konsisten di Media Digital & Aset Fisik',
+  },
+  {
+    label: 'Setup Foto Jendela',
+    url: '/assets/images/foto_produk_window_setup_1795658758428.jpg',
+    caption: 'Setup Foto Produk Smartphone: Cahaya Jendela & Reflektor Kertas Putih',
+  },
+  {
+    label: '3 Sudut Kamera Produk',
+    url: '/assets/images/foto_produk_angles_guide_1795658758303.jpg',
+    caption: 'Perbandingan 3 Sudut Kamera: Eye Level (0°), 45°, dan Flat Lay (90°)',
+  },
 ];
 
 interface ContentEditorViewProps {
@@ -209,6 +229,7 @@ export const ContentEditorView: React.FC<ContentEditorViewProps> = ({
       }));
 
       await onSaveCustomContent({
+        ...customContent,
         seminarTitle: seminarTitle.trim() || 'Kelas & Workshop Interaktif',
         organizerName: organizerName.trim() || 'obeeAcademy | Obeecreatives',
         questions: normalizedQuestions,
@@ -503,25 +524,143 @@ export const ContentEditorView: React.FC<ContentEditorViewProps> = ({
     );
   };
 
-  const addSlide = () => {
-    const nextIdx = slides.length;
-    setSlides([
-      ...slides,
-      {
-        index: nextIdx,
-        pageNumber: nextIdx + 1,
-        badge: `BAGIAN ${nextIdx + 1}`,
-        title: 'Judul Slide Materi Baru',
-        subtitle: 'Sub-judul atau penjelasan inti yang tampil di layar proyektor.',
-        type: 'worksheet',
-        linkedQuestionIndex: 0,
-        cards: [
-          { title: 'Poin Utama 1', body: 'Penjelasan singkat poin pertama.', accent: 'orange' },
-          { title: 'Poin Utama 2', body: 'Penjelasan singkat poin kedua.', accent: 'teal' },
-        ],
-        promptLines: ['Pertanyaan latihan di slide: ______________'],
-      },
-    ]);
+  const handleSlideTypeChange = (idx: number, nextType: SlideDefinition['type']) => {
+    setSlides((prev) =>
+      prev.map((s, i) => {
+        if (i !== idx) return s;
+        const updated: SlideDefinition = { ...s, type: nextType };
+        if (nextType === 'comparison' && !updated.comparison) {
+          updated.comparison = {
+            leftTitle: 'Kondisi Biasa / Lemah',
+            leftBody: '• Poin kelemahan atau kebiasaan lama pertama.\n• Poin kedua yang perlu diperbaiki.',
+            rightTitle: 'Kondisi Ideal / Kuat',
+            rightBody: '• Poin solusi atau praktik terbaik pertama.\n• Poin kedua yang menaikkan nilai jual.',
+          };
+        }
+        return updated;
+      })
+    );
+  };
+
+  const updateSlideComparison = (
+    idx: number,
+    field: 'leftTitle' | 'leftBody' | 'rightTitle' | 'rightBody',
+    value: string
+  ) => {
+    setSlides((prev) =>
+      prev.map((s, i) => {
+        if (i !== idx) return s;
+        const baseComparison = s.comparison || {
+          leftTitle: 'Kondisi Biasa / Lemah',
+          leftBody: '',
+          rightTitle: 'Kondisi Ideal / Kuat',
+          rightBody: '',
+        };
+        return {
+          ...s,
+          comparison: {
+            ...baseComparison,
+            [field]: value,
+          },
+        };
+      })
+    );
+  };
+
+  const toggleSlideComparison = (idx: number, enabled: boolean) => {
+    setSlides((prev) =>
+      prev.map((s, i) => {
+        if (i !== idx) return s;
+        if (!enabled) {
+          const { comparison: _removed, ...rest } = s;
+          return rest;
+        }
+        return {
+          ...s,
+          comparison: s.comparison || {
+            leftTitle: 'Kondisi Biasa / Lemah',
+            leftBody: '• Poin kebiasaan lama pertama.\n• Poin kedua yang kurang optimal.',
+            rightTitle: 'Kondisi Ideal / Kuat',
+            rightBody: '• Poin solusi terbaik pertama.\n• Poin kedua yang lebih efektif.',
+          },
+        };
+      })
+    );
+  };
+
+  const addSlidePromptLine = (idx: number) => {
+    setSlides((prev) =>
+      prev.map((s, i) => {
+        if (i !== idx) return s;
+        const lines = s.promptLines || [];
+        return {
+          ...s,
+          promptLines: [...lines, 'Pertanyaan / isian latihan: ________________________'],
+        };
+      })
+    );
+  };
+
+  const updateSlidePromptLine = (idx: number, lineIdx: number, value: string) => {
+    setSlides((prev) =>
+      prev.map((s, i) => {
+        if (i !== idx) return s;
+        const lines = (s.promptLines || []).map((line, li) => (li === lineIdx ? value : line));
+        return { ...s, promptLines: lines };
+      })
+    );
+  };
+
+  const removeSlidePromptLine = (idx: number, lineIdx: number) => {
+    setSlides((prev) =>
+      prev.map((s, i) => {
+        if (i !== idx) return s;
+        const nextLines = (s.promptLines || []).filter((_, li) => li !== lineIdx);
+        return {
+          ...s,
+          promptLines: nextLines.length > 0 ? nextLines : undefined,
+        };
+      })
+    );
+  };
+
+  const addSlide = (insertAfterIdx?: number) => {
+    const newSlide: SlideDefinition = {
+      index: slides.length,
+      pageNumber: slides.length + 1,
+      badge: `BAGIAN ${slides.length + 1}`,
+      title: 'Judul Slide Materi Baru',
+      subtitle: 'Sub-judul atau penjelasan inti yang tampil di layar proyektor.',
+      type: 'concept',
+      cards: [
+        { title: 'Poin Utama 1', body: 'Penjelasan singkat poin pertama.', accent: 'orange' },
+        { title: 'Poin Utama 2', body: 'Penjelasan singkat poin kedua.', accent: 'teal' },
+      ],
+    };
+
+    if (typeof insertAfterIdx === 'number' && insertAfterIdx >= 0 && insertAfterIdx < slides.length) {
+      const nextSlides = [...slides];
+      nextSlides.splice(insertAfterIdx + 1, 0, newSlide);
+      setSlides(nextSlides);
+      return;
+    }
+
+    setSlides([...slides, newSlide]);
+  };
+
+  const duplicateSlideAt = (idx: number) => {
+    const target = slides[idx];
+    if (!target) return;
+    const cloned: SlideDefinition = {
+      ...target,
+      title: `${target.title} (Salinan)`,
+      cards: target.cards ? target.cards.map((c) => ({ ...c })) : undefined,
+      comparison: target.comparison ? { ...target.comparison } : undefined,
+      promptLines: target.promptLines ? [...target.promptLines] : undefined,
+    };
+    const nextSlides = [...slides];
+    nextSlides.splice(idx + 1, 0, cloned);
+    setSlides(nextSlides);
   };
 
   const removeSlide = (idx: number) => {
@@ -1794,7 +1933,7 @@ export const ContentEditorView: React.FC<ContentEditorViewProps> = ({
             </p>
             <button
               type="button"
-              onClick={addSlide}
+              onClick={() => addSlide()}
               className="px-4 py-2.5 rounded-xl bg-[#F28C28] hover:bg-[#d97719] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shrink-0"
             >
               <Plus className="w-4 h-4" />
@@ -1818,12 +1957,30 @@ export const ContentEditorView: React.FC<ContentEditorViewProps> = ({
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => addSlide(idx)}
+                      className="px-2.5 py-1 rounded-lg bg-[#FFF7EC] border border-[#F28C28]/40 hover:bg-[#F28C28] text-[#1F3A5F] hover:text-white text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                      title="Sisipkan 1 slide baru tepat di bawah slide ini"
+                    >
+                      <Plus className="w-3 h-3" />
+                      <span>Sisipkan Bawahnya</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => duplicateSlideAt(idx)}
+                      className="p-1.5 rounded-lg border border-[#1F3A5F]/15 hover:bg-slate-100 text-[#1F3A5F] cursor-pointer"
+                      title="Duplikat Slide Ini"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                    </button>
                     <button
                       type="button"
                       onClick={() => moveSlide(idx, -1)}
                       disabled={idx === 0}
                       className="p-1.5 rounded-lg border border-[#1F3A5F]/15 hover:bg-slate-100 disabled:opacity-30 cursor-pointer"
+                      title="Geser ke Atas"
                     >
                       <ArrowUp className="w-3.5 h-3.5" />
                     </button>
@@ -1832,6 +1989,7 @@ export const ContentEditorView: React.FC<ContentEditorViewProps> = ({
                       onClick={() => moveSlide(idx, 1)}
                       disabled={idx === slides.length - 1}
                       className="p-1.5 rounded-lg border border-[#1F3A5F]/15 hover:bg-slate-100 disabled:opacity-30 cursor-pointer"
+                      title="Geser ke Bawah"
                     >
                       <ArrowDown className="w-3.5 h-3.5" />
                     </button>
@@ -1839,7 +1997,8 @@ export const ContentEditorView: React.FC<ContentEditorViewProps> = ({
                       type="button"
                       onClick={() => removeSlide(idx)}
                       disabled={slides.length <= 1}
-                      className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 disabled:opacity-30 cursor-pointer ml-2"
+                      className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 disabled:opacity-30 cursor-pointer ml-1"
+                      title="Hapus Slide"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -1866,7 +2025,9 @@ export const ContentEditorView: React.FC<ContentEditorViewProps> = ({
                     </label>
                     <select
                       value={s.type}
-                      onChange={(e) => updateSlideField(idx, 'type', e.target.value)}
+                      onChange={(e) =>
+                        handleSlideTypeChange(idx, e.target.value as SlideDefinition['type'])
+                      }
                       className="w-full rounded-lg border border-[#1F3A5F]/25 px-3 py-2 text-sm font-semibold bg-white"
                     >
                       <option value="cover">Sampul Depan (Navy Penuh)</option>
@@ -2040,6 +2201,129 @@ export const ContentEditorView: React.FC<ContentEditorViewProps> = ({
                             placeholder="Isi penjelasan kartu (pisahkan baris dengan Enter)"
                             className="w-full rounded-lg border border-[#1F3A5F]/20 bg-white px-2.5 py-1.5 text-xs"
                           />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Perbandingan 2 Kolom (Kiri vs Kanan) Editor */}
+                <div className="border-t border-[#1F3A5F]/10 pt-4 space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <span className="text-xs font-bold uppercase tracking-wider text-[#1F3A5F]/75">
+                        Blok Perbandingan 2 Kolom (Kiri vs Kanan)
+                      </span>
+                      <p className="text-[11px] text-[#1F3A5F]/60">
+                        Cocok untuk membandingkan kondisi lemah/lama (Kiri) dengan kondisi kuat/solusi (Kanan).
+                      </p>
+                    </div>
+                    {s.comparison ? (
+                      <button
+                        type="button"
+                        onClick={() => toggleSlideComparison(idx, false)}
+                        className="px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Hapus Blok Perbandingan</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => toggleSlideComparison(idx, true)}
+                        className="px-3 py-1.5 rounded-lg bg-[#FFF7EC] border border-[#F28C28]/40 hover:bg-[#F28C28] text-[#1F3A5F] hover:text-white text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Tambah Perbandingan 2 Kolom</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {s.comparison && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="rounded-xl bg-rose-50/60 border border-rose-200 p-3.5 space-y-2">
+                        <span className="text-[11px] font-extrabold uppercase tracking-wider text-rose-700">
+                          Kolom Kiri (Sebelum / Lemah / Masalah)
+                        </span>
+                        <input
+                          type="text"
+                          value={s.comparison.leftTitle}
+                          onChange={(e) => updateSlideComparison(idx, 'leftTitle', e.target.value)}
+                          placeholder="Judul Kolom Kiri"
+                          className="w-full rounded-lg border border-rose-200 bg-white px-2.5 py-1.5 text-xs font-bold text-[#1F3A5F]"
+                        />
+                        <textarea
+                          rows={4}
+                          value={s.comparison.leftBody}
+                          onChange={(e) => updateSlideComparison(idx, 'leftBody', e.target.value)}
+                          placeholder="Isi poin kolom kiri (gunakan Enter untuk baris baru)"
+                          className="w-full rounded-lg border border-rose-200 bg-white px-2.5 py-1.5 text-xs leading-relaxed"
+                        />
+                      </div>
+
+                      <div className="rounded-xl bg-emerald-50/60 border border-emerald-200 p-3.5 space-y-2">
+                        <span className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-700">
+                          Kolom Kanan (Sesudah / Kuat / Solusi)
+                        </span>
+                        <input
+                          type="text"
+                          value={s.comparison.rightTitle}
+                          onChange={(e) => updateSlideComparison(idx, 'rightTitle', e.target.value)}
+                          placeholder="Judul Kolom Kanan"
+                          className="w-full rounded-lg border border-emerald-200 bg-white px-2.5 py-1.5 text-xs font-bold text-[#1F3A5F]"
+                        />
+                        <textarea
+                          rows={4}
+                          value={s.comparison.rightBody}
+                          onChange={(e) => updateSlideComparison(idx, 'rightBody', e.target.value)}
+                          placeholder="Isi poin kolom kanan (gunakan Enter untuk baris baru)"
+                          className="w-full rounded-lg border border-emerald-200 bg-white px-2.5 py-1.5 text-xs leading-relaxed"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Baris Kotak Latihan ("Tulis di Sini") Editor */}
+                <div className="border-t border-[#1F3A5F]/10 pt-4 space-y-2.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <span className="text-xs font-bold uppercase tracking-wider text-[#1F3A5F]/75">
+                        Baris Kotak Latihan Proyektor (Opsional · {(s.promptLines || []).length} Baris)
+                      </span>
+                      <p className="text-[11px] text-[#1F3A5F]/60">
+                        Tampil sebagai kotak panduan "Tulis di Sini" pada slide latihan.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => addSlidePromptLine(idx)}
+                      className="px-3 py-1.5 rounded-lg bg-[#FFF7EC] border border-[#F28C28]/40 hover:bg-[#F28C28] text-[#1F3A5F] hover:text-white text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Tambah Baris Latihan</span>
+                    </button>
+                  </div>
+
+                  {(s.promptLines || []).length > 0 && (
+                    <div className="space-y-2">
+                      {(s.promptLines || []).map((line, lIdx) => (
+                        <div key={lIdx} className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={line}
+                            onChange={(e) => updateSlidePromptLine(idx, lIdx, e.target.value)}
+                            placeholder="Contoh: Keunggulan Utama Produkku: ________________"
+                            className="flex-1 rounded-lg border border-[#1F3A5F]/20 bg-[#FFF7EC]/40 px-3 py-1.5 text-xs font-medium"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeSlidePromptLine(idx, lIdx)}
+                            className="p-1.5 text-red-600 hover:bg-red-50 rounded cursor-pointer"
+                            title="Hapus Baris Latihan"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       ))}
                     </div>
