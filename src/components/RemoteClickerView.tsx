@@ -1,4 +1,16 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { User } from 'firebase/auth';
+import { db, formatGoogleAuthError } from '../firebase';
+import {
+  clearFailedPinAttempts,
+  getPinCooldownRemainingMs,
+  isAuthorizedMentorUser,
+  PresenterPinConfig,
+  recordFailedPinAttempt,
+  setPresenterPin,
+  subscribePresenterPinConfig,
+  verifyPresenterPin,
+} from '../utils/presenterPin';
 import {
   SlideDefinition,
   WorksheetQuestion,
@@ -94,9 +106,10 @@ interface RemoteClickerViewProps {
     activePageIndex: number;
     pagesJson: string;
   }) => void;
+  mentorUser?: User | null;
+  onLoginMentorGoogle?: () => Promise<void>;
+  onLoginMentorRedirect?: () => Promise<void>;
 }
-
-const DEFAULT_PIN = '2026';
 
 export const RemoteClickerView: React.FC<RemoteClickerViewProps> = ({
   slides,
@@ -126,20 +139,16 @@ export const RemoteClickerView: React.FC<RemoteClickerViewProps> = ({
   flipchartRemote = null,
   boardDeviceId = '',
   onPublishFlipchart,
+  mentorUser = null,
+  onLoginMentorGoogle,
+  onLoginMentorRedirect,
 }) => {
   // Control Target Mode: 'slides' (17 Slides + PPT Points) vs 'interactive' (Direct 7 Questions / Polls / Q&A like Projector < >)
   const [remoteControlTab, setRemoteControlTab] = useState<'slides' | 'interactive'>('slides');
   const [isFlipchartOpen, setIsFlipchartOpen] = useState<boolean>(false);
 
-  // PIN Security State
-  const [savedPin, setSavedPin] = useState<string>(() => {
-    try {
-      return window.localStorage.getItem('partnerup_remote_pin_v1') || DEFAULT_PIN;
-    } catch {
-      return DEFAULT_PIN;
-    }
-  });
-
+  // Cloud-Hashed PIN Security State
+  const [pinConfig, setPinConfig] = useState<PresenterPinConfig | null>(null);
   const [isUnlocked, setIsUnlocked] = useState<boolean>(() => {
     try {
       return window.sessionStorage.getItem('partnerup_remote_unlocked_v1') === 'true';
@@ -149,10 +158,29 @@ export const RemoteClickerView: React.FC<RemoteClickerViewProps> = ({
   });
 
   const [pinInput, setPinInput] = useState('');
-  const [pinError, setPinError] = useState(false);
+  const [pinError, setPinError] = useState('');
   const [showChangePin, setShowChangePin] = useState(false);
   const [newPinInput, setNewPinInput] = useState('');
   const [pinSavedToast, setPinSavedToast] = useState(false);
+  const [cooldownSec, setCooldownSec] = useState(0);
+  const [googleAuthErr, setGoogleAuthErr] = useState('');
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
+  useEffect(() => {
+    const unsub = subscribePresenterPinConfig(db, setPinConfig);
+    const rem = getPinCooldownRemainingMs();
+    setCooldownSec(rem > 0 ? Math.ceil(rem / 1000) : 0);
+    return () => unsub();
+  }, []);
+
+  useEffect(() => {
+    if (cooldownSec <= 0) return;
+    const t = window.setInterval(() => {
+      const rem = getPinCooldownRemainingMs();
+      setCooldownSec(rem > 0 ? Math.ceil(rem / 1000) : 0);
+    }, 1000);
+    return () => window.clearInterval(t);
+  }, [cooldownSec]);
 
   // Speaker Notes synced from localStorage
   const [customNote] = useState<string>(() => {
@@ -175,39 +203,51 @@ export const RemoteClickerView: React.FC<RemoteClickerViewProps> = ({
     }
   };
 
-  const handlePinSubmit = (e: React.FormEvent) => {
+  const unlockRemoteSession = () => {
+    triggerHaptic([30, 50, 30]);
+    clearFailedPinAttempts();
+    setCooldownSec(0);
+    setIsUnlocked(true);
+    setPinError('');
+    setPinInput('');
+    try {
+      window.sessionStorage.setItem('partnerup_remote_unlocked_v1', 'true');
+    } catch {
+      // ignore
+    }
+  };
+
+  const handlePinSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (pinInput.trim() === savedPin) {
-      triggerHaptic([30, 50, 30]);
-      setIsUnlocked(true);
-      setPinError(false);
-      setPinInput('');
-      try {
-        window.sessionStorage.setItem('partnerup_remote_unlocked_v1', 'true');
-      } catch {
-        // ignore
-      }
+    if (!pinConfig) return;
+    const remMs = getPinCooldownRemainingMs();
+    if (remMs > 0) {
+      const sec = Math.ceil(remMs / 1000);
+      setCooldownSec(sec);
+      setPinError(`Terlalu banyak percobaan. Tunggu ${sec} detik.`);
+      return;
+    }
+    const ok = await verifyPresenterPin(pinInput, pinConfig);
+    if (ok) {
+      unlockRemoteSession();
     } else {
       triggerHaptic([80, 50, 80]);
-      setPinError(true);
+      const res = recordFailedPinAttempt();
+      if (res.locked) {
+        const sec = Math.ceil(res.remainingMs / 1000);
+        setCooldownSec(sec);
+        setPinError(`PIN salah 5 kali. Jeda keamanan ${sec} detik.`);
+      } else {
+        setPinError(`PIN belum sesuai. Sisa percobaan: ${res.attemptsLeft} kali.`);
+      }
     }
   };
 
   const handleDigitTap = (digit: string) => {
     triggerHaptic(20);
-    setPinError(false);
-    const next = (pinInput + digit).slice(0, 6);
+    setPinError('');
+    const next = (pinInput + digit).slice(0, 12);
     setPinInput(next);
-    if (next === savedPin) {
-      triggerHaptic([30, 50, 30]);
-      setIsUnlocked(true);
-      setPinInput('');
-      try {
-        window.sessionStorage.setItem('partnerup_remote_unlocked_v1', 'true');
-      } catch {
-        // ignore
-      }
-    }
   };
 
   const handleLockRemote = () => {
@@ -220,20 +260,24 @@ export const RemoteClickerView: React.FC<RemoteClickerViewProps> = ({
     }
   };
 
-  const handleSaveNewPin = (e: React.FormEvent) => {
+  const handleSaveNewPin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const cleaned = newPinInput.trim().slice(0, 6);
-    if (cleaned.length < 4) return;
-    setSavedPin(cleaned);
-    try {
-      window.localStorage.setItem('partnerup_remote_pin_v1', cleaned);
-    } catch {
-      // ignore
+    const cleaned = newPinInput.trim().slice(0, 16);
+    if (cleaned.length < 6) {
+      setPinError('PIN minimal 6 karakter atau angka.');
+      return;
     }
-    setNewPinInput('');
-    setShowChangePin(false);
-    setPinSavedToast(true);
-    setTimeout(() => setPinSavedToast(false), 2500);
+    try {
+      const cfg = await setPresenterPin(db, cleaned, mentorUser?.email || 'remote_presenter');
+      setPinConfig(cfg);
+      setNewPinInput('');
+      setShowChangePin(false);
+      setPinError('');
+      setPinSavedToast(true);
+      setTimeout(() => setPinSavedToast(false), 2500);
+    } catch {
+      setPinError('Gagal menyimpan PIN ke Cloud.');
+    }
   };
 
   const totalSlides = slides.length;
@@ -505,8 +549,9 @@ export const RemoteClickerView: React.FC<RemoteClickerViewProps> = ({
     }
   };
 
-  // PIN LOCK SCREEN
+  // PIN & MENTOR AUTH LOCK SCREEN
   if (!isUnlocked) {
+    const isMentorVerified = isAuthorizedMentorUser(mentorUser);
     return (
       <div className="max-w-md mx-auto px-4 py-8">
         <div className="bg-[#1F3A5F] text-white rounded-3xl p-6 sm:p-8 shadow-xl space-y-6 text-center border-2 border-[#F28C28]">
@@ -519,65 +564,129 @@ export const RemoteClickerView: React.FC<RemoteClickerViewProps> = ({
               POINTER PANGGUNG PEMATERI
             </span>
             <h1 className="font-display text-2xl sm:text-3xl font-extrabold">
-              Masukkan PIN Remote HP
+              Otentikasi Remote HP
             </h1>
             <p className="text-xs sm:text-sm text-white/75">
-              Mencegah peserta seminar menggeser slide secara tidak sengaja. (PIN bawaan: <strong>2026</strong>)
+              Mencegah peserta menggeser slide secara tidak sengaja. Buka menggunakan Akun Google Mentor atau PIN rahasia pemateri.
             </p>
           </div>
 
-          <form onSubmit={handlePinSubmit} className="space-y-4">
-            <input
-              type="password"
-              inputMode="numeric"
-              value={pinInput}
-              onChange={(e) => {
-                setPinError(false);
-                setPinInput(e.target.value.slice(0, 6));
-              }}
-              placeholder="••••"
-              className="w-full text-center font-mono text-3xl tracking-[0.5em] py-3 rounded-2xl bg-white/10 border border-white/25 text-white focus:outline-none focus:border-[#F28C28]"
-            />
+          {isMentorVerified ? (
+            <button
+              type="button"
+              onClick={unlockRemoteSession}
+              className="w-full py-3.5 px-4 rounded-2xl bg-[#2A9D8F] hover:bg-[#218276] text-white font-extrabold text-sm cursor-pointer shadow-md"
+            >
+              Buka Remote ({mentorUser?.email})
+            </button>
+          ) : (
+            onLoginMentorGoogle && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={isGoogleLoading}
+                    onClick={async () => {
+                      setGoogleAuthErr('');
+                      setIsGoogleLoading(true);
+                      try {
+                        await onLoginMentorGoogle();
+                      } catch (err) {
+                        setGoogleAuthErr(formatGoogleAuthError(err));
+                      } finally {
+                        setIsGoogleLoading(false);
+                      }
+                    }}
+                    className="flex-1 py-2.5 px-3 rounded-xl bg-white/15 hover:bg-white/25 text-white font-bold text-xs cursor-pointer disabled:opacity-50"
+                  >
+                    {isGoogleLoading ? 'Menghubungkan...' : 'Login Google Mentor'}
+                  </button>
+                  {onLoginMentorRedirect && (
+                    <button
+                      type="button"
+                      disabled={isGoogleLoading}
+                      onClick={async () => {
+                        setGoogleAuthErr('');
+                        setIsGoogleLoading(true);
+                        try {
+                          await onLoginMentorRedirect();
+                        } catch (err) {
+                          setGoogleAuthErr(formatGoogleAuthError(err));
+                        } finally {
+                          setIsGoogleLoading(false);
+                        }
+                      }}
+                      className="py-2.5 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-white/90 font-bold text-xs cursor-pointer disabled:opacity-50"
+                    >
+                      Mode Redirect
+                    </button>
+                  )}
+                </div>
+                {googleAuthErr && (
+                  <p className="text-[11px] text-amber-200 bg-white/10 rounded-xl p-2 text-left leading-relaxed">
+                    {googleAuthErr}
+                  </p>
+                )}
+              </div>
+            )
+          )}
 
-            {pinError && (
-              <p className="text-xs font-bold text-red-300">
-                PIN belum sesuai. Coba masukkan {savedPin === DEFAULT_PIN ? '2026' : 'PIN Pemateri Anda'}.
-              </p>
-            )}
+          {pinConfig ? (
+            <form onSubmit={handlePinSubmit} className="space-y-4">
+              <input
+                type="password"
+                inputMode="numeric"
+                value={pinInput}
+                onChange={(e) => {
+                  setPinError('');
+                  setPinInput(e.target.value.slice(0, 12));
+                }}
+                placeholder="••••••"
+                maxLength={12}
+                className="w-full text-center font-mono text-3xl tracking-[0.4em] py-3 rounded-2xl bg-white/10 border border-white/25 text-white focus:outline-none focus:border-[#F28C28]"
+              />
 
-            <div className="grid grid-cols-3 gap-2.5 pt-1">
-              {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((num) => (
+              {pinError && <p className="text-xs font-bold text-red-300">{pinError}</p>}
+
+              <div className="grid grid-cols-3 gap-2.5 pt-1">
+                {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((num) => (
+                  <button
+                    key={num}
+                    type="button"
+                    onClick={() => handleDigitTap(num)}
+                    className="py-3.5 rounded-2xl bg-white/10 hover:bg-white/20 active:bg-[#F28C28] font-display text-2xl font-bold text-white transition-colors cursor-pointer"
+                  >
+                    {num}
+                  </button>
+                ))}
                 <button
-                  key={num}
                   type="button"
-                  onClick={() => handleDigitTap(num)}
+                  onClick={() => setPinInput('')}
+                  className="py-3.5 rounded-2xl bg-white/5 hover:bg-white/15 text-xs font-bold text-white/70 cursor-pointer"
+                >
+                  Hapus
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDigitTap('0')}
                   className="py-3.5 rounded-2xl bg-white/10 hover:bg-white/20 active:bg-[#F28C28] font-display text-2xl font-bold text-white transition-colors cursor-pointer"
                 >
-                  {num}
+                  0
                 </button>
-              ))}
-              <button
-                type="button"
-                onClick={() => setPinInput('')}
-                className="py-3.5 rounded-2xl bg-white/5 hover:bg-white/15 text-xs font-bold text-white/70 cursor-pointer"
-              >
-                Hapus
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDigitTap('0')}
-                className="py-3.5 rounded-2xl bg-white/10 hover:bg-white/20 active:bg-[#F28C28] font-display text-2xl font-bold text-white transition-colors cursor-pointer"
-              >
-                0
-              </button>
-              <button
-                type="submit"
-                className="py-3.5 rounded-2xl bg-[#F28C28] hover:bg-[#d97719] text-xs font-extrabold text-white cursor-pointer"
-              >
-                Buka
-              </button>
+                <button
+                  type="submit"
+                  disabled={cooldownSec > 0 || !pinInput.trim()}
+                  className="py-3.5 rounded-2xl bg-[#F28C28] hover:bg-[#d97719] text-xs font-extrabold text-white cursor-pointer disabled:opacity-50"
+                >
+                  {cooldownSec > 0 ? `${cooldownSec}d` : 'Buka'}
+                </button>
+              </div>
+            </form>
+          ) : (
+            <div className="rounded-2xl bg-white/10 border border-white/15 p-4 text-xs text-white/85 leading-relaxed">
+              PIN pemateri belum diatur. Silakan masuk dengan Akun Google Mentor di atas atau atur PIN rahasia terlebih dahulu melalui layar presenter utama.
             </div>
-          </form>
+          )}
         </div>
       </div>
     );
@@ -646,12 +755,16 @@ export const RemoteClickerView: React.FC<RemoteClickerViewProps> = ({
           className="bg-white border border-[#1F3A5F]/20 rounded-2xl p-4 flex items-center gap-2"
         >
           <input
-            type="text"
+            type="password"
             inputMode="numeric"
-            maxLength={6}
+            maxLength={16}
             value={newPinInput}
-            onChange={(e) => setNewPinInput(e.target.value)}
-            placeholder="PIN baru (min 4 angka)"
+            onChange={(e) => {
+              setPinError('');
+              setNewPinInput(e.target.value);
+            }}
+            placeholder="PIN baru (min 6 karakter/angka)"
+            autoComplete="new-password"
             className="flex-1 rounded-xl border border-[#1F3A5F]/25 px-3 py-2 text-xs font-mono font-bold text-[#1F3A5F]"
           />
           <button

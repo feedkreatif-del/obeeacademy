@@ -211,7 +211,11 @@ export default function App() {
     })();
 
     // On mobile devices, require unlock to access internal presenter tools
-    if (isMobile && !isUnlocked && (v === 'editor' || v === 'moderation' || v === 'projector' || v === 'slides')) {
+    if (
+      isMobile &&
+      !isUnlocked &&
+      (v === 'editor' || v === 'moderation' || v === 'projector' || v === 'slides' || v === 'guide')
+    ) {
       return 'participant';
     }
 
@@ -2379,6 +2383,13 @@ export default function App() {
             flipchartRemote={flipchartRemote}
             boardDeviceId={boardDeviceId}
             onPublishFlipchart={handlePublishFlipchart}
+            mentorUser={mentorUser}
+            onLoginMentorGoogle={async () => {
+              await loginWithGoogle({ forceAccountSwitch: true });
+            }}
+            onLoginMentorRedirect={async () => {
+              await loginWithGoogleRedirect({ forceAccountSwitch: true });
+            }}
           />
         )}
 
@@ -2472,14 +2483,6 @@ export default function App() {
             <span className="text-[11px] text-[#1F3A5F]/55">
               {isPublicBursaHeader ? 'Portal Bursa Materi Pelatihan' : 'Portal Interaktif Peserta'}
             </span>
-            {/* Subtle discreet lock for developer login */}
-            <button
-              onClick={() => setIsAuthModalOpen(true)}
-              className="text-[#1F3A5F]/20 hover:text-[#1F3A5F]/70 p-1 rounded transition-colors cursor-pointer"
-              title="Akses Pemateri & Developer"
-            >
-              <Lock className="w-3 h-3" />
-            </button>
           </div>
         )}
       </footer>
@@ -2512,6 +2515,14 @@ export default function App() {
           setViewRole(r);
         }}
         isUnlocked={isPresenterUnlocked}
+        isPublicContext={isPublicHeaderOnly}
+        mentorUser={mentorUser}
+        onLoginMentorGoogle={async () => {
+          await loginWithGoogle({ forceAccountSwitch: true });
+        }}
+        onLoginMentorRedirect={async () => {
+          await loginWithGoogleRedirect({ forceAccountSwitch: true });
+        }}
         onUnlockSuccess={() => {
           setIsPresenterUnlocked(true);
         }}

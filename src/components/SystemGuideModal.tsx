@@ -467,9 +467,9 @@ export const SystemGuideModal: React.FC<SystemGuideModalProps> = ({
                     </div>
 
                     <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
-                      <div className="font-bold text-[#1F3A5F] text-xs">PIN Session Guard & Storage Persistence</div>
+                      <div className="font-bold text-[#1F3A5F] text-xs">Cloud-Hashed PIN Guard & Google Mentor Auth</div>
                       <p className="text-xs text-slate-600 mt-1">
-                        Sistem otentikasi lokal terisolasi yang mengamankan status buka-kunci pemateri selama tab browser aktif (<code>sessionStorage</code>), serta menyimpan PIN kustom pengguna secara persisten di <code>localStorage</code> dengan proteksi fallback standar (default: <code>2026</code>).
+                        Sistem otentikasi berlapis yang memverifikasi Akun Google Mentor resmi atau mencocokkan PIN kustom (minimal 6 karakter) menggunakan hash SHA-256 bersalt di Cloud Firestore tanpa menyematkan PIN bawaan di sisi klien.
                       </p>
                     </div>
 
@@ -591,16 +591,16 @@ export const SystemGuideModal: React.FC<SystemGuideModalProps> = ({
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-slate-700 pt-1">
                       <div className="bg-white p-2.5 rounded-lg border border-rose-100">
                         <strong className="text-rose-800 block mb-1">Cara Buka 1: Ketuk 3x di Header</strong>
-                        Ketuk 3 kali berturut-turut pada logo obeeAcademy atau judul kelas di bilah header atas HP peserta.
+                        Ketuk 3 kali berturut-turut pada logo atau judul kelas di bilah header atas (tersamar dan tidak menampilkan tombol gembok di tampilan publik).
                       </div>
                       <div className="bg-white p-2.5 rounded-lg border border-rose-100">
-                        <strong className="text-rose-800 block mb-1">Cara Buka 2: Ikon Gembok di Footer</strong>
-                        Klik ikon gembok kecil tersamar di pojok kanan bawah footer aplikasi.
+                        <strong className="text-rose-800 block mb-1">Cara Buka 2: Login Google Mentor</strong>
+                        Gunakan tombol verifikasi Akun Google Mentor resmi langsung dari jendela otentikasi pemateri tanpa perlu mengetik PIN.
                       </div>
                     </div>
                     <div className="bg-white p-2.5 rounded-lg border border-rose-100 text-slate-700">
-                      <strong className="text-rose-800 block mb-1">Verifikasi PIN & Navigasi Cepat</strong>
-                      Masukkan PIN keamanan (PIN default awal: <code>2026</code>). Setelah terbuka, Anda dapat mengganti PIN sendiri kapan saja. Begitu PIN terverifikasi, tombol mengambang <strong>[🛡️ Panel Presenter]</strong> akan muncul otomatis di layar HP Anda untuk beralih instan antar role. Saat selesai, klik tombol <strong>[🔒 Kunci]</strong> di kanan atas.
+                      <strong className="text-rose-800 block mb-1">Verifikasi PIN Rahasia & Navigasi Cepat</strong>
+                      Masukkan PIN rahasia pemateri (minimal 6 karakter/angka yang Anda atur sendiri dan tersinkron ke Cloud). Begitu terverifikasi, tombol mengambang <strong>[🛡️ Panel Presenter]</strong> akan muncul otomatis di layar HP Anda untuk beralih instan antar role. Saat selesai, klik tombol <strong>[🔒 Kunci]</strong> di kanan atas.
                     </div>
                   </div>
                 </div>

@@ -1475,7 +1475,7 @@ export function printSystemDocumentationGuide(params?: {
         <tr>
           <td><strong>Role-Based Stealth Auth & Triple-Tap Trigger</strong></td>
           <td>
-            Arsitektur antarmuka tanpa tombol mencolok. Tombol panel presenter disembunyikan sepenuhnya dari HP peserta agar tidak timbul rasa penasaran. Pemateri mengaktifkan panel via gestur ketuk 3x di header atau ikon gembok samar di footer, dilindungi verifikasi PIN keamanan modal.
+            Arsitektur antarmuka tanpa tombol admin pada tampilan publik maupun footer peserta. Pemateri mengaktifkan panel via gestur tersembunyi ketuk 3x di header, dilindungi verifikasi Akun Google Mentor atau PIN rahasia tersinkronisasi di Cloud.
           </td>
         </tr>
         <tr>
@@ -1509,9 +1509,9 @@ export function printSystemDocumentationGuide(params?: {
           </td>
         </tr>
         <tr>
-          <td><strong>PIN Session Guard & Storage Persistence</strong></td>
+          <td><strong>Cloud-Hashed PIN Guard & Google Mentor Auth</strong></td>
           <td>
-            Sistem otentikasi lokal terisolasi yang mengamankan status sesi pemateri selama tab browser aktif (<code>sessionStorage</code>), serta menyimpan PIN kustom pengguna secara persisten di <code>localStorage</code> dengan proteksi fallback standar (default: <code>2026</code>).
+            Sistem otentikasi berlapis yang memverifikasi Akun Google Mentor resmi atau PIN kustom minimal 6 karakter yang disimpan dalam bentuk hash SHA-256 bersalt di Cloud Firestore tanpa PIN bawaan di sisi klien.
           </td>
         </tr>
         <tr>
@@ -1551,7 +1551,7 @@ export function printSystemDocumentationGuide(params?: {
     </div>
     <div class="step-card">
       <div class="step-header"><span class="step-num">3</span> Memanggil Interaksi di Panggung (Eksklusif Pemateri)</div>
-      <p style="margin: 0; font-size: 8.5pt;">Saat masuk ke topik praktik, tekan tombol <strong>"Tampilkan Jawaban"</strong> atau <strong>"Polling"</strong> pada Remote HP / Slide Deck. Fitur ini dirancang khusus untuk pemateri (tidak muncul di HP peserta) agar hanya pemateri yang dapat mengatur kemunculan jawaban ke layar panggung. Pengaman Remote HP selalu dapat dibuka menggunakan Master PIN <code>2026</code>.</p>
+      <p style="margin: 0; font-size: 8.5pt;">Saat masuk ke topik praktik, tekan tombol <strong>"Tampilkan Jawaban"</strong> atau <strong>"Polling"</strong> pada Remote HP / Slide Deck. Fitur ini dirancang khusus untuk pemateri (tidak muncul di HP peserta) agar hanya pemateri yang dapat mengatur kemunculan jawaban ke layar panggung melalui PIN rahasia pemateri atau login Akun Google Mentor.</p>
     </div>
     <div class="step-card">
       <div class="step-header"><span class="step-num">4</span> Mengaktifkan Pembagian Slide ke HP Peserta</div>
@@ -1581,9 +1581,9 @@ export function printSystemDocumentationGuide(params?: {
     <div class="callout callout-blue">
       <div class="callout-title">SOP PENGAMANAN & AKSES RAHASIA PEMATERI</div>
       <p style="margin: 0; font-size: 8.5pt;">
-        <strong>1. Disembunyikan Total:</strong> Tombol panel presenter dihilangkan dari layar peserta agar tidak dapat diakses atau diuji coba oleh audiens umum.<br/>
-        <strong>2. Cara Membuka:</strong> Ketuk 3x judul seminar di header atas HP atau klik ikon gembok kecil di footer bawah.<br/>
-        <strong>3. Verifikasi PIN:</strong> Masukkan PIN (bawaan: <code>2026</code>). Tersedia fitur ganti PIN kustom yang tersimpan di browser.<br/>
+        <strong>1. Disembunyikan Total:</strong> Tombol panel presenter maupun ikon gembok dihilangkan dari layar dan footer publik agar tidak dapat diakses audiens umum.<br/>
+        <strong>2. Cara Membuka:</strong> Ketuk 3x judul seminar di header atas untuk memunculkan panel akses pemateri.<br/>
+        <strong>3. Verifikasi Berlapis:</strong> Masuk menggunakan Akun Google Mentor resmi atau masukkan PIN rahasia kustom (minimal 6 karakter, terenkripsi SHA-256 di Cloud).<br/>
         <strong>4. Floating Switcher:</strong> Tombol <code>[🛡️ Panel Presenter]</code> mengambang akan aktif untuk berpindah peran seketika. Klik <code>[🔒 Kunci]</code> di kanan atas jika ingin mengunci kembali.
       </p>
     </div>

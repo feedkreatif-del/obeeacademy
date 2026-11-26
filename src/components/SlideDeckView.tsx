@@ -2962,7 +2962,7 @@ export const SlideDeckView: React.FC<SlideDeckViewProps> = ({
                 Scan di HP Pemateri
               </h3>
               <p className="text-xs sm:text-sm text-[#1F3A5F]/75">
-                Scan QR ini menggunakan kamera HP Anda untuk membuka <strong>Layar Remote Pointer</strong> (PIN bawaan: <strong>2026</strong>).
+                Scan QR ini menggunakan kamera HP Anda untuk membuka <strong>Layar Remote Pointer</strong> (gunakan PIN rahasia pemateri atau login Akun Google Mentor).
               </p>
             </div>
 
