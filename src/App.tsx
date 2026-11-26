@@ -630,9 +630,9 @@ export default function App() {
     return () => unsubContacts();
   }, [isVerifiedMentorAdmin]);
 
-  // Dynamically apply organization brand color theme across classroom views,
-  // while keeping Bursa Kelas strictly unified on the official obeeAcademy Navy palette.
-  useApplyBrandTheme(viewRole === 'bursa' ? BURSA_PORTAL_THEME : customContent.brandTheme);
+  // Keep the entire obeeAcademy UI strictly unified on the official Navy + Orange palette
+  // so Firestore content loads or material switches never cause color flipping.
+  useApplyBrandTheme(viewRole === 'bursa' ? BURSA_PORTAL_THEME : DEFAULT_BRAND_THEME);
 
   const buildJoinUrl = (opts?: {
     mode?: InteractiveMode;

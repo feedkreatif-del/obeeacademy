@@ -4,6 +4,7 @@ import {
   SlideDefinition,
 } from './seminarData';
 import { SavedMaterial } from '../types';
+import { DEFAULT_BRAND_THEME } from '../brandTheme';
 
 const VISUAL_IDENTITY_QUESTIONS: WorksheetQuestion[] = [
   {
@@ -636,14 +637,7 @@ export const VISUAL_IDENTITY_CURRICULUM: SavedMaterial = {
       'Palet Warna 60-30-10 & RGB/CMYK',
       'Tipografi & Implementasi Korporasi',
     ],
-    brandTheme: {
-      presetId: 'visual_identity_forest',
-      name: 'Visual Identity (Forest Green & Amber)',
-      primaryColor: '#284D38',
-      accentColor: '#E08B26',
-      secondaryColor: '#4E8468',
-      bgColor: '#F7FAF7',
-    },
+    brandTheme: DEFAULT_BRAND_THEME,
     updatedAt: 1734500000000,
     materialId: 'visual_identity_master_1',
     description:

@@ -16,7 +16,6 @@ import {
   DEFAULT_BRAND_THEME,
   BRAND_THEME_PRESETS,
   sanitizeBrandTheme,
-  useApplyBrandTheme,
 } from '../brandTheme';
 import {
   downloadMaterialAsJson,
@@ -191,9 +190,6 @@ export const ContentEditorView: React.FC<ContentEditorViewProps> = ({
   const [brandTheme, setBrandTheme] = useState<BrandThemeConfig>(() =>
     sanitizeBrandTheme(customContent.brandTheme)
   );
-
-  // Live preview the edited brand theme immediately while inside Editor
-  useApplyBrandTheme(brandTheme);
 
   const [newTopicInput, setNewTopicInput] = useState('');
   const [saving, setSaving] = useState(false);
