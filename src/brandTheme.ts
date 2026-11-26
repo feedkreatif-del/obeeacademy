@@ -10,6 +10,15 @@ export const DEFAULT_BRAND_THEME: BrandThemeConfig = {
   bgColor: '#FFF7EC',
 };
 
+export const BURSA_PORTAL_THEME: BrandThemeConfig = {
+  presetId: 'obee_bursa_official',
+  name: 'obeeAcademy Bursa Kelas Resmi',
+  primaryColor: '#1F3A5F',
+  accentColor: '#F28C28',
+  secondaryColor: '#2A9D8F',
+  bgColor: '#F6F8FB',
+};
+
 export interface BrandThemePreset extends BrandThemeConfig {
   description: string;
   organizationType: string;

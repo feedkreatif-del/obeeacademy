@@ -1672,9 +1672,15 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
         <section className="bg-[#1F3A5F] text-white rounded-3xl p-5 sm:p-8 border border-white/10 shadow-md relative overflow-hidden">
           <div className="relative z-10 space-y-5">
             <div className="flex flex-wrap items-center justify-between gap-2 text-sm sm:text-[15px] text-white/80">
-              <span className="font-semibold tracking-wide text-[#F28C28]">
-                {campaign.organizerName || 'obeeAcademy'} | Bursa Materi Pelatihan
-              </span>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-semibold tracking-wide text-[#F28C28]">
+                  {campaign.organizerName || 'obeeAcademy'} | Bursa Materi Pelatihan
+                </span>
+                <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-white/10 border border-white/15 text-[11px] font-bold tracking-tight text-white">
+                  Part of&nbsp;<span className="text-white">obee</span>
+                  <span className="text-[#F87171]">creatives</span>
+                </span>
+              </div>
               <span className="tabular-nums">{campaign.deadlineLabel}</span>
             </div>
 
@@ -2017,10 +2023,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                 const material = activeTier.linkedMaterial;
                 const coverUrl = getMaterialCoverImageUrl(material) || getMaterialCoverImageUrl(anchorMat);
                 const highlights = extractMaterialCoreHighlights(material).slice(0, 3);
-                const themePrimary =
-                  material.content.brandTheme?.primaryColor ||
-                  anchorMat.content.brandTheme?.primaryColor ||
-                  '#1F3A5F';
+                const themePrimary = '#1F3A5F';
                 const isMyVoteForActiveTier = myVotes.some((v) =>
                   doesVoteMatchOffering(v, activeTier.offeringKey)
                 );
@@ -4351,10 +4354,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                 const coverUrl =
                   getMaterialCoverImageUrl(material) || getMaterialCoverImageUrl(anchorMaterial);
                 const highlights = extractMaterialCoreHighlights(material).slice(0, 3);
-                const themePrimary =
-                  material.content.brandTheme?.primaryColor ||
-                  anchorMaterial.content.brandTheme?.primaryColor ||
-                  '#1F3A5F';
+                const themePrimary = '#1F3A5F';
                 const voteCount = analytics.activeVotes.filter((v) =>
                   doesVoteMatchOffering(v, activeTier.offeringKey)
                 ).length;

@@ -73,7 +73,12 @@ import { SlideDeckView } from './components/SlideDeckView';
 import { RemoteClickerView } from './components/RemoteClickerView';
 import { ContentEditorView } from './components/ContentEditorView';
 import { OfflineBanner, PWAInstallModalTrigger } from './components/PWAInstallButton';
-import { DEFAULT_BRAND_THEME, sanitizeBrandTheme, useApplyBrandTheme } from './brandTheme';
+import {
+  BURSA_PORTAL_THEME,
+  DEFAULT_BRAND_THEME,
+  sanitizeBrandTheme,
+  useApplyBrandTheme,
+} from './brandTheme';
 import {
   getSavedMaterialsLocal,
   getActiveMaterialIdLocal,
@@ -625,8 +630,9 @@ export default function App() {
     return () => unsubContacts();
   }, [isVerifiedMentorAdmin]);
 
-  // Dynamically apply organization brand color theme across all views (default: PartnerUp | Obeecreatives)
-  useApplyBrandTheme(customContent.brandTheme);
+  // Dynamically apply organization brand color theme across classroom views,
+  // while keeping Bursa Kelas strictly unified on the official obeeAcademy Navy palette.
+  useApplyBrandTheme(viewRole === 'bursa' ? BURSA_PORTAL_THEME : customContent.brandTheme);
 
   const buildJoinUrl = (opts?: {
     mode?: InteractiveMode;
@@ -1920,7 +1926,11 @@ export default function App() {
   const isPublicHeaderOnly = viewRole === 'participant' || isPublicBursaHeader;
 
   return (
-    <div className="min-h-screen w-full max-w-full overflow-x-hidden flex flex-col bg-[#FFF7EC] text-[#1F3A5F]">
+    <div
+      className={`min-h-screen w-full max-w-full overflow-x-hidden flex flex-col text-[#1F3A5F] ${
+        viewRole === 'bursa' ? 'bg-[#F6F8FB]' : 'bg-[#FFF7EC]'
+      }`}
+    >
       {/* Conditional Header: Clean Participant/Public Header vs Presenter/Organizer 3-Zone Navigation */}
       {isPublicHeaderOnly ? (
         <header className="w-full max-w-full flex items-center justify-between gap-3 px-4 sm:px-6 py-3 bg-[#1F3A5F] text-white border-b border-white/10 sticky top-0 z-30 shadow-xs">
@@ -1936,10 +1946,17 @@ export default function App() {
                   ? unlockCampaign.title
                   : customContent.seminarTitle || 'obeeAcademy'}
               </h1>
-              <p className="text-[11px] text-white/70 truncate leading-none mt-0.5">
-                {isPublicBursaHeader
-                  ? unlockCampaign.organizerName || 'obeeAcademy'
-                  : customContent.organizerName || 'obeeAcademy | Obeecreatives'}
+              <p className="text-[11px] text-white/75 truncate leading-none mt-0.5 flex items-center gap-1.5">
+                <span>
+                  {isPublicBursaHeader
+                    ? unlockCampaign.organizerName || 'obeeAcademy'
+                    : customContent.organizerName || 'obeeAcademy'}
+                </span>
+                <span className="text-white/35">·</span>
+                <span className="font-bold tracking-tight">
+                  by <span className="text-white">obee</span>
+                  <span className="text-[#F87171]">creatives</span>
+                </span>
               </p>
             </div>
           </div>
@@ -2403,8 +2420,22 @@ export default function App() {
       )}
 
       {/* Footer: Differentiated for Participant vs Developer/Presenter */}
-      <footer className="border-t border-[#1F3A5F]/10 py-4 px-6 text-center text-xs text-[#1F3A5F]/60 bg-[#FFF7EC] flex flex-col sm:flex-row items-center justify-between gap-2 max-w-7xl mx-auto w-full">
-        <span>{customContent.seminarTitle} · {customContent.organizerName}</span>
+      <footer
+        className={`border-t border-[#1F3A5F]/10 py-4 px-6 text-center text-xs text-[#1F3A5F]/65 flex flex-col sm:flex-row items-center justify-between gap-2 max-w-7xl mx-auto w-full ${
+          viewRole === 'bursa' ? 'bg-[#F6F8FB]' : 'bg-[#FFF7EC]'
+        }`}
+      >
+        <span className="flex flex-wrap items-center justify-center gap-1.5">
+          <span>
+            {isPublicBursaHeader
+              ? unlockCampaign.organizerName || 'obeeAcademy'
+              : `${customContent.seminarTitle} · ${customContent.organizerName}`}
+          </span>
+          <span className="text-[#1F3A5F]/30">·</span>
+          <span className="font-bold text-[#1F3A5F]">
+            Part of obee<span className="text-[#DC2626]">creatives</span>
+          </span>
+        </span>
         {!isPublicHeaderOnly ? (
           <button
             type="button"
@@ -2416,7 +2447,7 @@ export default function App() {
           </button>
         ) : (
           <div className="flex items-center gap-2">
-            <span className="text-[11px] text-[#1F3A5F]/50">
+            <span className="text-[11px] text-[#1F3A5F]/55">
               {isPublicBursaHeader ? 'Portal Bursa Materi Pelatihan' : 'Portal Interaktif Peserta'}
             </span>
             {/* Subtle discreet lock for developer login */}
