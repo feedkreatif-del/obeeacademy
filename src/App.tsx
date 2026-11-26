@@ -82,6 +82,7 @@ import {
   SESI_3_BRANDING_MARKETING_SELLING_CURRICULUM,
 } from './utils/materialsManager';
 import { VISUAL_IDENTITY_CURRICULUM } from './data/visualIdentity';
+import { FOTO_PRODUK_DASAR_CURRICULUM } from './data/fotoProdukDasar';
 import { MaterialsBankModal } from './components/MaterialsBankModal';
 import { Download, BookOpen, Lock, Unlock, ShieldCheck, Settings, Layers, CalendarCheck } from 'lucide-react';
 import { SystemGuideModal } from './components/SystemGuideModal';
@@ -121,6 +122,7 @@ const DEFAULT_CUSTOM_CONTENT: CustomContentDoc = {
 };
 
 const VI_POSTER_SEEDED_KEY = 'obee_seeded_vi_poster_v1';
+const FP_POSTER_SEEDED_KEY = 'obee_seeded_fp_poster_v1';
 
 const LEGACY_CAMPAIGN_TITLES = new Set([
   'Bursa Kelas UMKM obeeAcademy — Vote Topik & Jadwal',
@@ -491,16 +493,23 @@ export default function App() {
               ? data.candidateMaterialIds
               : DEFAULT_UNLOCK_CAMPAIGN.candidateMaterialIds;
           let alreadySeededVi = false;
+          let alreadySeededFp = false;
           try {
             alreadySeededVi = window.localStorage.getItem(VI_POSTER_SEEDED_KEY) === '1';
+            alreadySeededFp = window.localStorage.getItem(FP_POSTER_SEEDED_KEY) === '1';
           } catch {
             alreadySeededVi = false;
+            alreadySeededFp = false;
           }
           const hasViPoster = baseCandidateIds.includes(VISUAL_IDENTITY_CURRICULUM.id);
-          const nextCandidateIds =
-            !hasViPoster && !alreadySeededVi && baseCandidateIds.length < 20
-              ? [...baseCandidateIds, VISUAL_IDENTITY_CURRICULUM.id]
-              : baseCandidateIds;
+          const hasFpPoster = baseCandidateIds.includes(FOTO_PRODUK_DASAR_CURRICULUM.id);
+          let nextCandidateIds = [...baseCandidateIds];
+          if (!hasViPoster && !alreadySeededVi && nextCandidateIds.length < 20) {
+            nextCandidateIds.push(VISUAL_IDENTITY_CURRICULUM.id);
+          }
+          if (!hasFpPoster && !alreadySeededFp && nextCandidateIds.length < 20) {
+            nextCandidateIds.push(FOTO_PRODUK_DASAR_CURRICULUM.id);
+          }
 
           const nextCampaignState: UnlockCampaignDoc = {
             id: snap.id,
@@ -529,9 +538,18 @@ export default function App() {
           };
           setUnlockCampaign(nextCampaignState);
 
-          if (isHostRoleRef.current && !hasViPoster && !alreadySeededVi) {
+          const seededNewPoster =
+            (!hasViPoster && !alreadySeededVi && nextCandidateIds.includes(VISUAL_IDENTITY_CURRICULUM.id)) ||
+            (!hasFpPoster && !alreadySeededFp && nextCandidateIds.includes(FOTO_PRODUK_DASAR_CURRICULUM.id));
+
+          if (isHostRoleRef.current && seededNewPoster) {
             try {
-              window.localStorage.setItem(VI_POSTER_SEEDED_KEY, '1');
+              if (!hasViPoster && !alreadySeededVi) {
+                window.localStorage.setItem(VI_POSTER_SEEDED_KEY, '1');
+              }
+              if (!hasFpPoster && !alreadySeededFp) {
+                window.localStorage.setItem(FP_POSTER_SEEDED_KEY, '1');
+              }
             } catch {
               // noop
             }
@@ -540,7 +558,7 @@ export default function App() {
               updatedAt: Date.now(),
             });
             setDoc(campRef, syncPayload).catch((err) =>
-              console.warn('Auto-add Visual Identity poster skipped:', err)
+              console.warn('Auto-add new curriculum poster skipped:', err)
             );
           }
         } else if (isHostRoleRef.current) {

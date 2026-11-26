@@ -12,6 +12,7 @@ import { SESI_5_MARKETING_CURRICULUM } from '../data/sesi5Marketing';
 import { SESI_6_SELLING_CURRICULUM } from '../data/sesi6Selling';
 import { STROBIST_LIGHTING_CURRICULUM } from '../data/strobistLightingMastery';
 import { VISUAL_IDENTITY_CURRICULUM } from '../data/visualIdentity';
+import { FOTO_PRODUK_DASAR_CURRICULUM } from '../data/fotoProdukDasar';
 import { CustomContentDoc, SavedMaterial, BrandThemeConfig } from '../types';
 export type { SavedMaterial };
 import { DEFAULT_BRAND_THEME, sanitizeBrandTheme } from '../brandTheme';
@@ -1584,6 +1585,7 @@ export const INITIAL_PRESET_MATERIALS: SavedMaterial[] = [
   SESI_6_SELLING_CURRICULUM,
   STROBIST_LIGHTING_CURRICULUM,
   VISUAL_IDENTITY_CURRICULUM,
+  FOTO_PRODUK_DASAR_CURRICULUM,
   COPYWRITING_MATERIAL_PRESET,
 ];
 
@@ -1609,6 +1611,7 @@ export function getSavedMaterialsLocal(): SavedMaterial[] {
       const hasSesi6 = parsed.some((m) => m.id === SESI_6_SELLING_CURRICULUM.id);
       const hasStrobist1 = parsed.some((m) => m.id === STROBIST_LIGHTING_CURRICULUM.id);
       const hasVisualIdentity = parsed.some((m) => m.id === VISUAL_IDENTITY_CURRICULUM.id);
+      const hasFotoProdukDasar = parsed.some((m) => m.id === FOTO_PRODUK_DASAR_CURRICULUM.id);
       const hasCopywriting = parsed.some((m) => m.id === COPYWRITING_MATERIAL_PRESET.id);
 
       let updated = [...parsed];
@@ -1763,6 +1766,24 @@ export function getSavedMaterialsLocal(): SavedMaterial[] {
             !currentVi?.content?.polls?.some((p: LivePollConfig) => p.id === 'poll_vi_jenis_logo');
           if (needsViRefresh && currentVi) {
             updated[viIdx] = VISUAL_IDENTITY_CURRICULUM;
+            changed = true;
+          }
+        }
+      }
+      if (!hasFotoProdukDasar) {
+        const viPos = updated.findIndex((m) => m.id === VISUAL_IDENTITY_CURRICULUM.id);
+        updated.splice(viPos >= 0 ? viPos + 1 : 9, 0, FOTO_PRODUK_DASAR_CURRICULUM);
+        changed = true;
+      } else {
+        const fpIdx = updated.findIndex((m) => m.id === FOTO_PRODUK_DASAR_CURRICULUM.id);
+        if (fpIdx >= 0) {
+          const currentFp = updated[fpIdx];
+          const needsFpRefresh =
+            !currentFp?.updatedAt ||
+            currentFp.updatedAt < 1734700000000 ||
+            !currentFp?.content?.polls?.some((p: LivePollConfig) => p.id === 'poll_fp_sudut_produk');
+          if (needsFpRefresh && currentFp) {
+            updated[fpIdx] = FOTO_PRODUK_DASAR_CURRICULUM;
             changed = true;
           }
         }
