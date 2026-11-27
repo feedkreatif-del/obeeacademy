@@ -57,16 +57,17 @@ export default defineConfig(() => {
           navigateFallback: null,
           maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
           globPatterns: ['**/*.{js,css,ico,png,svg,woff,woff2}'],
+          globIgnores: ['**/assets/aistudio/**', '**/aistudio/**', '**/*.map'],
           runtimeCaching: [
             {
               urlPattern: ({ request }) => request.mode === 'navigate',
               handler: 'NetworkFirst',
               options: {
-                cacheName: 'html-navigation-cache',
-                networkTimeoutSeconds: 3,
+                cacheName: 'obee-html-nav-v2',
+                networkTimeoutSeconds: 6,
                 expiration: {
-                  maxEntries: 10,
-                  maxAgeSeconds: 60 * 60,
+                  maxEntries: 5,
+                  maxAgeSeconds: 15 * 60,
                 },
                 cacheableResponse: {
                   statuses: [200],
