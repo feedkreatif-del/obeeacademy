@@ -229,3 +229,50 @@ export interface UnlockContactDoc {
   ts: number;
 }
 
+export type WorksheetRubricId =
+  | 'value_to_closing'
+  | 'value_proposition'
+  | 'visual_packaging'
+  | 'laporan_keuangan_umkm'
+  | 'custom';
+
+export interface WorksheetRecommendationItem {
+  area: string;
+  currentDraft: string;
+  suggestedUpgrade: string;
+  reason: string;
+}
+
+export interface WorksheetAnalysisOutput {
+  participantName: string;
+  brandName: string;
+  subsector: string;
+  documentSummary: string;
+  completenessScore: number;
+  rubricVerdict: string;
+  missingSections: string[];
+  strengths: string[];
+  gapsAndCorrections: string[];
+  actionableRecommendations: WorksheetRecommendationItem[];
+  coachingQuestions: string[];
+  whatsappFeedbackDraft: string;
+}
+
+export interface WorksheetUploadedFileMeta {
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+}
+
+export interface WorksheetAnalysisRecord {
+  id: string;
+  rubricId: WorksheetRubricId;
+  rubricTitle: string;
+  customInstruction?: string;
+  linkedContactId?: string;
+  linkedContactLabel?: string;
+  files: WorksheetUploadedFileMeta[];
+  analysis: WorksheetAnalysisOutput;
+  createdAt: number;
+}
+

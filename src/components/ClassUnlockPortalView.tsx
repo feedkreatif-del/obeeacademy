@@ -98,6 +98,7 @@ import {
   isValidQrisPayload,
 } from '../utils/qris';
 import { formatGoogleAuthError } from '../firebase';
+import { WorksheetAnalyzerPanel } from './WorksheetAnalyzerPanel';
 
 interface ClassUnlockPortalViewProps {
   isHostMode: boolean;
@@ -260,7 +261,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
   onCreateMaterial,
   onBackToPresenter,
 }) => {
-  const [hostTab, setHostTab] = useState<'posters' | 'monitor' | 'crm' | 'setup'>('posters');
+  const [hostTab, setHostTab] = useState<'posters' | 'monitor' | 'crm' | 'ai_review' | 'setup'>('posters');
 
   const baseBursaUrl = useMemo(() => {
     if (typeof window === 'undefined') return '/?view=bursa';
@@ -3390,6 +3391,19 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
 
         <button
           type="button"
+          onClick={() => setHostTab('ai_review')}
+          className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 cursor-pointer whitespace-nowrap shrink-0 transition-colors ${
+            hostTab === 'ai_review'
+              ? 'bg-[#1F3A5F] text-white shadow-xs'
+              : 'bg-white text-[#1F3A5F]/75 border border-[#1F3A5F]/15 hover:bg-slate-50'
+          }`}
+        >
+          <Sparkles className="w-4 h-4 text-[#F28C28]" />
+          <span>Bedah Tugas (AI)</span>
+        </button>
+
+        <button
+          type="button"
           onClick={() => setHostTab('setup')}
           className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 cursor-pointer whitespace-nowrap shrink-0 transition-colors ${
             hostTab === 'setup'
@@ -4278,6 +4292,111 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* TAB AI REVIEW: BEDAH TUGAS & LEMBAR KERJA PESERTA (MENTOR-ONLY) */}
+      {hostTab === 'ai_review' && (
+        <div className="space-y-5">
+          {!isVerifiedMentorAdmin ? (
+            <div className="p-4 sm:p-5 rounded-2xl bg-amber-50 border border-amber-200 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-start gap-2.5 text-xs text-amber-950 max-w-2xl">
+                  <Lock className="w-4 h-4 text-[#F28C28] shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <span className="font-bold block text-sm">
+                      Fitur Bedah Tugas (AI) Khusus Mentor Terverifikasi
+                    </span>
+                    <span className="block leading-relaxed">
+                      Login dengan akun Google mentor terverifikasi (feedkreatif@gmail.com) untuk mengunggah PDF atau foto lembar kerja peserta, membedah isi dengan rubrik kurikulum obeeAcademy, dan menyimpan hasilnya ke riwayat maupun Catatan CRM UMKM.
+                    </span>
+                    {mentorEmail && (
+                      <div className="mt-1.5 px-2.5 py-1.5 rounded-lg bg-rose-100/90 border border-rose-300 text-rose-900 font-semibold">
+                        Saat ini sesi Google terbaca sebagai <strong>{mentorEmail}</strong>, bukan <strong>feedkreatif@gmail.com</strong>. Klik tombol di kanan untuk ganti akun.
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    disabled={isLoggingInMentor}
+                    onClick={async () => {
+                      setIsLoggingInMentor(true);
+                      setMentorAuthError('');
+                      try {
+                        await onLoginMentorGoogle();
+                      } catch (err) {
+                        setMentorAuthError(formatGoogleAuthError(err));
+                      } finally {
+                        setIsLoggingInMentor(false);
+                      }
+                    }}
+                    className="px-4 py-2.5 rounded-xl bg-[#1F3A5F] hover:bg-[#162a45] disabled:opacity-50 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                  >
+                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                    <span>
+                      {isLoggingInMentor
+                        ? 'Membuka Login Google...'
+                        : mentorEmail
+                        ? 'Ganti Akun ke feedkreatif@gmail.com'
+                        : 'Verifikasi Akun Mentor (Google)'}
+                    </span>
+                  </button>
+                  {onLoginMentorRedirect && (
+                    <button
+                      type="button"
+                      disabled={isLoggingInMentor}
+                      onClick={async () => {
+                        setIsLoggingInMentor(true);
+                        setMentorAuthError('');
+                        try {
+                          await onLoginMentorRedirect();
+                        } catch (err) {
+                          setMentorAuthError(formatGoogleAuthError(err));
+                          setIsLoggingInMentor(false);
+                        }
+                      }}
+                      className="px-3 py-2.5 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 disabled:opacity-50 text-[#1F3A5F] text-xs font-bold cursor-pointer whitespace-nowrap"
+                      title="Alternatif jika pop-up diblokir atau tertutup otomatis di jendela PWA"
+                    >
+                      Mode Redirect
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {(mentorAuthError || mentorAuthExternalError) && (
+                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-900 space-y-1">
+                  <div className="font-bold">Kendala Verifikasi Google:</div>
+                  <div className="leading-relaxed">
+                    {mentorAuthError || mentorAuthExternalError}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 flex flex-wrap items-center justify-between gap-2 text-xs text-emerald-900">
+                <div className="flex items-center gap-2 font-semibold">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                  <span>Bedah Tugas (AI) Aktif · Sesi Mentor {mentorEmail}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={onLogoutMentorGoogle}
+                  className="text-emerald-800 underline hover:text-emerald-950 cursor-pointer font-semibold"
+                >
+                  Keluar Google Mentor
+                </button>
+              </div>
+
+              <WorksheetAnalyzerPanel
+                contacts={contacts}
+                onUpdateLeadCrm={onUpdateLeadCrm}
+              />
+            </div>
+          )}
         </div>
       )}
 
