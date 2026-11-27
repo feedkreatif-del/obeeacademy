@@ -25,6 +25,27 @@ export interface CurriculumRoadmapItem {
 export const ROADMAP_LOCAL_KEY = 'obee_curriculum_roadmap_v1';
 export const ROADMAP_DOC_ID = 'curriculum_roadmap';
 const ROADMAP_SOURCE_ID = 'obeeacademy_roadmap';
+const ROADMAP_FINANCE_SEED_FLAG = 'obee_roadmap_seed_fin_v1';
+
+const FINANCE_ROADMAP_ITEM: CurriculumRoadmapItem = {
+  id: 'rm_laporan_keuangan_umkm',
+  title: 'Laporan Keuangan Praktis UMKM: Pisah Kas, Hitung HPP & Laba Rugi 1 Halaman',
+  pillar: 'Pilar Bisnis & Keuangan',
+  priority: 'tinggi',
+  status: 'ide',
+  summary:
+    'Panduan keuangan anti-rumit untuk UMKM: memisahkan rekening pribadi dan usaha, menghitung HPP asli termasuk biaya kemasan/promo/admin marketplace, serta membaca arus kas dan titik impas harian.',
+  tierPlan: {
+    seminar:
+      '5 bocor halus keuangan UMKM (omzet ramai tapi kas kosong), aturan gaji pemilik, & rumus cek margin aman.',
+    workshop:
+      'Praktik isi template HPP & Laporan Arus Kas–Laba Rugi 1 halaman memakai angka produk masing-masing.',
+    coaching:
+      'Bedah catatan transaksi 1 bulan terakhir peserta & tentukan batas aman biaya iklan/promo serta target penjualan harian.',
+  },
+  createdAt: 1735000008000,
+  updatedAt: 1735000008000,
+};
 
 export const DEFAULT_CURRICULUM_ROADMAP: CurriculumRoadmapItem[] = [
   {
@@ -139,6 +160,7 @@ export const DEFAULT_CURRICULUM_ROADMAP: CurriculumRoadmapItem[] = [
     createdAt: 1735000007000,
     updatedAt: 1735000007000,
   },
+  FINANCE_ROADMAP_ITEM,
 ];
 
 function sanitizeRoadmapItems(raw: unknown): CurriculumRoadmapItem[] {
@@ -180,14 +202,47 @@ function sanitizeRoadmapItems(raw: unknown): CurriculumRoadmapItem[] {
   return cleaned.length > 0 ? cleaned : DEFAULT_CURRICULUM_ROADMAP;
 }
 
+function applyPendingSeedMerges(items: CurriculumRoadmapItem[]): {
+  items: CurriculumRoadmapItem[];
+  changed: boolean;
+} {
+  try {
+    const alreadySeeded = window.localStorage.getItem(ROADMAP_FINANCE_SEED_FLAG) === '1';
+    const exists = items.some((it) => it.id === FINANCE_ROADMAP_ITEM.id);
+    if (!alreadySeeded && !exists) {
+      window.localStorage.setItem(ROADMAP_FINANCE_SEED_FLAG, '1');
+      return {
+        items: [...items, FINANCE_ROADMAP_ITEM],
+        changed: true,
+      };
+    }
+    if (exists && !alreadySeeded) {
+      window.localStorage.setItem(ROADMAP_FINANCE_SEED_FLAG, '1');
+    }
+  } catch {
+    // ignore storage errors
+  }
+  return { items, changed: false };
+}
+
 export function loadCurriculumRoadmapLocal(): CurriculumRoadmapItem[] {
   try {
     const raw = window.localStorage.getItem(ROADMAP_LOCAL_KEY);
     if (!raw) {
       saveCurriculumRoadmapLocal(DEFAULT_CURRICULUM_ROADMAP);
+      try {
+        window.localStorage.setItem(ROADMAP_FINANCE_SEED_FLAG, '1');
+      } catch {
+        // ignore
+      }
       return DEFAULT_CURRICULUM_ROADMAP;
     }
-    return sanitizeRoadmapItems(JSON.parse(raw));
+    const sanitized = sanitizeRoadmapItems(JSON.parse(raw));
+    const merged = applyPendingSeedMerges(sanitized);
+    if (merged.changed) {
+      saveCurriculumRoadmapLocal(merged.items);
+    }
+    return merged.items;
   } catch {
     return DEFAULT_CURRICULUM_ROADMAP;
   }
@@ -263,8 +318,12 @@ export function subscribeCurriculumRoadmap(
         if (typeof data.pagesJson === 'string' && data.pagesJson.trim().startsWith('[')) {
           try {
             const parsed = sanitizeRoadmapItems(JSON.parse(data.pagesJson));
-            saveCurriculumRoadmapLocal(parsed);
-            onUpdate(parsed);
+            const merged = applyPendingSeedMerges(parsed);
+            saveCurriculumRoadmapLocal(merged.items);
+            if (merged.changed) {
+              void saveCurriculumRoadmap(db, merged.items);
+            }
+            onUpdate(merged.items);
             return;
           } catch {
             // fallback to local
