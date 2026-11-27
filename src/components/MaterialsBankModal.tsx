@@ -19,6 +19,7 @@ import {
   DEFAULT_CURRICULUM_ROADMAP,
   RoadmapPriority,
   RoadmapStatus,
+  markRoadmapSeedDismissed,
   saveCurriculumRoadmap,
   subscribeCurriculumRoadmap,
 } from '../utils/curriculumRoadmap';
@@ -383,6 +384,7 @@ export const MaterialsBankModal: React.FC<MaterialsBankModalProps> = ({
   };
 
   const handleDeleteRoadmapItem = async (itemId: string) => {
+    markRoadmapSeedDismissed(itemId);
     const next = roadmapItems.filter((it) => it.id !== itemId);
     setConfirmDeleteRoadmapId(null);
     await persistRoadmapUpdate(next, 'Item rencana materi dihapus dari daftar.');

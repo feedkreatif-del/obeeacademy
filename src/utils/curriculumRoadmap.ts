@@ -25,7 +25,7 @@ export interface CurriculumRoadmapItem {
 export const ROADMAP_LOCAL_KEY = 'obee_curriculum_roadmap_v1';
 export const ROADMAP_DOC_ID = 'curriculum_roadmap';
 const ROADMAP_SOURCE_ID = 'obeeacademy_roadmap';
-const ROADMAP_FINANCE_SEED_FLAG = 'obee_roadmap_seed_fin_v1';
+const ROADMAP_DISMISSED_SEEDS_KEY = 'obee_roadmap_dismissed_seeds_v1';
 
 const FINANCE_ROADMAP_ITEM: CurriculumRoadmapItem = {
   id: 'rm_laporan_keuangan_umkm',
@@ -202,27 +202,48 @@ function sanitizeRoadmapItems(raw: unknown): CurriculumRoadmapItem[] {
   return cleaned.length > 0 ? cleaned : DEFAULT_CURRICULUM_ROADMAP;
 }
 
+const ADDITIONAL_OFFICIAL_SEEDS: CurriculumRoadmapItem[] = [FINANCE_ROADMAP_ITEM];
+
+function getDismissedSeedIds(): Set<string> {
+  try {
+    const raw = window.localStorage.getItem(ROADMAP_DISMISSED_SEEDS_KEY);
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed)
+      ? new Set(parsed.filter((id): id is string => typeof id === 'string'))
+      : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+export function markRoadmapSeedDismissed(itemId: string): void {
+  if (!ADDITIONAL_OFFICIAL_SEEDS.some((seed) => seed.id === itemId)) return;
+  try {
+    const current = getDismissedSeedIds();
+    current.add(itemId);
+    window.localStorage.setItem(ROADMAP_DISMISSED_SEEDS_KEY, JSON.stringify(Array.from(current)));
+  } catch {
+    // ignore storage errors
+  }
+}
+
 function applyPendingSeedMerges(items: CurriculumRoadmapItem[]): {
   items: CurriculumRoadmapItem[];
   changed: boolean;
 } {
-  try {
-    const alreadySeeded = window.localStorage.getItem(ROADMAP_FINANCE_SEED_FLAG) === '1';
-    const exists = items.some((it) => it.id === FINANCE_ROADMAP_ITEM.id);
-    if (!alreadySeeded && !exists) {
-      window.localStorage.setItem(ROADMAP_FINANCE_SEED_FLAG, '1');
-      return {
-        items: [...items, FINANCE_ROADMAP_ITEM],
-        changed: true,
-      };
+  const dismissed = getDismissedSeedIds();
+  const next = [...items];
+  let changed = false;
+
+  for (const seed of ADDITIONAL_OFFICIAL_SEEDS) {
+    if (!dismissed.has(seed.id) && !next.some((it) => it.id === seed.id)) {
+      next.push(seed);
+      changed = true;
     }
-    if (exists && !alreadySeeded) {
-      window.localStorage.setItem(ROADMAP_FINANCE_SEED_FLAG, '1');
-    }
-  } catch {
-    // ignore storage errors
   }
-  return { items, changed: false };
+
+  return { items: next, changed };
 }
 
 export function loadCurriculumRoadmapLocal(): CurriculumRoadmapItem[] {
@@ -230,11 +251,6 @@ export function loadCurriculumRoadmapLocal(): CurriculumRoadmapItem[] {
     const raw = window.localStorage.getItem(ROADMAP_LOCAL_KEY);
     if (!raw) {
       saveCurriculumRoadmapLocal(DEFAULT_CURRICULUM_ROADMAP);
-      try {
-        window.localStorage.setItem(ROADMAP_FINANCE_SEED_FLAG, '1');
-      } catch {
-        // ignore
-      }
       return DEFAULT_CURRICULUM_ROADMAP;
     }
     const sanitized = sanitizeRoadmapItems(JSON.parse(raw));
@@ -289,8 +305,12 @@ export async function loadCurriculumRoadmap(db: Firestore): Promise<CurriculumRo
       const data = snap.data() as Partial<FlipchartBoardDoc>;
       if (typeof data.pagesJson === 'string' && data.pagesJson.trim().startsWith('[')) {
         const parsed = sanitizeRoadmapItems(JSON.parse(data.pagesJson));
-        saveCurriculumRoadmapLocal(parsed);
-        return parsed;
+        const merged = applyPendingSeedMerges(parsed);
+        saveCurriculumRoadmapLocal(merged.items);
+        if (merged.changed) {
+          void saveCurriculumRoadmap(db, merged.items);
+        }
+        return merged.items;
       }
     } else {
       // Seed awal ke Firestore agar perangkat lain langsung memiliki daftar rencana awal
