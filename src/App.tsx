@@ -2124,6 +2124,15 @@ export default function App() {
             </button>
 
             <button
+              onClick={() => setIsAuthModalOpen(true)}
+              className="px-2 sm:px-2.5 py-1.5 text-xs font-bold text-emerald-300 hover:text-white bg-white/10 hover:bg-white/20 border border-white/15 rounded-lg transition-colors cursor-pointer shrink-0 flex items-center gap-1"
+              title="Pengaturan PIN Rahasia & Panel Navigasi Pemateri"
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">PIN</span>
+            </button>
+
+            <button
               onClick={handleLockPresenter}
               className="p-1.5 text-white/70 hover:text-white bg-white/5 hover:bg-white/15 border border-white/15 rounded-lg transition-colors cursor-pointer shrink-0"
               title="Kunci Akses Presenter & Kembali ke Tampilan Peserta"

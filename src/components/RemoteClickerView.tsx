@@ -682,9 +682,61 @@ export const RemoteClickerView: React.FC<RemoteClickerViewProps> = ({
                 </button>
               </div>
             </form>
+          ) : (isMentorVerified || (typeof window !== 'undefined' && window.innerWidth >= 768)) ? (
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const cleaned = newPinInput.trim().slice(0, 16);
+                if (cleaned.length < 6) {
+                  setPinError('PIN baru wajib minimal 6 karakter atau angka.');
+                  return;
+                }
+                try {
+                  const cfg = await setPresenterPin(
+                    db,
+                    cleaned,
+                    mentorUser?.email || 'remote_host_setup'
+                  );
+                  setPinConfig(cfg);
+                  setNewPinInput('');
+                  unlockRemoteSession();
+                } catch {
+                  setPinError('Gagal menyimpan PIN rahasia ke Cloud.');
+                }
+              }}
+              className="rounded-2xl bg-white/10 border border-white/20 p-4 space-y-3 text-left"
+            >
+              <div className="text-xs font-bold text-[#F28C28] uppercase tracking-wider">
+                Pengaturan Awal PIN Rahasia
+              </div>
+              <p className="text-xs text-white/80 leading-relaxed">
+                Belum ada PIN yang tersimpan. Buat PIN rahasia pribadi Anda (minimal 6 angka/karakter) agar bisa membuka Remote HP & Panel Pemateri dari perangkat mana saja.
+              </p>
+              <input
+                type="password"
+                inputMode="numeric"
+                maxLength={16}
+                value={newPinInput}
+                onChange={(e) => {
+                  setPinError('');
+                  setNewPinInput(e.target.value);
+                }}
+                placeholder="Buat PIN baru (min 6 karakter)"
+                autoComplete="new-password"
+                className="w-full rounded-xl bg-white/15 border border-white/25 px-3.5 py-2.5 text-sm font-mono font-bold text-white placeholder:text-white/50 focus:outline-none focus:border-[#F28C28]"
+              />
+              {pinError && <p className="text-xs font-bold text-red-300">{pinError}</p>}
+              <button
+                type="submit"
+                disabled={newPinInput.trim().length < 6}
+                className="w-full py-2.5 rounded-xl bg-[#F28C28] hover:bg-[#d97719] text-white text-xs font-extrabold cursor-pointer disabled:opacity-50"
+              >
+                Simpan PIN Rahasia & Buka Remote
+              </button>
+            </form>
           ) : (
             <div className="rounded-2xl bg-white/10 border border-white/15 p-4 text-xs text-white/85 leading-relaxed">
-              PIN pemateri belum diatur. Silakan masuk dengan Akun Google Mentor di atas atau atur PIN rahasia terlebih dahulu melalui layar presenter utama.
+              PIN pemateri belum diatur. Silakan masuk dengan Akun Google Mentor di atas atau atur PIN rahasia terlebih dahulu melalui layar laptop presenter utama.
             </div>
           )}
         </div>
