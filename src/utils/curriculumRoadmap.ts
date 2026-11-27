@@ -26,13 +26,14 @@ export const ROADMAP_LOCAL_KEY = 'obee_curriculum_roadmap_v1';
 export const ROADMAP_DOC_ID = 'curriculum_roadmap';
 const ROADMAP_SOURCE_ID = 'obeeacademy_roadmap';
 const ROADMAP_DISMISSED_SEEDS_KEY = 'obee_roadmap_dismissed_seeds_v1';
+const ROADMAP_FINANCE_LINK_UPGRADE_KEY = 'obee_roadmap_fin_linked_v1';
 
 const FINANCE_ROADMAP_ITEM: CurriculumRoadmapItem = {
   id: 'rm_laporan_keuangan_umkm',
   title: 'Laporan Keuangan Praktis UMKM: Pisah Kas, Hitung HPP & Laba Rugi 1 Halaman',
   pillar: 'Pilar Bisnis & Keuangan',
   priority: 'tinggi',
-  status: 'ide',
+  status: 'selesai',
   summary:
     'Panduan keuangan anti-rumit untuk UMKM: memisahkan rekening pribadi dan usaha, menghitung HPP asli termasuk biaya kemasan/promo/admin marketplace, serta membaca arus kas dan titik impas harian.',
   tierPlan: {
@@ -43,8 +44,9 @@ const FINANCE_ROADMAP_ITEM: CurriculumRoadmapItem = {
     coaching:
       'Bedah catatan transaksi 1 bulan terakhir peserta & tentukan batas aman biaya iklan/promo serta target penjualan harian.',
   },
+  linkedMaterialId: 'laporan_keuangan_umkm_master_1',
   createdAt: 1735000008000,
-  updatedAt: 1735000008000,
+  updatedAt: 1735100000000,
 };
 
 export const DEFAULT_CURRICULUM_ROADMAP: CurriculumRoadmapItem[] = [
@@ -241,6 +243,28 @@ function applyPendingSeedMerges(items: CurriculumRoadmapItem[]): {
       next.push(seed);
       changed = true;
     }
+  }
+
+  try {
+    const upgradedOnce = window.localStorage.getItem(ROADMAP_FINANCE_LINK_UPGRADE_KEY) === '1';
+    const finIdx = next.findIndex((it) => it.id === FINANCE_ROADMAP_ITEM.id);
+    if (finIdx >= 0 && !upgradedOnce) {
+      const existing = next[finIdx];
+      const hasGenericDraftLink =
+        !existing.linkedMaterialId || existing.linkedMaterialId.startsWith('mat_');
+      if (hasGenericDraftLink) {
+        next[finIdx] = {
+          ...existing,
+          status: 'selesai',
+          linkedMaterialId: FINANCE_ROADMAP_ITEM.linkedMaterialId,
+          updatedAt: Math.max(existing.updatedAt || 0, FINANCE_ROADMAP_ITEM.updatedAt),
+        };
+        changed = true;
+      }
+      window.localStorage.setItem(ROADMAP_FINANCE_LINK_UPGRADE_KEY, '1');
+    }
+  } catch {
+    // ignore storage errors
   }
 
   return { items: next, changed };

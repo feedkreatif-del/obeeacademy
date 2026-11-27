@@ -13,8 +13,10 @@ import { SESI_6_SELLING_CURRICULUM } from '../data/sesi6Selling';
 import { STROBIST_LIGHTING_CURRICULUM } from '../data/strobistLightingMastery';
 import { VISUAL_IDENTITY_CURRICULUM } from '../data/visualIdentity';
 import { FOTO_PRODUK_DASAR_CURRICULUM } from '../data/fotoProdukDasar';
+import { LAPORAN_KEUANGAN_UMKM_CURRICULUM } from '../data/laporanKeuanganUmkm';
 import { CustomContentDoc, SavedMaterial, BrandThemeConfig } from '../types';
 export type { SavedMaterial };
+export { LAPORAN_KEUANGAN_UMKM_CURRICULUM };
 import { DEFAULT_BRAND_THEME, sanitizeBrandTheme } from '../brandTheme';
 import { sanitizeForFirestore } from '../firebase';
 import {
@@ -1586,8 +1588,20 @@ export const INITIAL_PRESET_MATERIALS: SavedMaterial[] = [
   STROBIST_LIGHTING_CURRICULUM,
   VISUAL_IDENTITY_CURRICULUM,
   FOTO_PRODUK_DASAR_CURRICULUM,
+  LAPORAN_KEUANGAN_UMKM_CURRICULUM,
   COPYWRITING_MATERIAL_PRESET,
 ];
+
+function isGenericFinanceBlankDraft(m: SavedMaterial): boolean {
+  if (!m || m.id === LAPORAN_KEUANGAN_UMKM_CURRICULUM.id) return false;
+  const titleLower = (m.seminarTitle || '').toLowerCase();
+  const matchesTitle =
+    titleLower.includes('laporan keuangan praktis umkm') ||
+    titleLower.includes('laporan keuangan untuk umkm');
+  const slidesCount = m.content?.slides?.length ?? 0;
+  const questionsCount = m.content?.questions?.length ?? 0;
+  return matchesTitle && slidesCount <= 5 && questionsCount <= 3;
+}
 
 /**
  * Muat daftar materi tersimpan dari LocalStorage dengan fallback ke preset bawaan
@@ -1612,10 +1626,27 @@ export function getSavedMaterialsLocal(): SavedMaterial[] {
       const hasStrobist1 = parsed.some((m) => m.id === STROBIST_LIGHTING_CURRICULUM.id);
       const hasVisualIdentity = parsed.some((m) => m.id === VISUAL_IDENTITY_CURRICULUM.id);
       const hasFotoProdukDasar = parsed.some((m) => m.id === FOTO_PRODUK_DASAR_CURRICULUM.id);
+      const hasLaporanKeuangan = parsed.some((m) => m.id === LAPORAN_KEUANGAN_UMKM_CURRICULUM.id);
       const hasCopywriting = parsed.some((m) => m.id === COPYWRITING_MATERIAL_PRESET.id);
 
       let updated = [...parsed];
       let changed = false;
+
+      // Jika pengguna sebelumnya sempat klik "Buat Draf di Bank Materi" pada Rencana Keuangan,
+      // upgrade draf kosong generik tersebut langsung menjadi modul lengkap tanpa duplikasi.
+      const genericFinanceDrafts = updated.filter(isGenericFinanceBlankDraft);
+      if (genericFinanceDrafts.length > 0) {
+        const activeId = getActiveMaterialIdLocal();
+        if (genericFinanceDrafts.some((d) => d.id === activeId)) {
+          setActiveMaterialIdLocal(LAPORAN_KEUANGAN_UMKM_CURRICULUM.id);
+        }
+        const firstIdx = updated.findIndex(isGenericFinanceBlankDraft);
+        updated = updated.filter((m) => !isGenericFinanceBlankDraft(m));
+        if (!updated.some((m) => m.id === LAPORAN_KEUANGAN_UMKM_CURRICULUM.id)) {
+          updated.splice(Math.max(0, firstIdx), 0, LAPORAN_KEUANGAN_UMKM_CURRICULUM);
+        }
+        changed = true;
+      }
 
       if (!hasMaster) {
         updated.unshift(DEFAULT_PARTNERUP_CURRICULUM);
@@ -1788,6 +1819,24 @@ export function getSavedMaterialsLocal(): SavedMaterial[] {
           }
         }
       }
+      if (!updated.some((m) => m.id === LAPORAN_KEUANGAN_UMKM_CURRICULUM.id) && !hasLaporanKeuangan) {
+        const fpPos = updated.findIndex((m) => m.id === FOTO_PRODUK_DASAR_CURRICULUM.id);
+        updated.splice(fpPos >= 0 ? fpPos + 1 : 10, 0, LAPORAN_KEUANGAN_UMKM_CURRICULUM);
+        changed = true;
+      } else {
+        const lkIdx = updated.findIndex((m) => m.id === LAPORAN_KEUANGAN_UMKM_CURRICULUM.id);
+        if (lkIdx >= 0) {
+          const currentLk = updated[lkIdx];
+          const needsLkRefresh =
+            !currentLk?.updatedAt ||
+            currentLk.updatedAt < 1735100000000 ||
+            !currentLk?.content?.polls?.some((p: LivePollConfig) => p.id === 'poll_lk_kendala_keuangan');
+          if (needsLkRefresh && currentLk) {
+            updated[lkIdx] = LAPORAN_KEUANGAN_UMKM_CURRICULUM;
+            changed = true;
+          }
+        }
+      }
       if (!hasCopywriting) {
         updated.push(COPYWRITING_MATERIAL_PRESET);
         changed = true;
@@ -1897,15 +1946,30 @@ export async function syncMaterialsFromFirestore(db: Firestore): Promise<SavedMa
     });
 
     if (remoteDocs.length > 0) {
+      // Bersihkan draf kosong generik Laporan Keuangan di Firestore jika sudah digantikan modul lengkap
+      const staleBlankRemoteIds = remoteDocs
+        .filter(isGenericFinanceBlankDraft)
+        .map((d) => d.id);
+      staleBlankRemoteIds.forEach((blankId) => {
+        deleteDoc(doc(db, 'custom_content', blankId)).catch(() => {});
+      });
+
       // Gabungkan data remote dan lokal (versi dengan updatedAt lebih baru menang)
       const mergedMap = new Map<string, SavedMaterial>();
-      localList.forEach((m) => mergedMap.set(m.id, m));
-      remoteDocs.forEach((m) => {
-        const existing = mergedMap.get(m.id);
-        if (!existing || (m.updatedAt || 0) >= (existing.updatedAt || 0)) {
-          mergedMap.set(m.id, m);
-        }
-      });
+      localList
+        .filter((m) => !isGenericFinanceBlankDraft(m))
+        .forEach((m) => mergedMap.set(m.id, m));
+      remoteDocs
+        .filter((m) => !isGenericFinanceBlankDraft(m))
+        .forEach((m) => {
+          const existing = mergedMap.get(m.id);
+          if (!existing || (m.updatedAt || 0) >= (existing.updatedAt || 0)) {
+            mergedMap.set(m.id, m);
+          }
+        });
+      if (!mergedMap.has(LAPORAN_KEUANGAN_UMKM_CURRICULUM.id)) {
+        mergedMap.set(LAPORAN_KEUANGAN_UMKM_CURRICULUM.id, LAPORAN_KEUANGAN_UMKM_CURRICULUM);
+      }
       const merged = Array.from(mergedMap.values());
       saveSavedMaterialsLocal(merged);
       return merged;
