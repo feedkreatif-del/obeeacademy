@@ -821,6 +821,30 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
     }
   };
 
+  const handleSharePublicBursa = async () => {
+    const shareTitle = campaign.title || 'Bursa Kelas UMKM — obeeAcademy';
+    const shareText = `Yuk pilih tema kelas & amankan kursimu bersama ${
+      campaign.organizerName || 'obeeAcademy'
+    }:`;
+
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+      try {
+        await navigator.share({
+          title: shareTitle,
+          text: shareText,
+          url: baseBursaUrl,
+        });
+        return;
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') {
+          return;
+        }
+      }
+    }
+
+    await handleCopyText('floating_share_bursa', baseBursaUrl);
+  };
+
   const openVoteModalForMaterial = (offeringOrMatId: string) => {
     const resolved = resolveTierSafe(offeringOrMatId);
     const nextKey = resolved?.offeringKey || offeringOrMatId;
@@ -1680,8 +1704,14 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
       })
       .filter((item): item is NonNullable<typeof item> => item !== null);
 
+    const adminWaNormalized = normalizeWhatsappForWaMe(campaign.mentorWhatsapp || '');
+    const hasPublicModalOpen =
+      isVoteModalOpen ||
+      (isPaymentModalOpen && payableContext.pricing.isPaid) ||
+      Boolean(posterModalOffering);
+
     return (
-      <div className="max-w-[1380px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-9 space-y-8">
+      <div className="max-w-[1380px] mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-28 sm:pt-9 sm:pb-24 space-y-8">
         {/* Hero & Quorum Status */}
         <section className="bg-[#1F3A5F] text-white rounded-3xl p-5 sm:p-8 border border-white/10 shadow-md relative overflow-hidden">
           <div className="relative z-10 space-y-5">
@@ -3280,6 +3310,52 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
 
         {/* Poster PNG Download Modal */}
         {posterDownloadModalJsx}
+
+        {/* Floating Bottom-Right Quick Actions: Share & Chat Admin WA (Public Only) */}
+        {!hasPublicModalOpen && (
+          <div
+            className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-30 flex flex-col items-end gap-2.5 pointer-events-none"
+            aria-label="Tombol cepat bagikan halaman dan chat admin WhatsApp"
+          >
+            <button
+              type="button"
+              onClick={handleSharePublicBursa}
+              className="pointer-events-auto flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white/95 hover:bg-white text-[#1F3A5F] border border-[#1F3A5F]/15 shadow-lg shadow-slate-900/10 backdrop-blur-xs text-xs font-extrabold cursor-pointer transition-all hover:-translate-y-0.5 active:scale-95"
+              title="Bagikan halaman Bursa Kelas ini ke WhatsApp, grup, atau media sosial"
+            >
+              {copiedKey === 'floating_share_bursa' ? (
+                <>
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span className="text-emerald-700">Link Tersalin!</span>
+                </>
+              ) : (
+                <>
+                  <Share2 className="w-4 h-4 text-[#F28C28] shrink-0" />
+                  <span>Bagikan</span>
+                </>
+              )}
+            </button>
+
+            {adminWaNormalized && (
+              <a
+                href={`https://wa.me/${adminWaNormalized}?text=${encodeURIComponent(
+                  `Halo Admin ${
+                    campaign.organizerName || 'obeeAcademy'
+                  }, saya mau tanya info kelas/workshop di halaman "${
+                    campaign.title || 'Bursa Kelas UMKM'
+                  }".`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="pointer-events-auto flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-950/20 border border-emerald-500/40 text-xs sm:text-sm font-extrabold transition-all hover:-translate-y-0.5 active:scale-95"
+                title="Hubungi Admin melalui WhatsApp"
+              >
+                <MessageCircle className="w-4 h-4 shrink-0" />
+                <span>Chat Admin</span>
+              </a>
+            )}
+          </div>
+        )}
       </div>
     );
   }
@@ -5399,7 +5475,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
               <div className="md:col-span-8 space-y-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Nomor WhatsApp Konfirmasi Bukti Transfer Mentor (Opsional)
+                    Nomor WhatsApp Admin &amp; Konfirmasi Mentor (Aktifkan Tombol Chat WA Publik)
                   </label>
                   <input
                     type="tel"
@@ -5411,7 +5487,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                         mentorWhatsapp: e.target.value,
                       })
                     }
-                    placeholder="Contoh: 081234567890 (tampil sebagai tombol kirim bukti di modal QRIS)"
+                    placeholder="Contoh: 081234567890 (tampil di pojok kanan bawah halaman publik & modal QRIS)"
                     className="w-full px-3.5 py-2 text-xs bg-white border border-slate-300 rounded-xl"
                   />
                 </div>
