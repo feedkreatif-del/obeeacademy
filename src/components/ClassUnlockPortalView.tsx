@@ -3314,14 +3314,19 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
         {/* Floating Bottom-Right Quick Actions: Share & Chat Admin WA (Public Only) */}
         {!hasPublicModalOpen && (
           <div
-            className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-30 flex flex-col items-end gap-2.5 pointer-events-none"
+            className="fixed bottom-4 right-3 sm:bottom-6 sm:right-6 z-30 flex flex-col items-end gap-2 pointer-events-none"
             aria-label="Tombol cepat bagikan halaman dan chat admin WhatsApp"
           >
             <button
               type="button"
               onClick={handleSharePublicBursa}
-              className="pointer-events-auto flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white/95 hover:bg-white text-[#1F3A5F] border border-[#1F3A5F]/15 shadow-lg shadow-slate-900/10 backdrop-blur-xs text-xs font-extrabold cursor-pointer transition-all hover:-translate-y-0.5 active:scale-95"
-              title="Bagikan halaman Bursa Kelas ini ke WhatsApp, grup, atau media sosial"
+              aria-label="Bagikan halaman Bursa Kelas"
+              className={`pointer-events-auto flex items-center justify-center gap-2 rounded-full sm:rounded-xl bg-white/95 hover:bg-white text-[#1F3A5F] border border-[#1F3A5F]/15 shadow-lg shadow-slate-900/12 backdrop-blur-xs text-xs font-extrabold cursor-pointer transition-all hover:-translate-y-0.5 active:scale-95 ${
+                copiedKey === 'floating_share_bursa'
+                  ? 'px-3 py-2 sm:px-3.5 sm:py-2.5'
+                  : 'w-10 h-10 sm:w-auto sm:h-auto sm:px-3.5 sm:py-2.5'
+              }`}
+              title="Bagikan halaman Bursa Kelas ini"
             >
               {copiedKey === 'floating_share_bursa' ? (
                 <>
@@ -3331,7 +3336,7 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
               ) : (
                 <>
                   <Share2 className="w-4 h-4 text-[#F28C28] shrink-0" />
-                  <span>Bagikan</span>
+                  <span className="hidden sm:inline">Bagikan</span>
                 </>
               )}
             </button>
@@ -3347,11 +3352,19 @@ export const ClassUnlockPortalView: React.FC<ClassUnlockPortalViewProps> = ({
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="pointer-events-auto flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-950/20 border border-emerald-500/40 text-xs sm:text-sm font-extrabold transition-all hover:-translate-y-0.5 active:scale-95"
+                aria-label="Chat Admin via WhatsApp"
+                className="pointer-events-auto flex items-center justify-center gap-2 w-12 h-12 sm:w-auto sm:h-auto sm:px-4 sm:py-2.5 rounded-full sm:rounded-xl bg-[#25D366] hover:bg-[#1fb858] text-white shadow-lg shadow-emerald-950/20 border border-white/30 text-xs sm:text-sm font-extrabold transition-all hover:-translate-y-0.5 active:scale-95"
                 title="Hubungi Admin melalui WhatsApp"
               >
-                <MessageCircle className="w-4 h-4 shrink-0" />
-                <span>Chat Admin</span>
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  className="w-6 h-6 sm:w-4 sm:h-4 shrink-0"
+                  aria-hidden="true"
+                >
+                  <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91C21.95 6.45 17.5 2 12.04 2zm5.79 14.01c-.24.68-1.41 1.3-1.95 1.38-.51.08-1.16.11-1.87-.12-.43-.14-.98-.32-1.69-.63-2.97-1.28-4.91-4.28-5.06-4.48-.15-.2-1.21-1.61-1.21-3.07 0-1.46.76-2.18 1.03-2.48.27-.3.59-.37.79-.37.2 0 .39 0 .56.01.18.01.42-.07.66.51.24.59.82 2.02.89 2.17.07.15.12.32.02.52-.1.2-.15.32-.3.5-.15.17-.31.39-.45.52-.15.15-.3.31-.13.61.17.3.77 1.27 1.65 2.06 1.13 1.01 2.09 1.32 2.39 1.47.3.15.47.12.64-.07.17-.2.74-.86.94-1.16.2-.3.39-.25.66-.15.27.1 1.72.81 2.02.96.3.15.49.22.56.34.07.12.07.7-.17 1.38z" />
+                </svg>
+                <span className="hidden sm:inline">Chat Admin</span>
               </a>
             )}
           </div>

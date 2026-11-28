@@ -7,7 +7,12 @@ import {
   signInWithRedirect,
   signOut,
 } from 'firebase/auth';
-import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
+import {
+  getFirestore,
+  initializeFirestore,
+  doc,
+  getDocFromServer,
+} from 'firebase/firestore';
 import firebaseAppletConfig from '../firebase-applet-config.json';
 
 const firebaseConfig = {
@@ -24,7 +29,23 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+
+function createFirestoreInstance() {
+  try {
+    return initializeFirestore(
+      app,
+      {
+        experimentalForceLongPolling: true,
+        ignoreUndefinedProperties: true,
+      },
+      firebaseConfig.firestoreDatabaseId
+    );
+  } catch {
+    return getFirestore(app, firebaseConfig.firestoreDatabaseId);
+  }
+}
+
+export const db = createFirestoreInstance();
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
@@ -146,17 +167,47 @@ export async function logoutUser() {
   }
 }
 
-async function testConnection() {
+async function testConnection(attempt = 0): Promise<void> {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    if (typeof window !== 'undefined' && attempt === 0) {
+      window.addEventListener(
+        'online',
+        () => {
+          void testConnection(1);
+        },
+        { once: true }
+      );
+    }
+    return;
+  }
+
   try {
     await getDocFromServer(doc(db, 'test', 'connection'));
   } catch (error) {
     if (error instanceof Error && error.message.includes('the client is offline')) {
+      if (attempt < 1) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        return testConnection(attempt + 1);
+      }
+      try {
+        const probeUrl = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(
+          firebaseConfig.projectId
+        )}/databases/${encodeURIComponent(
+          firebaseConfig.firestoreDatabaseId
+        )}/documents/test/connection`;
+        const probeRes = await fetch(probeUrl, { method: 'GET', cache: 'no-store' });
+        if (probeRes.status === 200 || probeRes.status === 404 || probeRes.status === 403) {
+          return;
+        }
+      } catch {
+        // Network probe failed; fall through to configuration warning
+      }
       console.error('Please check your Firebase configuration.');
     }
   }
 }
 
-testConnection();
+void testConnection();
 
 export function getOrCreateParticipantId(): string {
   const key = 'partnerup_participant_id';
